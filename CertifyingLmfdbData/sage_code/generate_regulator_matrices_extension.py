@@ -1,5 +1,3 @@
-# this extension is AI generated and needs to be sanity checked
-
 """Compute the unit log-embedding matrix whose absolute determinant is the
 regulator of a number field.
 
@@ -134,11 +132,38 @@ def lu_inverse_norm_bound(A, p='2'):
     }
 
 
-def norm_power_n_minus_1(A, p=2):
-    """Compute ||A||_p^(n-1), where n is the dimension of A."""
+def norm2_bound_frobenius(A):
+    """Cheap bound on ||A||_2 via ||A||_2 <= ||A||_F."""
+    A = matrix(RDF, A)
+    return A.norm('frob')
+
+
+def norm2_bound_interp(A):
+    """Cheap bound on ||A||_2 via ||A||_2 <= sqrt(||A||_1 * ||A||_oo)."""
+    A = matrix(RDF, A)
+    return (A.norm(1) * A.norm(Infinity)).sqrt()
+
+
+def norm_power_n_minus_1_bounds(A):
+    """
+    Return (n-1)-power estimates of ||A||_2 using the two cheap bounds
+    on ||A||_2 described above:
+
+        ||A||_2 <= ||A||_F                       (Frobenius bound)
+        ||A||_2 <= sqrt(||A||_1 * ||A||_oo)       (interpolation bound)
+
+    raised to the (n-1) power, i.e. estimates of ||A||_2^(n-1).
+    """
     A = matrix(RDF, A)
     n = A.nrows()
-    return A.norm(p) ** (n - 1)
+    frob_bound = norm2_bound_frobenius(A)
+    interp_bound = norm2_bound_interp(A)
+    return {
+        'frob_bound': frob_bound,
+        'interp_bound': interp_bound,
+        'frob_bound_pow': frob_bound ** (n - 1),
+        'interp_bound_pow': interp_bound ** (n - 1),
+    }
 
 
 def det_times_inv_norm_bound(A):
@@ -219,24 +244,28 @@ def print_lu_bound_report(A, digits=8):
     print("actual ||A^{-1}||_2  :", fmt(actual['2']))
     print("actual ||A^{-1}||_oo :", fmt(actual['oo']))
 
-    # (1) ||A||^(n-1)
+    # Final summary block, in the requested order:
+    # 1. exact ||A||_2^(n-1)
+    # 2. ||A||_F^(n-1) approximation of (1)
+    # 3. interpolation approximation of (1)
+    # 4. value of |det A| * ||A^{-1}||
+    # 5. rough PLU-based bound for (4)
     print("-" * 60)
-    normA2 = A.norm(2)
-    powerA = norm_power_n_minus_1(A, p=2)
-    print("%-45s %s" % ("||A||_2", fmt(normA2)))
-    print("%-45s %s" % ("||A||_2^(n-1)  (n = %d)" % n, fmt(powerA)))
-
-    # (2) bound for |det(A)| * ||A^{-1}|| via PLU
-    print("-" * 60)
+    pow_bounds = norm_power_n_minus_1_bounds(A)
+    exact_pow = A.norm(2) ** (n - 1)
     det_res = det_times_inv_norm_bound(A)
-    print("%-45s %s" % ("|det(A)|", fmt(abs(det_res['det_A']))))
-    print("%-45s %s" % ("|det(U)|  (= |det(A)| up to sign of P)",
-                         fmt(abs(det_res['det_U']))))
-    print("%-45s %s" % ("bound: |det A| * ||A^{-1}||  (via PLU)",
-                         fmt(det_res['bound_det_times_Ainv'])))
     actual_det_times_inv = abs(det_res['det_A']) * actual['2']
-    print("%-45s %s" % ("actual |det A| * ||A^{-1}||_2",
+
+    print("%-45s %s" % ("(1) exact ||A||_2^(n-1)  (n = %d)" % n,
+                         fmt(exact_pow)))
+    print("%-45s %s" % ("(2) ||A||_F^(n-1) approx of (1)",
+                         fmt(pow_bounds['frob_bound_pow'])))
+    print("%-45s %s" % ("(3) sqrt(||A||_1*||A||_oo)^(n-1) approx of (1)",
+                         fmt(pow_bounds['interp_bound_pow'])))
+    print("%-45s %s" % ("(4) |det A| * ||A^{-1}||_2",
                          fmt(actual_det_times_inv)))
+    print("%-45s %s" % ("(5) PLU-based rough bound for (4)",
+                         fmt(det_res['bound_det_times_Ainv'])))
     print("=" * 60)
 
 
