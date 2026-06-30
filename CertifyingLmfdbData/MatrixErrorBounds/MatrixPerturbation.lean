@@ -24,6 +24,11 @@ end
 
 open Fintype (card)
 open WithLp Finset Matrix Norms.L2Operator
+open scoped NNReal Matrix.Norms.L2Operator
+
+local notation "‖" A "‖f" => √(∑ i, ∑ j, ‖A i j‖ ^ 2)
+local notation "‖" A "‖₁" => (((Finset.univ.sup fun j => ∑ i, ‖A i j‖₊) : ℝ≥0) : ℝ)
+local notation "‖" A "‖∞" => (((Finset.univ.sup fun i => ∑ j, ‖A i j‖₊) : ℝ≥0) : ℝ)
 
 variable {n m : Type*} [Fintype n] [Fintype m]
 
@@ -130,7 +135,7 @@ theorem prod_toLp_col_le_opNorm_pow : ∏ i : n, ‖toLp 2 (A.col i)‖ ≤ ‖A
 lemma norm_det_le_opNorm_pow : ‖A.det‖ ≤ ‖A‖ ^ card n :=
   norm_det_le_prod_toLp_col.trans prod_toLp_col_le_opNorm_pow
 
-lemma l2_opNorm_sq_le_frobenius (A : Matrix m n K) : ‖A‖ ≤ √(∑ i, ∑ j, ‖A i j‖ ^ 2) := by
+lemma l2_opNorm_le_frobenius (A : Matrix m n K) : ‖A‖ ≤ ‖A‖f := by
   refine ContinuousLinearMap.opNorm_le_bound _ (by simp) ?_
   intro x
   cases x using WithLp.rec with | toLp x =>
@@ -145,12 +150,54 @@ lemma l2_opNorm_sq_le_frobenius (A : Matrix m n K) : ‖A‖ ≤ √(∑ i, ∑ 
     Real.sq_sqrt (by positivity), sum_mul]
   exact sum_le_sum fun i _ ↦ this i
 
+-- AI generated, not cleaned up
+lemma l2_opNorm_sq_le_sqrt_l1_mul_linf (A : Matrix m n K) : ‖A‖ ≤ √(‖A‖₁ * ‖A‖∞) := by
+  refine ContinuousLinearMap.opNorm_le_bound _ (by positivity) ?_
+  intro x
+  cases x using WithLp.rec with | toLp x =>
+  simp only [LinearEquiv.trans_apply, LinearMap.coe_toContinuousLinearMap', toLpLin_toLp,
+    toLin'_apply]
+  rw [EuclideanSpace.norm_eq, Real.sqrt_le_left (by positivity), mul_pow,
+    Real.sq_sqrt (by positivity), PiLp.norm_sq_eq_of_L2]
+  calc
+    ∑ i, ‖toLp 2 (A *ᵥ x) i‖ ^ 2
+        ≤ ∑ i, (∑ j, ‖A i j‖) * ∑ j, ‖A i j‖ * ‖x j‖ ^ 2 := by
+      gcongr with i hi
+      calc
+        ‖toLp 2 (A *ᵥ x) i‖ ^ 2 = ‖∑ j, x j * A i j‖ ^ 2 := by
+          simp [Matrix.mulVec_eq_sum]
+        _ ≤ (∑ j, ‖A i j‖ * ‖x j‖) ^ 2 := by
+          grw [norm_sum_le]
+          simp [norm_mul, mul_comm]
+        _ ≤ (∑ j, ‖A i j‖) * ∑ j, ‖A i j‖ * ‖x j‖ ^ 2 := by
+          simpa only [Finset.mem_univ, true_and] using
+            sum_sq_le_sum_mul_sum_of_sq_le_mul (Finset.univ : Finset n)
+              (r := fun j => ‖A i j‖ * ‖x j‖)
+              (f := fun j => ‖A i j‖)
+              (g := fun j => ‖A i j‖ * ‖x j‖ ^ 2)
+              (by simp) (fun _ _ ↦ by positivity) (fun _ _ ↦ by ring_nf; rfl)
+    _ ≤ ‖A‖∞ * ∑ i, ∑ j, ‖A i j‖ * ‖x j‖ ^ 2 := by
+      rw [Finset.mul_sum]
+      gcongr
+      rw [show (∑ j, ‖A i j‖) = ((∑ j, ‖A i j‖₊ : ℝ≥0) : ℝ) by simp]
+      exact_mod_cast Finset.le_sup (f := fun i => ∑ j, ‖A i j‖₊) (Finset.mem_univ i)
+    _ = ‖A‖∞ * ∑ j, (∑ i, ‖A i j‖) * ‖x j‖ ^ 2 := by
+      rw [Finset.sum_comm]
+      simp_rw [Finset.sum_mul]
+    _ ≤ ‖A‖∞ * ∑ j, ‖A‖₁ * ‖x j‖ ^ 2 := by
+      gcongr with j hj
+      rw [show (∑ i, ‖A i j‖) = ((∑ i, ‖A i j‖₊ : ℝ≥0) : ℝ) by simp]
+      exact_mod_cast Finset.le_sup (f := fun j => ∑ i, ‖A i j‖₊) (Finset.mem_univ j)
+    _ = ‖A‖₁ * ‖A‖∞ * ∑ j, ‖x j‖ ^ 2 := by
+      rw [← Finset.mul_sum]
+      ring
+
 lemma l2_opNorm_isEmpty [IsEmpty n] {A : Matrix m n K} : ‖A‖ = 0 := by
   refine le_antisymm ?_ (by simp)
   refine ContinuousLinearMap.opNorm_le_bound _ (by simp) ?_
   intro x
   have : x = 0 := Subsingleton.elim _ _
-  simp [this]
+  simp [nontriviality]
 
 lemma l2_opNorm_diagonal (d : n → K) :
     ‖diagonal d‖ = ‖d‖ := by
@@ -285,7 +332,7 @@ lemma single_same_eq_diagonal_single {n α : Type*} [DecidableEq n] [Zero α] {i
   simp [diagonal_apply, Pi.single_apply, single]
   grind
 
-theorem main_result_diag_fin_aux {n : ℕ} (d : Fin (n + 1) → ℂ)
+theorem absolute_bound_diag_fin_aux {n : ℕ} (d : Fin (n + 1) → ℂ)
     (F : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) :
     ‖(diagonal d + F).det - (diagonal d).det‖ ≤
       (n + 1) * ‖F‖ * (max ‖diagonal d‖ ‖diagonal d + F‖) ^ n := by
@@ -357,12 +404,12 @@ theorem main_result_diag_fin_aux {n : ℕ} (d : Fin (n + 1) → ℂ)
         linear_combination
       _ = _ := by congr! 2; norm_cast
 
-theorem main_result_diag_fin {n : ℕ} (d : Fin n → ℂ) (E : Matrix (Fin n) (Fin n) ℂ) :
+theorem absolute_bound_diag_fin {n : ℕ} (d : Fin n → ℂ) (E : Matrix (Fin n) (Fin n) ℂ) :
     ‖(diagonal d + E).det - (diagonal d).det‖ ≤
       n * ‖E‖ * max ‖diagonal d‖ ‖diagonal d + E‖ ^ (n - 1) := by
   cases n with
   | zero => simp
-  | succ n => simpa using main_result_diag_fin_aux d E
+  | succ n => simpa using absolute_bound_diag_fin_aux d E
 
 lemma reindex_diagonal {n m : Type*} [DecidableEq n] [DecidableEq m]
     (e : n ≃ m) (d : n → ℂ) :
@@ -371,11 +418,11 @@ lemma reindex_diagonal {n m : Type*} [DecidableEq n] [DecidableEq m]
   ext i j
   simp [diagonal_apply, reindex_apply]
 
-theorem main_result_diag [DecidableEq n] (d : n → ℂ) (E : Matrix n n ℂ) :
+theorem absolute_bound_diag [DecidableEq n] (d : n → ℂ) (E : Matrix n n ℂ) :
     ‖(diagonal d + E).det - (diagonal d).det‖ ≤
       card n * ‖E‖ * (max ‖diagonal d‖ ‖diagonal d + E‖) ^ (card n - 1) := by
   let e : n ≃ Fin (card n) := Fintype.equivFin n
-  have h := main_result_diag_fin (d ∘ e.symm) (E.reindex e e)
+  have h := absolute_bound_diag_fin (d ∘ e.symm) (E.reindex e e)
   have : reindex e e (diagonal d) + reindex e e E = reindex e e (diagonal d + E) := rfl
   rw [← reindex_diagonal e d, this, l2_opNorm_reindex, l2_opNorm_reindex, l2_opNorm_reindex,
     det_reindex_self, det_reindex_self] at h
@@ -502,7 +549,7 @@ lemma norm_of_mem_unitaryGroup [DecidableEq n] [Nonempty n] {U : Matrix n n ℂ}
   CStarRing.norm_of_mem_unitary hU
 
 variable (A E) in
-theorem main_result [DecidableEq n] :
+theorem absolute_bound [DecidableEq n] :
     ‖(A + E).det - A.det‖ ≤ card n * ‖E‖ * (max ‖A‖ ‖A + E‖) ^ (card n - 1) := by
   obtain ⟨U, hU, V, hV, d, h⟩ := exists_svd_square A
   let F := Uᴴ * E * V
@@ -529,16 +576,25 @@ theorem main_result [DecidableEq n] :
   have hdF : ‖diagonal d + F‖ = ‖A + E‖ := by
     rw [← hAE, norm_mul_mem_unitaryGroup, norm_mem_unitaryGroup_mul _ hU]
     exact Unitary.star_mem hV
-  have : ‖z‖ ≤ _ := main_result_diag d F
+  have : ‖z‖ ≤ _ := absolute_bound_diag d F
   calc
     ‖(A + E).det - A.det‖ = ‖(U * Vᴴ).det‖ * ‖z‖ := by
       rw [← det₁, ← det₂, ← norm_mul, mul_sub]
     _ = ‖z‖ := by
       rw [CStarRing.norm_of_mem_unitary, one_mul]
       exact Matrix.det_of_mem_unitary (mul_mem hU (Unitary.star_mem hV))
-    _ ≤ card n * ‖F‖ * max ‖diagonal d‖ ‖diagonal d + F‖ ^ (card n - 1) := main_result_diag d F
+    _ ≤ card n * ‖F‖ * max ‖diagonal d‖ ‖diagonal d + F‖ ^ (card n - 1) := absolute_bound_diag d F
     _ = card n * ‖E‖ * max ‖A‖ ‖A + E‖ ^ (card n - 1) := by
       simp only [hd, hF, hdF]
+
+variable (A E) in
+theorem absolute_bound_simple [DecidableEq n] :
+    ‖(A + E).det - A.det‖ ≤ card n * ‖E‖ * (‖A‖ + ‖E‖) ^ (card n - 1) := by
+  calc
+    ‖(A + E).det - A.det‖ ≤ card n * ‖E‖ * (max ‖A‖ ‖A + E‖) ^ (card n - 1) := absolute_bound A E
+    _ ≤ _ := by
+      gcongr
+      exact max_le (le_add_of_nonneg_right (norm_nonneg E)) (norm_add_le A E)
 
 theorem norm_le_of_entry_le [DecidableEq n]
     {δ : ℝ} (hE : ∀ i j, ‖E i j‖ ≤ δ) : ‖E‖ ≤ (card n) * δ := by
@@ -547,7 +603,7 @@ theorem norm_le_of_entry_le [DecidableEq n]
   let i₀ : n := Classical.ofNonempty
   have hε : 0 ≤ δ := (norm_nonneg (E i₀ i₀)).trans (hE i₀ i₀)
   calc
-    ‖E‖ ≤ √(∑ i, ∑ j, ‖E i j‖ ^ 2) := l2_opNorm_sq_le_frobenius E
+    ‖E‖ ≤ √(∑ i, ∑ j, ‖E i j‖ ^ 2) := l2_opNorm_le_frobenius E
     _ ≤ √(∑ i : n, ∑ j : n, δ ^ 2) := by
       gcongr with i j
       exact hE i j
@@ -557,25 +613,60 @@ theorem norm_le_of_entry_le [DecidableEq n]
       ring
     _ = (card n) * δ := by rw [Real.sqrt_sq (by positivity)]
 
-theorem uniform_bound [DecidableEq n] (δ D : ℝ) (hE : ∀ i j, ‖E i j‖ ≤ δ) (hA : ∀ i j, ‖A i j‖ ≤ D) :
-    ‖(A + E).det - A.det‖ ≤ (card n : ℝ) ^ (card n + 1) * δ * (D + δ) ^ (card n - 1) := by
-  obtain hn | hn := isEmpty_or_nonempty n
-  · simp
-  let i₀ : n := Classical.ofNonempty
-  have hε : 0 ≤ δ := (norm_nonneg (E i₀ i₀)).trans (hE i₀ i₀)
+-- AI generated, not cleaned up
+theorem norm_le_of_entry_le_function [DecidableEq n]
+    {δ : Matrix n n ℝ} (hE : ∀ i j, ‖E i j‖ ≤ δ i j) : ‖E‖ ≤ ‖δ‖ := by
+  refine ContinuousLinearMap.opNorm_le_bound _ (norm_nonneg δ) ?_
+  intro x
+  cases x using WithLp.rec with | toLp x =>
+  let y : n → ℝ := fun j ↦ ‖x j‖
+  have hy_norm : ‖toLp 2 y‖ = ‖toLp 2 x‖ := by
+    rw [PiLp.norm_eq_of_L2, PiLp.norm_eq_of_L2]
+    simp [y]
+  have hδy_nonneg (i : n) : 0 ≤ (δ *ᵥ y) i := by
+    calc
+      0 ≤ ∑ j, ‖x j‖ * ‖E i j‖ := by positivity
+      _ ≤ ∑ j, y j * δ i j := by
+        gcongr with j
+        exact hE i j
+      _ = (δ *ᵥ y) i := by simp [Matrix.mulVec_eq_sum, y, mul_comm]
+  have hpoint (i : n) : ‖toLp 2 (E *ᵥ x) i‖ ≤ ‖toLp 2 (δ *ᵥ y) i‖ := by
+    calc
+      ‖toLp 2 (E *ᵥ x) i‖ = ‖∑ j, x j * E i j‖ := by
+        simp [Matrix.mulVec_eq_sum]
+      _ ≤ ∑ j, ‖x j‖ * ‖E i j‖ := by
+        grw [norm_sum_le]
+        simp [mul_comm]
+      _ ≤ ∑ j, y j * δ i j := by
+        gcongr with j
+        exact hE i j
+      _ = (δ *ᵥ y) i := by simp [Matrix.mulVec_eq_sum, y, mul_comm]
+      _ = ‖toLp 2 (δ *ᵥ y) i‖ := by
+        rw [Real.norm_eq_abs, abs_of_nonneg (hδy_nonneg i)]
+  simp only [LinearEquiv.trans_apply, LinearMap.coe_toContinuousLinearMap', toLpLin_toLp,
+    toLin'_apply]
   calc
-    _ ≤ card n * ‖E‖ * (max ‖A‖ ‖A + E‖) ^ (card n - 1) := main_result A E
+    ‖toLp 2 (E *ᵥ x)‖ ≤ ‖toLp 2 (δ *ᵥ y)‖ := by
+      rw [PiLp.norm_eq_of_L2, PiLp.norm_eq_of_L2]
+      gcongr with i
+      exact hpoint i
+    _ ≤ ‖δ‖ * ‖toLp 2 y‖ := Matrix.l2_opNorm_mulVec δ (toLp 2 y)
+    _ = ‖δ‖ * ‖toLp 2 x‖ := by rw [hy_norm]
+
+theorem absolute_bound_frob [DecidableEq n] {δ : Matrix n n ℝ} (hE : ∀ i j, ‖E i j‖ ≤ δ i j) :
+    ‖(A + E).det - A.det‖ ≤ (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) := by
+  have hδ : ∀ i j, 0 ≤ δ i j := fun i j ↦ (norm_nonneg (E i j)).trans (hE i j)
+  calc
+    _ ≤ card n * ‖E‖ * (max ‖A‖ ‖A + E‖) ^ (card n - 1) := absolute_bound A E
     _ ≤ card n * ‖E‖ * (‖A‖ + ‖E‖) ^ (card n - 1) := by
       gcongr
       exact max_le (le_add_of_nonneg_right (norm_nonneg E)) (norm_add_le A E)
-    _ ≤ card n * ((card n) * δ) * ((card n) * D + (card n) * δ) ^ (card n - 1) := by
-      gcongr
-      · exact norm_le_of_entry_le hE
-      · exact norm_le_of_entry_le hA
-      · exact norm_le_of_entry_le hE
-    _ = card n * ((card n) * δ) * (card n) ^ (card n - 1) * (D + δ) ^ (card n - 1) := by
-      sorry
-    _ = _ := by sorry
+    _ ≤ (card n : ℝ) * ‖δ‖ * (‖A‖ + ‖δ‖) ^ (card n - 1) := by
+      gcongr <;>
+        exact norm_le_of_entry_le_function hE
+    _ ≤ (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) := by
+      gcongr <;>
+        exact l2_opNorm_le_frobenius _
 
 def myMat : Matrix (Fin 2) (Fin 2) ℚ :=
   !![0.237543147066448,  -1.53145788325137;
@@ -620,7 +711,7 @@ lemma det_one_add_norm_sub_one_le [DecidableEq n] (F : Matrix n n ℂ) :
       rw [add_comm 1 ‖F‖, add_pow, Finset.sum_range_succ']
       simp [mul_comm]
 
-theorem relative_error_bound [DecidableEq n] (hA : A.det ≠ 0) :
+theorem relative_bound [DecidableEq n] (hA : A.det ≠ 0) :
     ‖(A + E).det - A.det‖ ≤ ‖A.det‖ * ((1 + ‖A⁻¹‖ * ‖E‖) ^ (card n) - 1) := by
   calc
     ‖(A + E).det - A.det‖ = ‖A.det * ((1 + A⁻¹ * E).det - 1)‖ := by
