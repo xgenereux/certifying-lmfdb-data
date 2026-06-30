@@ -23,7 +23,7 @@ instance {n : Type*} [DecidableEq n] [Fintype n] :
 end
 
 open Fintype (card)
-open WithLp Finset Matrix Norms.L2Operator
+open WithLp Finset Matrix Norms.L2Operator Polynomial
 open scoped NNReal Matrix.Norms.L2Operator
 
 local notation "‖" A "‖f" => √(∑ i, ∑ j, ‖A i j‖ ^ 2)
@@ -37,9 +37,8 @@ section Ring
 variable {R : Type*} [CommRing R] [DecidableEq n] (A : Matrix n n R)
 
 lemma charpoly_ne_zero [Nontrivial R] : A.charpoly ≠ 0 := by
-  simp [← Polynomial.degree_eq_bot, Matrix.charpoly_degree_eq_dim]
+  simp [← degree_eq_bot, Matrix.charpoly_degree_eq_dim]
 
-open Polynomial in
 theorem det_one_add_eq_sum_sum_minors :
     (1 + A).det =
     ∑ k ∈ Finset.range (card n + 1), ∑ s ∈ Finset.univ.powersetCard k,
@@ -48,7 +47,7 @@ theorem det_one_add_eq_sum_sum_minors :
   simp_rw [← Matrix.coeff_det_one_add_X_smul_eq_sum_minors A] -- why doesn't rw! work?
   have : (1 + (X : R[X]) • A.map C).det.natDegree ≤ Fintype.card n := by
     rw [add_comm]
-    simpa using Polynomial.natDegree_det_X_add_C_le A 1
+    simpa using natDegree_det_X_add_C_le A 1
   calc
     (1 + A).det = f.eval 1 := by simp [hf, eval_det]
     _ = _ := by
@@ -614,6 +613,8 @@ theorem norm_le_of_entry_le [DecidableEq n]
     _ = (card n) * δ := by rw [Real.sqrt_sq (by positivity)]
 
 -- AI generated, not cleaned up
+-- TODO : generalise to norms induced by vector norms
+-- for ‖A‖_p,q = sup { ‖Ax‖_p/‖x‖_q | x ≠ 0 }
 theorem norm_le_of_entry_le_function [DecidableEq n]
     {δ : Matrix n n ℝ} (hE : ∀ i j, ‖E i j‖ ≤ δ i j) : ‖E‖ ≤ ‖δ‖ := by
   refine ContinuousLinearMap.opNorm_le_bound _ (norm_nonneg δ) ?_
@@ -668,15 +669,6 @@ theorem absolute_bound_frob [DecidableEq n] {δ : Matrix n n ℝ} (hE : ∀ i j,
       gcongr <;>
         exact l2_opNorm_le_frobenius _
 
-def myMat : Matrix (Fin 2) (Fin 2) ℚ :=
-  !![0.237543147066448,  -1.53145788325137;
-     0.0972878195053468,   2.14502930109795]
-
-lemma myMat_det : myMat.det = 0.658529208858350261945890006716 := by
-  norm_num [myMat, det_fin_two]
-
-open Polynomial
-
 lemma det_one_add_norm_sub_one_le [DecidableEq n] (F : Matrix n n ℂ) :
     ‖(1 + F).det - 1‖ ≤ (1 + ‖F‖) ^ card n - 1 := by
   set S := fun k ↦
@@ -727,3 +719,10 @@ theorem relative_bound [DecidableEq n] (hA : A.det ≠ 0) :
     _ ≤ ‖A.det‖ * ((1 + ‖A⁻¹‖ * ‖E‖) ^ card n - 1) := by
       gcongr
       exact norm_mul_le ..
+
+def myMat : Matrix (Fin 2) (Fin 2) ℚ :=
+  !![0.237543147066448,  -1.53145788325137;
+     0.0972878195053468,   2.14502930109795]
+
+lemma myMat_det : myMat.det = 0.658529208858350261945890006716 := by
+  norm_num [myMat, det_fin_two]
