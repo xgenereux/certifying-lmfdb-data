@@ -501,6 +501,7 @@ lemma norm_of_mem_unitaryGroup [DecidableEq n] [Nonempty n] {U : Matrix n n ℂ}
     (hU : U ∈ unitaryGroup n ℂ) : ‖U‖ = 1 :=
   CStarRing.norm_of_mem_unitary hU
 
+variable (A E) in
 theorem main_result [DecidableEq n] :
     ‖(A + E).det - A.det‖ ≤ card n * ‖E‖ * (max ‖A‖ ‖A + E‖) ^ (card n - 1) := by
   obtain ⟨U, hU, V, hV, d, h⟩ := exists_svd_square A
@@ -538,6 +539,43 @@ theorem main_result [DecidableEq n] :
     _ ≤ card n * ‖F‖ * max ‖diagonal d‖ ‖diagonal d + F‖ ^ (card n - 1) := main_result_diag d F
     _ = card n * ‖E‖ * max ‖A‖ ‖A + E‖ ^ (card n - 1) := by
       simp only [hd, hF, hdF]
+
+theorem norm_le_of_entry_le [DecidableEq n]
+    {δ : ℝ} (hE : ∀ i j, ‖E i j‖ ≤ δ) : ‖E‖ ≤ (card n) * δ := by
+  obtain hn | hn := isEmpty_or_nonempty n
+  · simp [l2_opNorm_isEmpty]
+  let i₀ : n := Classical.ofNonempty
+  have hε : 0 ≤ δ := (norm_nonneg (E i₀ i₀)).trans (hE i₀ i₀)
+  calc
+    ‖E‖ ≤ √(∑ i, ∑ j, ‖E i j‖ ^ 2) := l2_opNorm_sq_le_frobenius E
+    _ ≤ √(∑ i : n, ∑ j : n, δ ^ 2) := by
+      gcongr with i j
+      exact hE i j
+    _ = √(((card n : ℝ) * δ) ^ 2) := by
+      congr
+      simp [Finset.sum_const, nsmul_eq_mul]
+      ring
+    _ = (card n) * δ := by rw [Real.sqrt_sq (by positivity)]
+
+theorem uniform_bound [DecidableEq n] (δ D : ℝ) (hE : ∀ i j, ‖E i j‖ ≤ δ) (hA : ∀ i j, ‖A i j‖ ≤ D) :
+    ‖(A + E).det - A.det‖ ≤ (card n : ℝ) ^ (card n + 1) * δ * (D + δ) ^ (card n - 1) := by
+  obtain hn | hn := isEmpty_or_nonempty n
+  · simp
+  let i₀ : n := Classical.ofNonempty
+  have hε : 0 ≤ δ := (norm_nonneg (E i₀ i₀)).trans (hE i₀ i₀)
+  calc
+    _ ≤ card n * ‖E‖ * (max ‖A‖ ‖A + E‖) ^ (card n - 1) := main_result A E
+    _ ≤ card n * ‖E‖ * (‖A‖ + ‖E‖) ^ (card n - 1) := by
+      gcongr
+      exact max_le (le_add_of_nonneg_right (norm_nonneg E)) (norm_add_le A E)
+    _ ≤ card n * ((card n) * δ) * ((card n) * D + (card n) * δ) ^ (card n - 1) := by
+      gcongr
+      · exact norm_le_of_entry_le hE
+      · exact norm_le_of_entry_le hA
+      · exact norm_le_of_entry_le hE
+    _ = card n * ((card n) * δ) * (card n) ^ (card n - 1) * (D + δ) ^ (card n - 1) := by
+      sorry
+    _ = _ := by sorry
 
 def myMat : Matrix (Fin 2) (Fin 2) ℚ :=
   !![0.237543147066448,  -1.53145788325137;
