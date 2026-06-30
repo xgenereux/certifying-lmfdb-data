@@ -98,23 +98,24 @@ lemma opNorm_mul {x : ℂ} :
 
 macro "reducePoly" : tactic =>
   `(tactic| {
-    simp only [polyToZeroFinder, pow_succ, pow_zero, one_mul, map_add, map_mul, aeval_X, map_one,
+    simp only [polyToZeroFinder, pow_succ, pow_zero, one_mul, map_add, map_sub, map_neg, map_mul,
+      aeval_X, map_one,
       Function.comp_apply, toComplex_apply, Fin.isValue, toComplex_symm_apply, Nat.succ_eq_add_one,
       Nat.reduceAdd, add_re, mul_re, ofReal_re, I_re, mul_zero, ofReal_im, I_im, mul_one, sub_self,
       add_zero, add_im, mul_im, zero_add, one_re, one_im, aeval_ofNat,
       and_true, Fin.isValue, Matrix.add_cons, Matrix.head_cons, add_zero, Matrix.tail_cons,
+      Matrix.cons_sub_cons, Matrix.empty_sub_empty,
       zero_add, Matrix.empty_add_empty, Matrix.vecCons_inj, add_left_inj]
-    ring_nf
-    constructor <;> trivial
+    constructor <;> ring
     })
 
-noncomputable def myPoly : Polynomial ℚ := X ^ 5 + X + 1
+noncomputable def myPoly : Polynomial ℚ := X ^ 5 - X - 1
 
-noncomputable def myPolyDeriv : Polynomial ℚ := 5 * X ^ 4 + 1
+noncomputable def myPolyDeriv : Polynomial ℚ := 5 * X ^ 4 - 1
 
 def zeroFinder : (Fin 2 → ℝ) → (Fin 2 → ℝ) := fun x ↦
-  ![x 0 ^ 5 - 10 * x 0 ^ 3 * x 1 ^ 2 + 5 * x 0 * x 1 ^ 4 + x 0 + 1,
-    5 * x 0 ^ 4 * x 1 - 10 * x 0 ^ 2 * x 1 ^ 3 + x 1 ^ 5 + x 1]
+  ![x 0 ^ 5 - 10 * x 0 ^ 3 * x 1 ^ 2 + 5 * x 0 * x 1 ^ 4 - x 0 - 1,
+    5 * x 0 ^ 4 * x 1 - 10 * x 0 ^ 2 * x 1 ^ 3 + x 1 ^ 5 - x 1]
 
 lemma polyToZeroFinder_myPoly : polyToZeroFinder myPoly = zeroFinder := by
   ext x : 1
@@ -127,16 +128,16 @@ lemma myPoly_derivative : myPoly.derivative = myPolyDeriv := by
 noncomputable def derivZeroFinder (v : Fin 2 → ℝ) : (Fin 2 → ℝ) →L[ℝ] (Fin 2 → ℝ) :=
     polyToZeroFinderDeriv myPoly v
 
-def v : Fin 2 → ℝ := ![0.877438833123346, -0.744861766619744]
+def v : Fin 2 → ℝ := ![0.18123244446987538, -1.0839541013177107]
 
 def A_mat : Matrix (Fin 2) (Fin 2) ℝ :=
-  !![-0.11915000248755223,  -0.045813378411717155;
-      0.045813378411717155, -0.11915000248755223]
+  !![ 0.11124510611637174,  0.10508700867158703;
+     -0.10508700867158703,  0.11124510611637174]
 
 noncomputable def A : (Fin 2 → ℝ) →L[ℝ] (Fin 2 → ℝ) :=
   LinearMap.toContinuousLinearMap <| Matrix.mulVecLin A_mat
 
-lemma y : ‖A (polyToZeroFinder myPoly v)‖₊ ≤ 1e-15 := by
+lemma y : ‖A (polyToZeroFinder myPoly v)‖₊ ≤ 1e-16 := by
   simp only [← NNReal.coe_le_coe, coe_nnnorm, pi_norm_le_iff_of_nonempty]
   simp only [polyToZeroFinder_myPoly]
   simp only [A, A_mat, zeroFinder, v]
@@ -301,32 +302,32 @@ lemma z₂ (x) (hx : x ∈ Metric.closedEBall v 2) :
   simp only [derivZeroFinder]
   refine polyToZeroFinderDeriv_lipschitzOn myPoly A v 2 400 ?_ x ?_
   · -- the single numeric obligation `hz`
-    have hQ : myPoly.derivative.map (algebraMap ℚ ℂ) = 5 * X ^ 4 + 1 := by
+    have hQ : myPoly.derivative.map (algebraMap ℚ ℂ) = 5 * X ^ 4 - 1 := by
       simp [myPoly_derivative, myPolyDeriv]
-    rw [hQ, show (5 * X ^ 4 + 1 : ℂ[X]).natDegree = 4 from by compute_degree!]
+    rw [hQ, show (5 * X ^ 4 - 1 : ℂ[X]).natDegree = 4 from by compute_degree!]
     set c := toComplex v with hcdef
-    have htay : taylor c (5 * X ^ 4 + 1 : ℂ[X])
-        = monomial 0 (5 * c ^ 4 + 1) + monomial 1 (20 * c ^ 3) + monomial 2 (30 * c ^ 2)
+    have htay : taylor c (5 * X ^ 4 - 1 : ℂ[X])
+        = monomial 0 (5 * c ^ 4 - 1) + monomial 1 (20 * c ^ 3) + monomial 2 (30 * c ^ 2)
           + monomial 3 (20 * c) + monomial 4 5 := by
       rw [taylor_apply]
-      simp only [Polynomial.add_comp, Polynomial.mul_comp, Polynomial.pow_comp,
+      simp only [Polynomial.sub_comp, Polynomial.mul_comp, Polynomial.pow_comp,
         Polynomial.X_comp, Polynomial.one_comp, Polynomial.ofNat_comp,
-        ← C_mul_X_pow_eq_monomial, map_ofNat, map_add, map_mul, map_pow, C_1]
+        ← C_mul_X_pow_eq_monomial, map_ofNat, map_sub, map_mul, map_pow, C_1]
       ring
     simp only [Finset.sum_range_succ, Finset.sum_range_zero]
-
     simp only [htay, coeff_add, coeff_monomial, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte,
       add_zero, zero_add, OfNat.zero_ne_ofNat, OfNat.ofNat_ne_one, OfNat.one_ne_ofNat,
-      NNReal.coe_ofNat, pow_zero, pow_one, mul_one, Complex.norm_mul, norm_ofNat, norm_pow, ge_iff_le]
-    have hc : ‖c‖ ≤ 1.151 := by
+      NNReal.coe_ofNat, pow_zero, pow_one, mul_one, Complex.norm_mul, norm_ofNat, norm_pow,
+      ge_iff_le]
+    have hc : ‖c‖ ≤ 1.1 := by
       have hsq : ‖c‖ ^ 2 = v 0 ^ 2 + v 1 ^ 2 := by
         rw [hcdef, ← Complex.normSq_eq_norm_sq, Complex.normSq_apply, toComplex_apply]
         simp only [add_re, add_im, ofReal_re, mul_re, I_re, mul_zero, ofReal_im, I_im, mul_one,
           sub_self, add_zero, zero_add, mul_im]
         ring
-      have : ‖c‖ ^ 2 ≤ 1.151 ^ 2 := by rw [hsq, v]; norm_num
+      have : ‖c‖ ^ 2 ≤ 1.1 ^ 2 := by rw [hsq, v]; norm_num
       nlinarith [norm_nonneg c, this]
-    have hA : ‖A‖ ≤ 0.16497 := by
+    have hA : ‖A‖ ≤ 0.21634 := by
       rw [A]; apply opNorm_mulVecLin_le _ (by norm_num)
       intro i; fin_cases i <;> simp [A_mat, Fin.sum_univ_two] <;> norm_num
     have hs : Real.sqrt 2 ≤ 1.4143 := by
@@ -337,7 +338,7 @@ lemma z₂ (x) (hx : x ∈ Metric.closedEBall v 2) :
   · simpa using hx
 
 lemma test :
-    ∃! x, polyToZeroFinder myPoly x = 0 ∧ ‖x - v‖₊ ≤ 1e-13 := by
+    ∃! x, polyToZeroFinder myPoly x = 0 ∧ ‖x - v‖₊ ≤ 1e-15 := by
   have := newton_kantorovich_fd
     (F := polyToZeroFinder myPoly)
     (DF := derivZeroFinder)
@@ -348,7 +349,7 @@ lemma test :
     (A := A)
     (z₂ := 400)
     (R := 2)
-    (r := 1e-13)
+    (r := 1e-15)
     y z₁ z₂ (by apply le_of_lt; norm_cast; norm_num) (by apply le_of_lt; norm_num) (by norm_num)
   -- have : (1 : ℝ) * 2⁻¹ ≤ 3 := by? norm_num
   exact this
