@@ -29,6 +29,7 @@ Or import:  from generate_regulator_matrices import regulator_matrix
 """
 
 import argparse
+from random import randint
 import sys
 
 from sage.all import NumberField, Matrix, log, QQ, Infinity, matrix, RDF
@@ -62,6 +63,28 @@ def parse_poly(poly_str, var="x"):
     rational polynomial.  Accepts both ``^`` and ``**`` for exponentiation."""
     R = QQ[var]
     return R(poly_str.replace("^", "**"))
+
+
+def random_irreducible_poly(degree, var="x", coeff_bound=4):
+    """Return a random monic irreducible polynomial in ``QQ[var]``.
+
+    The non-leading coefficients are chosen from
+    ``[-coeff_bound, coeff_bound]`` until an irreducible polynomial of the
+    requested degree is found.
+    """
+    R = QQ[var]
+    x = R.gen()
+
+    while True:
+        coeffs = [randint(-coeff_bound, coeff_bound)
+                  for _ in range(degree)]
+        if coeffs[0] == 0:
+            continue
+
+        f = x ** degree + sum(coeffs[i] * x ** i for i in range(degree))
+        print(f)
+        if f.is_irreducible():
+            return f
 
 
 # ---------------------------------------------------------------------
@@ -114,6 +137,8 @@ def lu_inverse_norm_bound(A, p='2'):
     if n != A.ncols():
         raise ValueError("A must be square")
 
+    better_bound_Ainv = A.inverse().norm('frob')
+
     P, L, U = A.LU()   # Sage: P*A = L*U  (L unit lower triangular)
 
     alpha_L, beta_L = alpha_beta_lower(L)
@@ -129,6 +154,7 @@ def lu_inverse_norm_bound(A, p='2'):
         'alpha_L': alpha_L, 'beta_L': beta_L, 'bound_Linv': bound_Linv,
         'alpha_U': alpha_U, 'beta_U': beta_U, 'bound_Uinv': bound_Uinv,
         'bound_Ainv': bound_Ainv,
+        'better_bound_Ainv': better_bound_Ainv
     }
 
 
@@ -192,6 +218,7 @@ def det_times_inv_norm_bound(A):
     det_A = A.det()
 
     bound = abs(det_U) * res['bound_Uinv'] * res['bound_Linv']
+    better_bound = abs(det_U) * res['better_bound_Ainv']
 
     return {
         'det_A': det_A,
@@ -199,6 +226,7 @@ def det_times_inv_norm_bound(A):
         'bound_Linv': res['bound_Linv'],
         'bound_Uinv': res['bound_Uinv'],
         'bound_Ainv': res['bound_Ainv'],
+        'better_bound_det_times_Ainv': better_bound,
         'bound_det_times_Ainv': bound,
     }
 
@@ -256,15 +284,15 @@ def print_lu_bound_report(A, digits=8):
     det_res = det_times_inv_norm_bound(A)
     actual_det_times_inv = abs(det_res['det_A']) * actual['2']
 
-    print("%-45s %s" % ("(1) exact ||A||_2^(n-1)  (n = %d)" % n,
+    print("%-45s %s" % ("exact method 1 (n = %d)" % n,
                          fmt(exact_pow)))
-    print("%-45s %s" % ("(2) ||A||_F^(n-1) approx of (1)",
+    print("%-45s %s" % ("frob approx of (1)",
                          fmt(pow_bounds['frob_bound_pow'])))
-    print("%-45s %s" % ("(3) sqrt(||A||_1*||A||_oo)^(n-1) approx of (1)",
-                         fmt(pow_bounds['interp_bound_pow'])))
-    print("%-45s %s" % ("(4) |det A| * ||A^{-1}||_2",
+    print("%-45s %s" % ("exact method 2",
                          fmt(actual_det_times_inv)))
-    print("%-45s %s" % ("(5) PLU-based rough bound for (4)",
+    print("%-45s %s" % ("frob approx of (2)",
+                         fmt(det_res['better_bound_det_times_Ainv'])))
+    print("%-45s %s" % ("rough bound of (2)",
                          fmt(det_res['bound_det_times_Ainv'])))
     print("=" * 60)
 
@@ -298,12 +326,7 @@ def report(f, name="a", prec=100, digits=8):
     print_lu_bound_report(A, digits=digits)
 
 
-DEFAULT_POLYS = [
-    "x^5 - x^4 - 2*x^2 + 4*x - 1",
-    "x^10 - 2*x^9 - x^8 + 4*x^7 - 3*x^6 - 4*x^5 + 7*x^4 + 4*x^3 "
-        "- 5*x^2 - x + 1",
-    "x^8 - x^7 - 2*x^6 + x^5 + x^3 + 2*x^2 - 1",
-]
+DEFAULT_DEGREES = range(2, 11)
 
 
 def main(argv=None):
@@ -318,8 +341,8 @@ def main(argv=None):
     parser.add_argument(
         "poly", nargs="*",
         help="polynomial(s) in x defining the number field, e.g. "
-             '"x^5 - x^4 - 2*x^2 + 4*x - 1".  If omitted, a built-in set of '
-             "example polynomials is used.",
+             '"x^5 - x^4 - 2*x^2 + 4*x - 1".  If omitted, random '
+             "irreducible polynomials of degrees 2 through 10 are generated.",
     )
     parser.add_argument(
         "--name", default="a",
@@ -335,15 +358,19 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
 
-    poly_strs = args.poly if args.poly else DEFAULT_POLYS
+    if args.poly:
+        polys = []
+        for poly_str in args.poly:
+            try:
+                polys.append(parse_poly(poly_str))
+            except (TypeError, ValueError, SyntaxError) as exc:
+                print("error: could not parse polynomial %r: %s"
+                      % (poly_str, exc), file=sys.stderr)
+                return 1
+    else:
+        polys = [random_irreducible_poly(degree) for degree in DEFAULT_DEGREES]
 
-    for poly_str in poly_strs:
-        try:
-            f = parse_poly(poly_str)
-        except (TypeError, ValueError, SyntaxError) as exc:
-            print("error: could not parse polynomial %r: %s" % (poly_str, exc),
-                  file=sys.stderr)
-            return 1
+    for f in polys:
         report(f, name=args.name, prec=args.prec, digits=args.digits)
 
     return 0
