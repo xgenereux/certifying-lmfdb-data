@@ -65,6 +65,17 @@ def parse_poly(poly_str, var="x"):
     return R(poly_str.replace("^", "**"))
 
 
+def rational_matrix(A):
+    """Return A over QQ using the exact rational values of its entries."""
+    def rational_entry(x):
+        try:
+            return x.exact_rational()
+        except AttributeError:
+            return QQ(x)
+
+    return matrix(QQ, A.nrows(), A.ncols(), [rational_entry(x) for x in A.list()])
+
+
 def random_irreducible_poly(degree, var="x", coeff_bound=4):
     """Return a random monic irreducible polynomial in ``QQ[var]``.
 
@@ -312,7 +323,12 @@ def report(f, name="a", prec=100, digits=8):
           % (Msq.nrows(), Msq.ncols()))
     print(Msq.n(digits=digits))
 
-    A = Msq
+    A = rational_matrix(Msq)
+    print("\nrationalized square matrix A (%d x %d):" % (A.nrows(), A.ncols()))
+    print(A)
+    print("\nexact inverse of rationalized A:")
+    print(A.inverse())
+
     print("\n2-norm        :", A.norm(2))
     print("Frobenius norm:", A.norm('frob'))
     print("determinant   :", A.det())
