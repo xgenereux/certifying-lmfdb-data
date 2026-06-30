@@ -4,7 +4,10 @@ open Real NumberField InfinitePlace Units
 
 theorem foo {a : ℕ} {b : ℝ} {c : ℕ} (ha : a ≠ 0) (hb : 1 ≤ b) (hc : c ≠ 0)
     (h : a * b * c < 2) : a = 1 ∧ b ∈ Set.Ico 1 2 ∧ c = 1 := by
-  sorry
+  rw [Set.mem_Ico, and_iff_right hb]
+  replace ha : a = 1 ∨ a ≥ 2 := by grind
+  replace hc : c = 1 ∨ c ≥ 2 := by grind
+  rcases ha with ha | ha <;> rcases hc with hc | hc <;> grw [ha, hc] at h <;> grind
 
 example (K : Type*) [Field K] [NumberField K]
     (r₁ : ℕ) (hr₁ : nrRealPlaces K = r₁)
