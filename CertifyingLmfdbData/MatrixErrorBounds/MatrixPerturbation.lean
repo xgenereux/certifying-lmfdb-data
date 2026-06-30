@@ -27,6 +27,31 @@ open WithLp Finset Matrix Norms.L2Operator
 
 variable {n m : Type*} [Fintype n] [Fintype m]
 
+section Ring
+
+variable {R : Type*} [CommRing R] [DecidableEq n] (A : Matrix n n R)
+
+lemma charpoly_ne_zero [Nontrivial R] : A.charpoly ≠ 0 := by
+  simp [← Polynomial.degree_eq_bot, Matrix.charpoly_degree_eq_dim]
+
+open Polynomial in
+theorem det_one_add_eq_sum_sum_minors :
+    (1 + A).det =
+    ∑ k ∈ Finset.range (card n + 1), ∑ s ∈ Finset.univ.powersetCard k,
+      (A.submatrix (Subtype.val : s → n) Subtype.val).det := by
+  set f := det (1 + (X : R[X]) • A.map C) with hf
+  simp_rw [← Matrix.coeff_det_one_add_X_smul_eq_sum_minors A] -- why doesn't rw! work?
+  have : (1 + (X : R[X]) • A.map C).det.natDegree ≤ Fintype.card n := by
+    rw [add_comm]
+    simpa using Polynomial.natDegree_det_X_add_C_le A 1
+  calc
+    (1 + A).det = f.eval 1 := by simp [hf, eval_det]
+    _ = _ := by
+      rw [eval_eq_sum_range' (n := Fintype.card n + 1) (by lia)]
+      simp [hf]
+
+end Ring
+
 section
 
 variable {K : Type*} [RCLike K] {A : Matrix n n K}
@@ -353,11 +378,6 @@ theorem main_result_diag [DecidableEq n] (d : n → ℂ) (E : Matrix n n ℂ) :
     det_reindex_self, det_reindex_self] at h
   exact h
 
-lemma charpoly_ne_zero {n R : Type*} [CommRing R] [Nontrivial R] [Fintype n] [DecidableEq n]
-    {A : Matrix n n R} : A.charpoly ≠ 0 := by
-  rw [ne_eq, ← Polynomial.degree_eq_bot, Matrix.charpoly_degree_eq_dim]
-  simp
-
 lemma Set.Finite.dense_compl {α : Type*} [TopologicalSpace α] [T1Space α] [PerfectSpace α]
     {s : Set α} (hs : s.Finite) : Dense (sᶜ : Set α) := by
   rw [Set.compl_eq_univ_sdiff]
@@ -422,7 +442,7 @@ theorem exists_svd_nonsingular {n : Type*} [Fintype n] [DecidableEq n]
 set_option backward.isDefEq.respectTransparency false in
 lemma tendsto_diagonal_iff {ι n R : Type*} [DecidableEq n] [TopologicalSpace R] [Zero R]
     {l : Filter ι} {x : n → R} {f : ι → n → R} :
-    Tendsto (fun i => diagonal (f i)) l (𝓝 (diagonal x)) ↔ Tendsto f l (𝓝 x) := by
+    Tendsto (fun i ↦ diagonal (f i)) l (𝓝 (diagonal x)) ↔ Tendsto f l (𝓝 x) := by
   rw [tendsto_pi_nhds]
   simp only [tendsto_pi_nhds, diagonal_apply]
   constructor
@@ -479,26 +499,23 @@ lemma norm_of_mem_unitaryGroup [DecidableEq n] [Nonempty n] {U : Matrix n n ℂ}
     (hU : U ∈ unitaryGroup n ℂ) : ‖U‖ = 1 :=
   CStarRing.norm_of_mem_unitary hU
 
-theorem main_result [DecidableEq n] :
+theorem det_error_bound_one [DecidableEq n] :
     ‖(A + E).det - A.det‖ ≤ card n * ‖E‖ * (max ‖A‖ ‖A + E‖) ^ (card n - 1) := by
   obtain ⟨U, hU, V, hV, d, h⟩ := exists_svd_square A
   let F := Uᴴ * E * V
   have hAE : U * (diagonal d + F) * Vᴴ = A + E := by calc
-    _ = A + U * F * Vᴴ := by simp [h, add_mul, mul_add]
-    _ = A + (U * Uᴴ) * E * (V * Vᴴ) := by simp [F, mul_assoc]
+    _ = A + (U * Uᴴ) * E * (V * Vᴴ) := by noncomm_ring [h, F]
     _ = A + E := by simp [← star_eq_conjTranspose, hU.2, hV.2]
   have det₁ : (U * Vᴴ).det * (diagonal d + F).det = (A + E).det := by calc
     (U * Vᴴ).det * (diagonal d + F).det = U.det * (diagonal d + F).det * (Vᴴ).det := by
       rw [det_mul]
       ring
-    _ = (U * (diagonal d + F) * Vᴴ).det := by simp [det_mul]
-    _ = (A + E).det := by rw [hAE]
+    _ = (A + E).det := by simp [det_mul, ← hAE]
   have det₂ : (U * Vᴴ).det * (diagonal d).det = A.det := by calc
     (U * Vᴴ).det * (diagonal d).det = U.det * (diagonal d).det * (Vᴴ).det := by
-      rw [det_mul];
+      rw [det_mul]
       ring
-    _ = (U * diagonal d * Vᴴ).det := by simp [det_mul]
-    _ = A.det := by simp [h]
+    _ = A.det := by simp [det_mul, h]
   let z := (diagonal d + F).det - (diagonal d).det
   have hd : ‖diagonal d‖ = ‖A‖ := by
     rw [h, norm_mul_mem_unitaryGroup, norm_mem_unitaryGroup_mul _ hU]
@@ -528,21 +545,6 @@ lemma myMat_det : myMat.det = 0.658529208858350261945890006716 := by
   norm_num [myMat, det_fin_two]
 
 open Polynomial
-
-theorem det_one_add_eq_sum_sum_minors [DecidableEq n] (M : Matrix n n ℂ) :
-    (1 + M).det =
-    ∑ k ∈ Finset.range (card n + 1), ∑ s ∈ Finset.univ.powersetCard k,
-      (M.submatrix (Subtype.val : s → n) Subtype.val).det := by
-  set f := det (1 + (X : ℂ[X]) • M.map C) with hf
-  simp_rw [← Matrix.coeff_det_one_add_X_smul_eq_sum_minors M] -- why doesn't rw! work?
-  have : (1 + (X : ℂ[X]) • M.map ⇑C).det.natDegree ≤ Fintype.card n := by
-    rw [add_comm]
-    simpa using Polynomial.natDegree_det_X_add_C_le M 1
-  calc
-    (1 + M).det = f.eval 1 := by simp [hf, eval_det]
-    _ = _ := by
-      rw [eval_eq_sum_range' (n := Fintype.card n + 1) (by lia)]
-      simp [hf]
 
 lemma det_one_add_norm_sub_one_le [DecidableEq n] (F : Matrix n n ℂ) :
     ‖(1 + F).det - 1‖ ≤ (1 + ‖F‖) ^ card n - 1 := by
@@ -578,7 +580,7 @@ lemma det_one_add_norm_sub_one_le [DecidableEq n] (F : Matrix n n ℂ) :
       rw [add_comm 1 ‖F‖, add_pow, Finset.sum_range_succ']
       simp [mul_comm]
 
-theorem bound_2 [DecidableEq n] (hA : A.det ≠ 0) :
+theorem det_error_bound_two [DecidableEq n] (hA : A.det ≠ 0) :
     ‖(A + E).det - A.det‖ ≤ ‖A.det‖ * ((1 + ‖A⁻¹‖ * ‖E‖) ^ (card n) - 1) := by
   calc
     ‖(A + E).det - A.det‖ = ‖A.det * ((1 + A⁻¹ * E).det - 1)‖ := by
