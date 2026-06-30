@@ -670,7 +670,7 @@ theorem absolute_bound_frob [DecidableEq n] {δ : Matrix n n ℝ} (hE : ∀ i j,
       gcongr <;>
         exact l2_opNorm_le_frobenius _
 
-variable (A E) in
+variable (A B) in
 theorem absolute_bound_frob' [DecidableEq n] (h_diff : ∀ i j, ‖B i j - A i j‖ ≤ δ i j) :
     ‖B.det - A.det‖ ≤ (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) := by
   simpa using absolute_bound_frob A (B - A) (by simpa using h_diff)
