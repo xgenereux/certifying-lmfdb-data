@@ -74,15 +74,15 @@ lemma opNorm_mul {x : ℂ} :
     ‖ContinuousLinearMap.mul ℝ ℂ x‖ = ‖x‖ := by
   simp only [ContinuousLinearMap.opNorm_mul_apply]
 
-lemma lipschitzOnWith_derivZeroFinder {x₀ : Fin 2 → ℝ} {R : NNReal} {p} :
-    LipschitzOnWith K (polyToZeroFinderDeriv p) (Metric.closedBall x₀ R) := by
-  rw [lipschitzOnWith_iff_norm_sub_le]
-  intro x hx y hy
-  simp only [polyToZeroFinderDeriv_sub]
-  grw [ContinuousLinearMap.opNorm_comp_le]
-  grw [ContinuousLinearMap.opNorm_comp_le]
-  simp only [ContinuousLinearMap.opNorm_mul_apply]
-  sorry
+-- lemma lipschitzOnWith_derivZeroFinder {x₀ : Fin 2 → ℝ} {R : NNReal} {p} :
+--     LipschitzOnWith K (polyToZeroFinderDeriv p) (Metric.closedBall x₀ R) := by
+--   rw [lipschitzOnWith_iff_norm_sub_le]
+--   intro x hx y hy
+--   simp only [polyToZeroFinderDeriv_sub]
+--   grw [ContinuousLinearMap.opNorm_comp_le]
+--   grw [ContinuousLinearMap.opNorm_comp_le]
+--   simp only [ContinuousLinearMap.opNorm_mul_apply]
+--   sorry
 
 @[simp] lemma polyToZeroFinderDeriv_apply_one_zero :
     polyToZeroFinderDeriv p v ![1, 0] =
@@ -183,79 +183,188 @@ lemma temp (x v u : Fin 2 → ℝ) (hu : u = x - v) (h : x ∈ Metric.closedEBal
   grind
 
 
-/-
-A * (F' x - F' v)
--/
+open Finset in
+/-- Coefficient Lipschitz bound for a complex polynomial on a ball of radius `R`:
+`Q(v+w) - Q(v)` is controlled by `‖w‖` times the absolute Taylor coefficients at `v`. -/
+lemma norm_eval_add_sub_eval_le
+    (Q : ℂ[X]) (v w : ℂ) {R : ℝ} (hw : ‖w‖ ≤ R) :
+    ‖Q.eval (v + w) - Q.eval v‖
+      ≤ (∑ k ∈ range Q.natDegree, ‖(taylor v Q).coeff (k + 1)‖ * R ^ k) * ‖w‖ := by
+  have key : Q.eval (v + w) - Q.eval v
+      = ∑ k ∈ range Q.natDegree, (taylor v Q).coeff (k + 1) * w ^ (k + 1) := by
+    have e1 : Q.eval (v + w) = (taylor v Q).eval w := by
+      rw [taylor_apply, eval_comp, eval_add, eval_X, eval_C, add_comm v w]
+    have e2 : Q.eval v = (taylor v Q).coeff 0 := (taylor_coeff_zero v Q).symm
+    rw [e1, e2, eval_eq_sum_range, natDegree_taylor, sum_range_succ']
+    simp
+  rw [key, sum_mul]
+  refine (norm_sum_le _ _).trans (Finset.sum_le_sum fun k _ => ?_)
+  rw [norm_mul, norm_pow, mul_assoc, pow_succ]
+  exact mul_le_mul_of_nonneg_left
+    (mul_le_mul_of_nonneg_right (pow_le_pow_left₀ (norm_nonneg w) hw k) (norm_nonneg w))
+    (norm_nonneg _)
 
-#check opNorm_le_of_basisFun
+/-- Conjugating complex multiplication by `c` through `toComplex` gives an operator on `ℝ²`
+whose (sup-norm) operator norm is at most `2 * ‖c‖`. -/
+lemma opNorm_toComplex_mul_le (c : ℂ) :
+    ‖(toComplex.symm : ℂ →L[ℝ] (Fin 2 → ℝ)).comp
+        ((ContinuousLinearMap.mul ℝ ℂ c).comp (toComplex : (Fin 2 → ℝ) →L[ℝ] ℂ))‖
+      ≤ 2 * ‖c‖ := by
+  rw [show (2 : ℝ) * ‖c‖ = Fintype.card (Fin 2) • ‖c‖ by simp [nsmul_eq_mul]]
+  apply opNorm_le_of_basisFun (norm_nonneg c)
+  intro i
+  rw [pi_norm_le_iff_of_nonempty]
+  fin_cases i <;>
+  · intro j
+    fin_cases j <;>
+      simp [mul_comm, abs_re_le_norm, abs_im_le_norm]
 
-set_option maxHeartbeats 10000000000000 in
+/-- `toComplex` distorts the norm by at most `√2`. -/
+lemma norm_toComplex_le (u : Fin 2 → ℝ) : ‖toComplex u‖ ≤ Real.sqrt 2 * ‖u‖ := by
+  rw [← Real.sqrt_sq (norm_nonneg (toComplex u)),
+    show Real.sqrt 2 * ‖u‖ = Real.sqrt (2 * ‖u‖ ^ 2) from by
+      rw [Real.sqrt_mul (by norm_num), Real.sqrt_sq (norm_nonneg u)]]
+  apply Real.sqrt_le_sqrt
+  rw [← Complex.normSq_eq_norm_sq, Complex.normSq_apply, toComplex_apply]
+  have h0 : |u 0| ≤ ‖u‖ := norm_le_pi_norm u 0
+  have h1 : |u 1| ≤ ‖u‖ := norm_le_pi_norm u 1
+  simp only [add_re, add_im, ofReal_re, mul_re, I_re, mul_zero, ofReal_im, I_im, mul_one,
+    sub_self, add_zero, zero_add, mul_im]
+  nlinarith [abs_nonneg (u 0), abs_nonneg (u 1), sq_abs (u 0), sq_abs (u 1), norm_nonneg u]
+
+/-- `‖A‖ ≤ C` whenever every absolute row sum of the matrix is `≤ C` (sup norm).
+The true value is the max absolute row sum. -/
+lemma opNorm_mulVecLin_le {n : Type*} [Fintype n] (M : Matrix n n ℝ)
+    {C : ℝ} (hC : 0 ≤ C) (hrow : ∀ i, ∑ j, |M i j| ≤ C) :
+    ‖LinearMap.toContinuousLinearMap (Matrix.mulVecLin M)‖ ≤ C := by
+  refine ContinuousLinearMap.opNorm_le_bound _ hC fun x => ?_
+  rw [LinearMap.coe_toContinuousLinearMap', pi_norm_le_iff_of_nonneg (by positivity)]
+  intro i
+  rw [Real.norm_eq_abs, Matrix.mulVecLin_apply]
+  have hsum : M.mulVec x i = ∑ j, M i j * x j := by simp [Matrix.mulVec, dotProduct]
+  calc |M.mulVec x i| = |∑ j, M i j * x j| := by rw [hsum]
+    _ ≤ ∑ j, |M i j * x j| := Finset.abs_sum_le_sum_abs _ _
+    _ ≤ ∑ j, |M i j| * ‖x‖ := by
+        refine Finset.sum_le_sum fun j _ => ?_
+        rw [abs_mul]
+        gcongr
+        rw [← Real.norm_eq_abs]
+        exact norm_le_pi_norm x j
+    _ = (∑ j, |M i j|) * ‖x‖ := by rw [Finset.sum_mul]
+    _ ≤ C * ‖x‖ := by gcongr; exact hrow i
+
+open Finset in
+/-- Assembled Lipschitz bound: `A ∘ (DF x - DF v)` is Lipschitz in `x - v`, with constant
+built from the absolute, `(√2·Rb)`-weighted Taylor coefficients at `v` of `(p')_ℂ`. -/
+lemma polyToZeroFinderDeriv_lipschitz_bound
+    (p : ℚ[X]) (A : (Fin 2 → ℝ) →L[ℝ] (Fin 2 → ℝ)) (v : Fin 2 → ℝ) {Rb : ℝ}
+    {x : Fin 2 → ℝ} (hx : ‖x - v‖ ≤ Rb) :
+    ‖A.comp (polyToZeroFinderDeriv p x - polyToZeroFinderDeriv p v)‖
+      ≤ 2 * Real.sqrt 2 * ‖A‖ *
+          (∑ k ∈ range (p.derivative.map (algebraMap ℚ ℂ)).natDegree,
+            ‖(taylor (toComplex v) (p.derivative.map (algebraMap ℚ ℂ))).coeff (k + 1)‖
+              * (Real.sqrt 2 * Rb) ^ k)
+          * ‖x - v‖ := by
+  set Q := p.derivative.map (algebraMap ℚ ℂ) with hQ
+  set L := ∑ k ∈ range Q.natDegree,
+      ‖(taylor (toComplex v) Q).coeff (k + 1)‖ * (Real.sqrt 2 * Rb) ^ k with hL
+  have hRb : 0 ≤ Rb := (norm_nonneg _).trans hx
+  have hLnn : 0 ≤ L := Finset.sum_nonneg fun k _ =>
+    mul_nonneg (norm_nonneg _) (pow_nonneg (mul_nonneg (Real.sqrt_nonneg 2) hRb) k)
+  have ha : ∀ z, p.derivative.aeval z = Q.eval z := fun z => by rw [hQ, eval_map, aeval_def]
+  have hwle : ‖toComplex (x - v)‖ ≤ Real.sqrt 2 * Rb :=
+    (norm_toComplex_le _).trans (by gcongr)
+  set c := p.derivative.aeval (toComplex x) - p.derivative.aeval (toComplex v) with hc
+  have hcbound : ‖c‖ ≤ L * ‖toComplex (x - v)‖ := by
+    have hxv : toComplex x = toComplex v + toComplex (x - v) := by rw [map_sub]; ring
+    rw [hc, ha, ha, hxv]
+    exact norm_eval_add_sub_eval_le Q (toComplex v) (toComplex (x - v)) hwle
+  calc ‖A.comp (polyToZeroFinderDeriv p x - polyToZeroFinderDeriv p v)‖
+      = ‖A.comp ((toComplex.symm : ℂ →L[ℝ] (Fin 2 → ℝ)).comp
+            ((ContinuousLinearMap.mul ℝ ℂ c).comp (toComplex : (Fin 2 → ℝ) →L[ℝ] ℂ)))‖ := by
+        rw [polyToZeroFinderDeriv_sub]
+    _ ≤ ‖A‖ * (2 * ‖c‖) := (ContinuousLinearMap.opNorm_comp_le _ _).trans
+          (by gcongr; exact opNorm_toComplex_mul_le c)
+    _ ≤ ‖A‖ * (2 * (L * (Real.sqrt 2 * ‖x - v‖))) := by
+        gcongr
+        exact hcbound.trans (by gcongr; exact norm_toComplex_le _)
+    _ = 2 * Real.sqrt 2 * ‖A‖ * L * ‖x - v‖ := by ring
+
+open Finset in
+/-- `hz₂` for `newton_kantorovich_fd`: a single numeric inequality `hz` yields the
+`NNReal`/`closedEBall` Lipschitz statement. -/
+lemma polyToZeroFinderDeriv_lipschitzOn
+    (p : ℚ[X]) (A : (Fin 2 → ℝ) →L[ℝ] (Fin 2 → ℝ)) (v : Fin 2 → ℝ) (R z : NNReal)
+    (hz : 2 * Real.sqrt 2 * ‖A‖ *
+        (∑ k ∈ range (p.derivative.map (algebraMap ℚ ℂ)).natDegree,
+          ‖(taylor (toComplex v) (p.derivative.map (algebraMap ℚ ℂ))).coeff (k + 1)‖
+            * (Real.sqrt 2 * R) ^ k) ≤ z) :
+    ∀ x ∈ Metric.closedEBall v (R : ENNReal),
+      ‖A.comp (polyToZeroFinderDeriv p x - polyToZeroFinderDeriv p v)‖₊ ≤ z * ‖x - v‖₊ := by
+  intro x hx
+  rw [Metric.mem_closedEBall, edist_nndist, nndist_eq_nnnorm] at hx
+  replace hx : ‖x - v‖ ≤ (R : ℝ) := by exact_mod_cast hx
+  rw [← NNReal.coe_le_coe, NNReal.coe_mul, coe_nnnorm, coe_nnnorm]
+  refine (polyToZeroFinderDeriv_lipschitz_bound p A v hx).trans ?_
+  gcongr
+
+set_option maxHeartbeats 1000000 in
+-- the `simp`/`norm_num` over the expanded coefficient sum and `√2`/‖v‖ bounds is heavy
 lemma z₂ (x) (hx : x ∈ Metric.closedEBall v 2) :
     ‖A.comp (derivZeroFinder x - derivZeroFinder v)‖₊ ≤ 400 * ‖x - v‖₊ := by
-  stop
-  simp only [← NNReal.coe_le_coe, coe_nnnorm, derivZeroFinder]
-  apply (opNorm_le_of_basisFun (M := 200 * ‖x - v‖₊) (by positivity) ?h1).trans
-    (by simp; linarith [norm_nonneg (x - v)])
-  set! u := x - v with hu
-  simp [← hu]
-  have : ∀ i, x i = u i + v i := by
-    simp [hu]
-  simp [this]
-  simp [myPoly_derivative, myPolyDeriv, pow_succ, v, A, A_mat, pi_norm_le_iff_of_nonempty, Matrix.vecHead, Matrix.vecTail]
-  -- norm_num
-  ring_nf
-  repeat grw [abs_add_le]
-  simp only [Fin.isValue, abs_mul, abs_pow, -sq_abs]
-  have hu0 : |u 0| ≤ 2 := sorry
-  have hu1 : |u 1| ≤ 2 := sorry
-  norm_num
-  grw [hu0, hu1]
-  sorry
+  simp only [derivZeroFinder]
+  refine polyToZeroFinderDeriv_lipschitzOn myPoly A v 2 400 ?_ x ?_
+  · -- the single numeric obligation `hz`
+    have hQ : myPoly.derivative.map (algebraMap ℚ ℂ) = 5 * X ^ 4 + 1 := by
+      have h : myPoly.derivative = 5 * X ^ 4 + 1 := by norm_num [myPoly, C_ofNat]
+      rw [h]; simp only [Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow,
+        Polynomial.map_X, Polynomial.map_one, Polynomial.map_ofNat]
+    rw [hQ, show (5 * X ^ 4 + 1 : ℂ[X]).natDegree = 4 from by compute_degree!]
+    set c := toComplex v with hcdef
+    have htay : taylor c (5 * X ^ 4 + 1 : ℂ[X])
+        = monomial 0 (5 * c ^ 4 + 1) + monomial 1 (20 * c ^ 3) + monomial 2 (30 * c ^ 2)
+          + monomial 3 (20 * c) + monomial 4 5 := by
+      rw [taylor_apply]
+      simp only [Polynomial.add_comp, Polynomial.mul_comp, Polynomial.pow_comp,
+        Polynomial.X_comp, Polynomial.one_comp, Polynomial.ofNat_comp,
+        ← C_mul_X_pow_eq_monomial, map_ofNat, map_add, map_mul, map_pow, C_1]
+      ring
+    rw [Finset.sum_range_succ, Finset.sum_range_succ, Finset.sum_range_succ,
+      Finset.sum_range_succ, Finset.sum_range_zero]
+    simp only [htay, coeff_add, coeff_monomial, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte,
+      add_zero, zero_add, OfNat.zero_ne_ofNat, OfNat.ofNat_ne_one, OfNat.one_ne_ofNat,
+      NNReal.coe_ofNat, pow_zero, pow_one, mul_one]
+    rw [show ‖(20 : ℂ) * c ^ 3‖ = 20 * ‖c‖ ^ 3 by rw [norm_mul, norm_pow]; norm_num,
+      show ‖(30 : ℂ) * c ^ 2‖ = 30 * ‖c‖ ^ 2 by rw [norm_mul, norm_pow]; norm_num,
+      show ‖(20 : ℂ) * c‖ = 20 * ‖c‖ by rw [norm_mul]; norm_num,
+      show ‖(5 : ℂ)‖ = 5 by norm_num]
+    have hc : ‖c‖ ≤ 1.151 := by
+      have hsq : ‖c‖ ^ 2 = v 0 ^ 2 + v 1 ^ 2 := by
+        rw [hcdef, ← Complex.normSq_eq_norm_sq, Complex.normSq_apply, toComplex_apply]
+        simp only [add_re, add_im, ofReal_re, mul_re, I_re, mul_zero, ofReal_im, I_im, mul_one,
+          sub_self, add_zero, zero_add, mul_im]
+        ring
+      have : ‖c‖ ^ 2 ≤ 1.151 ^ 2 := by rw [hsq, v]; norm_num
+      nlinarith [norm_nonneg c, this]
+    have hA : ‖A‖ ≤ 0.16497 := by
+      rw [A]; apply opNorm_mulVecLin_le _ (by norm_num)
+      intro i; fin_cases i <;> simp [A_mat, Fin.sum_univ_two] <;> norm_num
+    have hs : Real.sqrt 2 ≤ 1.4143 := by
+      rw [show (1.4143 : ℝ) = Real.sqrt (1.4143 ^ 2) from (Real.sqrt_sq (by norm_num)).symm]
+      exact Real.sqrt_le_sqrt (by norm_num)
+    have hs0 : 0 ≤ Real.sqrt 2 := Real.sqrt_nonneg 2
+    have hc0 : 0 ≤ ‖c‖ := norm_nonneg c
+    calc 2 * Real.sqrt 2 * ‖A‖ *
+          (20 * ‖c‖ ^ 3 + 30 * ‖c‖ ^ 2 * (Real.sqrt 2 * 2) + 20 * ‖c‖ * (Real.sqrt 2 * 2) ^ 2
+            + 5 * (Real.sqrt 2 * 2) ^ 3)
+        ≤ 2 * 1.4143 * 0.16497 *
+            (20 * 1.151 ^ 3 + 30 * 1.151 ^ 2 * (1.4143 * 2) + 20 * 1.151 * (1.4143 * 2) ^ 2
+              + 5 * (1.4143 * 2) ^ 3) := by gcongr
+      _ ≤ 400 := by norm_num
+  · simpa using hx
 
-  -- simp  only [abs_le]
-  -- have hnormu : ‖u‖ ≤ 2 := sorry
-  -- have : 0 ≤ ‖u‖  := by grind
-  -- obtain ⟨hu0l, hu0r, hu1l, hu1r⟩ := temp _ _ _ hu hx
-  -- -- grewrite (config := {newGoals := .nonDependentOnly}) [← hu0l]
-  -- have : -‖u‖ ≤ u 0 := sorry
-  -- have : u 0 ≤ ‖u‖ := sorry
-  -- have : -‖u‖ ≤ u 1 := sorry
-  -- have : u 1 ≤ ‖u‖ := sorry
-  -- have h1 : 0 ≤ u 0 ^ 2 := by nlinarith
-  -- have h2 : -2*‖u‖ ≤ u 0 * u 1 := by nlinarith
-  -- have h3 : 0 ≤ u 1 ^ 2 := by nlinarith
-  -- have h4 : u 0 ^ 2 ≤ 2 * ‖u‖ := by nlinarith
-  -- have : u 0 * u 1 ≤ 2*‖u‖ := by nlinarith
-  -- have : u 1 ^ 2 ≤ 2*‖u‖ := by nlinarith
-  -- have : -4 * ‖u‖ ≤ u 0 ^ 3 := by nlinarith
-  -- have : -4 * ‖u‖ ≤ u 0 ^ 2 * u 1 := by nlinarith
-  -- have : -4 * ‖u‖ ≤ u 0 * u 1 ^ 2 := by nlinarith
-  -- have : -4 * ‖u‖ ≤ u 1 ^ 3 := by nlinarith
-  -- have :  u 0 ^ 3 ≤ 4 * ‖u‖ := by nlinarith
-  -- have :  u 0 ^ 2 * u 1 ≤ 4 * ‖u‖ := by nlinarith
-  -- have :  u 0 * u 1 ^ 2 ≤ 4 * ‖u‖ := by nlinarith
-  -- have :  u 1 ^ 3 ≤ 4 * ‖u‖ := by nlinarith
-  -- have : 0 ≤ u 0 ^ 4 := by nlinarith
-  -- have : -8 * ‖u‖ ≤ u 0 ^ 3 * u 1 := by nlinarith
-  -- have : 0 ≤ u 0 ^ 2 * u 1 ^ 2 := by nlinarith
-  -- have : -8 * ‖u‖ ≤ u 0 * u 1 ^ 3 := by nlinarith
-  -- have h19 : 0 ≤ u 1 ^ 4 := by nlinarith
-  -- have h20 : u 0 ^ 4 ≤ 8 * ‖u‖ := by nlinarith
-  -- have h21 : u 0 ^ 3 * u 1 ≤ 8 * ‖u‖ := by nlinarith
-  -- have h22 : u 0 ^ 2 * u 1 ^ 2 ≤ 8 * ‖u‖ := by nlinarith
-  -- have h23 : u 0 * u 1 ^ 3 ≤ 8 * ‖u‖ := by nlinarith
-  -- have h24 : u 1 ^ 4 ≤ 8 * ‖u‖ := by nlinarith
-  -- refine ⟨⟨⟨?_, ?_⟩, ⟨?_, ?_⟩⟩, ⟨⟨?_, ?_⟩, ⟨?_, ?_⟩⟩⟩
-  -- · linarith
-  -- · linarith
-  -- · linarith
-  -- · linarith
-  -- · linarith
-  -- · linarith
-  -- · linarith
-  -- · linarith
-
-lemma test : False := by
+lemma test :
+    ∃! x, polyToZeroFinder myPoly x = 0 ∧ ‖x - v‖₊ ≤ 1e-13 := by
   have := newton_kantorovich_fd
     (F := polyToZeroFinder myPoly)
     (DF := derivZeroFinder)
@@ -264,12 +373,13 @@ lemma test : False := by
     continuous_polyToZeroFinderDeriv
     (x₀ := v)
     (A := A)
-    (z₂ := 100)
+    (z₂ := 400)
     (R := 2)
-    (r := 0.0001)
-    y z₁ sorry (by sorry) (by apply le_of_lt; norm_num) (by norm_num)
+    (r := 1e-13)
+    y z₁ z₂ (by apply le_of_lt; norm_cast; norm_num) (by apply le_of_lt; norm_num) (by norm_num)
   -- have : (1 : ℝ) * 2⁻¹ ≤ 3 := by? norm_num
-  sorry
+  exact this
 
+#print axioms test
 
 -- #check newton_kantorovich hasFDerivAt_zeroFinder (by fun_prop)
