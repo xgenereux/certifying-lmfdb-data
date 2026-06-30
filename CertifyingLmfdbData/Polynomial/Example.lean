@@ -127,9 +127,6 @@ lemma myPoly_derivative : myPoly.derivative = myPolyDeriv := by
 noncomputable def derivZeroFinder (v : Fin 2 → ℝ) : (Fin 2 → ℝ) →L[ℝ] (Fin 2 → ℝ) :=
     polyToZeroFinderDeriv myPoly v
 
-
--- #exit
-
 def v : Fin 2 → ℝ := ![0.877438833123346, -0.744861766619744]
 
 def A_mat : Matrix (Fin 2) (Fin 2) ℝ :=
@@ -171,17 +168,6 @@ lemma z₁ : ‖1 - A.comp (derivZeroFinder v)‖₊ ≤ 1e-11 := by
   norm_num
 
 open NNReal
-
-lemma temp (x v u : Fin 2 → ℝ) (hu : u = x - v) (h : x ∈ Metric.closedEBall v 2) :
-    -2 ≤ u 0 ∧ u 0 ≤ 2 ∧
-    -2 ≤ u 1 ∧ u 1 ≤ 2 := by
-  have : ∀ i, x i = u i + v i := by
-    simp [hu]
-  have : edist x v = max (edist (x 0) (v 0)) (edist (x 1) (v 1)) := by
-    simp [edist, Finset.univ_fin2]
-  simp [this, edist_dist, Real.dist_eq, abs_le] at h
-  grind
-
 
 open Finset in
 /-- Coefficient Lipschitz bound for a complex polynomial on a ball of radius `R`:
@@ -316,9 +302,7 @@ lemma z₂ (x) (hx : x ∈ Metric.closedEBall v 2) :
   refine polyToZeroFinderDeriv_lipschitzOn myPoly A v 2 400 ?_ x ?_
   · -- the single numeric obligation `hz`
     have hQ : myPoly.derivative.map (algebraMap ℚ ℂ) = 5 * X ^ 4 + 1 := by
-      have h : myPoly.derivative = 5 * X ^ 4 + 1 := by norm_num [myPoly, C_ofNat]
-      rw [h]; simp only [Polynomial.map_add, Polynomial.map_mul, Polynomial.map_pow,
-        Polynomial.map_X, Polynomial.map_one, Polynomial.map_ofNat]
+      simp [myPoly_derivative, myPolyDeriv]
     rw [hQ, show (5 * X ^ 4 + 1 : ℂ[X]).natDegree = 4 from by compute_degree!]
     set c := toComplex v with hcdef
     have htay : taylor c (5 * X ^ 4 + 1 : ℂ[X])
@@ -329,15 +313,11 @@ lemma z₂ (x) (hx : x ∈ Metric.closedEBall v 2) :
         Polynomial.X_comp, Polynomial.one_comp, Polynomial.ofNat_comp,
         ← C_mul_X_pow_eq_monomial, map_ofNat, map_add, map_mul, map_pow, C_1]
       ring
-    rw [Finset.sum_range_succ, Finset.sum_range_succ, Finset.sum_range_succ,
-      Finset.sum_range_succ, Finset.sum_range_zero]
+    simp only [Finset.sum_range_succ, Finset.sum_range_zero]
+
     simp only [htay, coeff_add, coeff_monomial, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte,
       add_zero, zero_add, OfNat.zero_ne_ofNat, OfNat.ofNat_ne_one, OfNat.one_ne_ofNat,
-      NNReal.coe_ofNat, pow_zero, pow_one, mul_one]
-    rw [show ‖(20 : ℂ) * c ^ 3‖ = 20 * ‖c‖ ^ 3 by rw [norm_mul, norm_pow]; norm_num,
-      show ‖(30 : ℂ) * c ^ 2‖ = 30 * ‖c‖ ^ 2 by rw [norm_mul, norm_pow]; norm_num,
-      show ‖(20 : ℂ) * c‖ = 20 * ‖c‖ by rw [norm_mul]; norm_num,
-      show ‖(5 : ℂ)‖ = 5 by norm_num]
+      NNReal.coe_ofNat, pow_zero, pow_one, mul_one, Complex.norm_mul, norm_ofNat, norm_pow, ge_iff_le]
     have hc : ‖c‖ ≤ 1.151 := by
       have hsq : ‖c‖ ^ 2 = v 0 ^ 2 + v 1 ^ 2 := by
         rw [hcdef, ← Complex.normSq_eq_norm_sq, Complex.normSq_apply, toComplex_apply]
@@ -352,15 +332,8 @@ lemma z₂ (x) (hx : x ∈ Metric.closedEBall v 2) :
     have hs : Real.sqrt 2 ≤ 1.4143 := by
       rw [show (1.4143 : ℝ) = Real.sqrt (1.4143 ^ 2) from (Real.sqrt_sq (by norm_num)).symm]
       exact Real.sqrt_le_sqrt (by norm_num)
-    have hs0 : 0 ≤ Real.sqrt 2 := Real.sqrt_nonneg 2
-    have hc0 : 0 ≤ ‖c‖ := norm_nonneg c
-    calc 2 * Real.sqrt 2 * ‖A‖ *
-          (20 * ‖c‖ ^ 3 + 30 * ‖c‖ ^ 2 * (Real.sqrt 2 * 2) + 20 * ‖c‖ * (Real.sqrt 2 * 2) ^ 2
-            + 5 * (Real.sqrt 2 * 2) ^ 3)
-        ≤ 2 * 1.4143 * 0.16497 *
-            (20 * 1.151 ^ 3 + 30 * 1.151 ^ 2 * (1.4143 * 2) + 20 * 1.151 * (1.4143 * 2) ^ 2
-              + 5 * (1.4143 * 2) ^ 3) := by gcongr
-      _ ≤ 400 := by norm_num
+    grw [hc, hA, hs, hs]
+    norm_num
   · simpa using hx
 
 lemma test :
