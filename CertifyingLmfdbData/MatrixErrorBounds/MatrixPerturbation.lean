@@ -527,114 +527,67 @@ def myMat : Matrix (Fin 2) (Fin 2) ℚ :=
 lemma myMat_det : myMat.det = 0.658529208858350261945890006716 := by
   norm_num [myMat, det_fin_two]
 
--- begin fully AI slop --
+open Polynomial
+
+theorem det_one_add_eq_sum_sum_minors [DecidableEq n] (M : Matrix n n ℂ) :
+    (1 + M).det =
+    ∑ k ∈ Finset.range (card n + 1), ∑ s ∈ Finset.univ.powersetCard k,
+      (M.submatrix (Subtype.val : s → n) Subtype.val).det := by
+  set f := det (1 + (X : ℂ[X]) • M.map C) with hf
+  simp_rw [← Matrix.coeff_det_one_add_X_smul_eq_sum_minors M] -- why doesn't rw! work?
+  have : (1 + M).det = f.eval 1 := by simp [hf, eval_det]
+  simp [this, eval_eq_sum_range, hf]
+  have : (1 + (X : ℂ[X]) • M.map ⇑C).det.natDegree ≤ Fintype.card n := by
+    rw [add_comm]
+    simpa using Polynomial.natDegree_det_X_add_C_le M 1
+  sorry
 
 lemma det_one_add_norm_sub_one_le [DecidableEq n] (F : Matrix n n ℂ) :
     ‖(1 + F).det - 1‖ ≤ (1 + ‖F‖) ^ card n - 1 := by
-  let p : Polynomial ℂ := det ((Polynomial.X : Polynomial ℂ) • F.map Polynomial.C + 1)
-  have hpdeg : p.natDegree < card n + 1 := by
-    refine lt_of_le_of_lt ?_ (Nat.lt_succ_self _)
-    simpa [p, one_smul] using
-      (Polynomial.natDegree_det_X_add_C_le F 1)
-  have hp_eval : p.eval 1 = (1 + F).det := by
-    change Polynomial.eval 1 (det ((Polynomial.X : Polynomial ℂ) • F.map Polynomial.C + 1)) =
-      (1 + F).det
-    rw [eval_det]
-    have hmat :
-        Polynomial.eval (scalar n (1 : ℂ))
-            (matPolyEquiv ((Polynomial.X : Polynomial ℂ) • F.map Polynomial.C + 1)) =
-          1 + F := by
-      rw [matPolyEquiv_eval_eq_map]
-      ext i j
-      by_cases hij : i = j
-      · simp [Algebra.smul_def, Matrix.mul_apply, Matrix.algebraMap_matrix_apply, hij, add_comm]
-      · simp [Algebra.smul_def, Matrix.mul_apply, Matrix.algebraMap_matrix_apply, hij, add_comm]
-    rw [hmat]
-  have hp_coeff_zero : p.coeff 0 = 1 := by
-    change (det ((Polynomial.X : Polynomial ℂ) • F.map Polynomial.C + 1)).coeff 0 = 1
-    rw [show ((Polynomial.X : Polynomial ℂ) • F.map Polynomial.C + 1) =
-        (1 + (Polynomial.X : Polynomial ℂ) • F.map Polynomial.C) by rw [add_comm]]
-    rw [Polynomial.coeff_zero_eq_eval_zero, eval_det_add_X_smul]
-    simp
-  have hcoeff (k : ℕ) :
-      ‖p.coeff k‖ ≤ (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := by
-    change ‖(det ((Polynomial.X : Polynomial ℂ) • F.map Polynomial.C + 1)).coeff k‖ ≤
-      (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k
-    rw [show ((Polynomial.X : Polynomial ℂ) • F.map Polynomial.C + 1) =
-        (1 + (Polynomial.X : Polynomial ℂ) • F.map Polynomial.C) by rw [add_comm]]
-    rw [Matrix.coeff_det_one_add_X_smul_eq_sum_minors]
+  set S := fun k ↦ ∑ s ∈ powersetCard k univ, (F.submatrix (Subtype.val : s → n) Subtype.val).det with hS
+  have h_bound (k : ℕ) :
+      ‖S k‖ ≤ (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := by
     calc
-      ‖∑ s ∈ Finset.univ.powersetCard k,
-          (F.submatrix (Subtype.val : s → n) (Subtype.val : s → n)).det‖
-          ≤ ∑ s ∈ Finset.univ.powersetCard k,
+      ‖S k‖ ≤ ∑ s ∈ Finset.univ.powersetCard k,
               ‖(F.submatrix (Subtype.val : s → n) (Subtype.val : s → n)).det‖ := by
-            exact norm_sum_le _ _
+            exact norm_sum_le ..
       _ ≤ ∑ s ∈ Finset.univ.powersetCard k, ‖F‖ ^ k := by
-            refine Finset.sum_le_sum ?_
-            intro s hs
-            have hs_card : Fintype.card s = k := by
-              simpa using (Finset.mem_powersetCard.1 hs).2
+            gcongr with s hs
             calc
-              ‖(F.submatrix (Subtype.val : s → n) (Subtype.val : s → n)).det‖
-                  ≤ ‖F.submatrix (Subtype.val : s → n) (Subtype.val : s → n)‖ ^ Fintype.card s :=
+              ‖(F.submatrix Subtype.val Subtype.val).det‖
+                  ≤ ‖F.submatrix Subtype.val Subtype.val‖ ^ Fintype.card s :=
                     norm_det_le_opNorm_pow
               _ ≤ ‖F‖ ^ Fintype.card s := by
                     gcongr
                     exact l2_opNorm_submatrix_le_of_injective Subtype.val_injective
                       Subtype.val_injective F
-              _ = ‖F‖ ^ k := by rw [hs_card]
-      _ = (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := by
-            rw [Finset.sum_const, Finset.card_powersetCard, Finset.card_univ]
-            simp [nsmul_eq_mul]
-  have hsum :
-      ‖∑ k ∈ Finset.range (card n + 1) \ {0}, p.coeff k‖
-        ≤ ∑ k ∈ Finset.range (card n + 1) \ {0},
-            (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := by
-    calc
-      ‖∑ k ∈ Finset.range (card n + 1) \ {0}, p.coeff k‖
-          ≤ ∑ k ∈ Finset.range (card n + 1) \ {0}, ‖p.coeff k‖ := norm_sum_le _ _
-      _ ≤ ∑ k ∈ Finset.range (card n + 1) \ {0},
-            (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := by
-          exact Finset.sum_le_sum fun k _ => hcoeff k
-  have hsum_eq :
-      (∑ k ∈ Finset.range (card n + 1) \ {0},
-          (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k)
-        = (1 + ‖F‖) ^ card n - 1 := by
-    rw [show 1 + ‖F‖ = ‖F‖ + 1 by ring]
-    rw [add_pow]
-    simp [Finset.singleton_subset_iff, mul_comm]
-  have hp_sum :
-      p.eval 1 - 1 = ∑ k ∈ Finset.range (card n + 1) \ {0}, p.coeff k := by
-    conv_lhs =>
-      rw [p.as_sum_range_C_mul_X_pow' hpdeg]
-    simp [Polynomial.eval_finsetSum, hp_coeff_zero, Finset.singleton_subset_iff]
+              _ = ‖F‖ ^ k := by simp_all
+      _ = (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := by simp
   calc
-    ‖(1 + F).det - 1‖ = ‖p.eval 1 - 1‖ := by rw [hp_eval]
-    _ = ‖∑ k ∈ Finset.range (card n + 1) \ {0}, p.coeff k‖ := by rw [hp_sum]
-    _ ≤ ∑ k ∈ Finset.range (card n + 1) \ {0},
-            (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := hsum
-    _ = (1 + ‖F‖) ^ card n - 1 := hsum_eq
+    _ = ‖∑ k ∈ Finset.range (card n), S (k + 1)‖ := by
+      simp [det_one_add_eq_sum_sum_minors, Finset.sum_range_succ', hS]
+    _ ≤ ∑ k ∈ Finset.range (card n), ‖S (k + 1)‖ := norm_sum_le ..
+    _ ≤ ∑ k ∈ Finset.range (card n),
+          (Nat.choose (card n) (k + 1) : ℝ) * ‖F‖ ^ (k + 1) := by
+        gcongr
+        exact h_bound _
+    _ = (1 + ‖F‖) ^ card n - 1 := by
+      rw [add_comm 1 ‖F‖, add_pow, Finset.sum_range_succ']
+      simp [mul_comm]
 
-theorem bound_2 [DecidableEq n] (hA : IsUnit A.det) :
+theorem bound_2 [DecidableEq n] (hA : A.det ≠ 0) :
     ‖(A + E).det - A.det‖ ≤ ‖A.det‖ * ((1 + ‖A⁻¹‖ * ‖E‖) ^ (card n) - 1) := by
-  let F : Matrix n n ℂ := A⁻¹ * E
-  have hAE : A + E = A * (1 + F) := by
-    calc
-      A + E = A + (A * A⁻¹) * E := by rw [Matrix.mul_nonsing_inv A hA, Matrix.one_mul]
-      _ = A * (1 + F) := by simp [F, Matrix.mul_add, Matrix.mul_assoc]
-  have hdet :
-      (A + E).det - A.det = A.det * ((1 + F).det - 1) := by
-    rw [hAE, det_mul]
-    ring
-  have hF : ‖F‖ ≤ ‖A⁻¹‖ * ‖E‖ := norm_mul_le _ _
-  have hmono :
-      (1 + ‖F‖) ^ card n - 1 ≤ (1 + ‖A⁻¹‖ * ‖E‖) ^ card n - 1 := by
-    gcongr
   calc
-    ‖(A + E).det - A.det‖ = ‖A.det * ((1 + F).det - 1)‖ := by rw [hdet]
-    _ ≤ ‖A.det‖ * ‖(1 + F).det - 1‖ := norm_mul_le _ _
-    _ ≤ ‖A.det‖ * ((1 + ‖F‖) ^ card n - 1) := by
+    ‖(A + E).det - A.det‖ = ‖A.det * ((1 + A⁻¹ * E).det - 1)‖ := by
+      ring_nf
+      rw [← det_mul]
+      noncomm_ring
+      simp [hA]
+      ring_nf
+    _ ≤ ‖A.det‖ * ‖(1 + A⁻¹ * E).det - 1‖ := norm_mul_le ..
+    _ ≤ ‖A.det‖ * ((1 + ‖A⁻¹ * E‖) ^ card n - 1) := by
       gcongr
-      exact det_one_add_norm_sub_one_le F
+      exact det_one_add_norm_sub_one_le _
     _ ≤ ‖A.det‖ * ((1 + ‖A⁻¹‖ * ‖E‖) ^ card n - 1) := by
-      exact mul_le_mul_of_nonneg_left hmono (norm_nonneg _)
+      gcongr
+      exact norm_mul_le ..
