@@ -304,7 +304,7 @@ lemma l2_opNorm_reindex {n' m' : Type*} [Fintype n'] [DecidableEq n'] [Fintype m
 
 end
 
-variable {A E F : Matrix n n ℂ}
+variable {A B E F : Matrix n n ℂ} {δ : Matrix n n ℝ}
 
 theorem det_add_single_same {n : ℕ} {A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ}
     {j : Fin (n + 1)} {t : ℂ} :
@@ -654,6 +654,7 @@ theorem norm_le_of_entry_le_function [DecidableEq n]
     _ ≤ ‖δ‖ * ‖toLp 2 y‖ := Matrix.l2_opNorm_mulVec δ (toLp 2 y)
     _ = ‖δ‖ * ‖toLp 2 x‖ := by rw [hy_norm]
 
+variable (A E) in
 theorem absolute_bound_frob [DecidableEq n] {δ : Matrix n n ℝ} (hE : ∀ i j, ‖E i j‖ ≤ δ i j) :
     ‖(A + E).det - A.det‖ ≤ (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) := by
   have hδ : ∀ i j, 0 ≤ δ i j := fun i j ↦ (norm_nonneg (E i j)).trans (hE i j)
@@ -668,6 +669,11 @@ theorem absolute_bound_frob [DecidableEq n] {δ : Matrix n n ℝ} (hE : ∀ i j,
     _ ≤ (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) := by
       gcongr <;>
         exact l2_opNorm_le_frobenius _
+
+variable (A E) in
+theorem absolute_bound_frob' [DecidableEq n] (h_diff : ∀ i j, ‖B i j - A i j‖ ≤ δ i j) :
+    ‖B.det - A.det‖ ≤ (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) := by
+  simpa using absolute_bound_frob A (B - A) (by simpa using h_diff)
 
 lemma det_one_add_norm_sub_one_le [DecidableEq n] (F : Matrix n n ℂ) :
     ‖(1 + F).det - 1‖ ≤ (1 + ‖F‖) ^ card n - 1 := by
