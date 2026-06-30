@@ -535,32 +535,35 @@ theorem det_one_add_eq_sum_sum_minors [DecidableEq n] (M : Matrix n n ℂ) :
       (M.submatrix (Subtype.val : s → n) Subtype.val).det := by
   set f := det (1 + (X : ℂ[X]) • M.map C) with hf
   simp_rw [← Matrix.coeff_det_one_add_X_smul_eq_sum_minors M] -- why doesn't rw! work?
-  have : (1 + M).det = f.eval 1 := by simp [hf, eval_det]
-  simp [this, eval_eq_sum_range, hf]
   have : (1 + (X : ℂ[X]) • M.map ⇑C).det.natDegree ≤ Fintype.card n := by
     rw [add_comm]
     simpa using Polynomial.natDegree_det_X_add_C_le M 1
-  sorry
+  calc
+    (1 + M).det = f.eval 1 := by simp [hf, eval_det]
+    _ = _ := by
+      rw [eval_eq_sum_range' (n := Fintype.card n + 1) (by lia)]
+      simp [hf]
 
 lemma det_one_add_norm_sub_one_le [DecidableEq n] (F : Matrix n n ℂ) :
     ‖(1 + F).det - 1‖ ≤ (1 + ‖F‖) ^ card n - 1 := by
-  set S := fun k ↦ ∑ s ∈ powersetCard k univ, (F.submatrix (Subtype.val : s → n) Subtype.val).det with hS
+  set S := fun k ↦
+    ∑ s ∈ powersetCard k univ, (F.submatrix (Subtype.val : s → n) Subtype.val).det with hS
   have h_bound (k : ℕ) :
       ‖S k‖ ≤ (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := by
     calc
       ‖S k‖ ≤ ∑ s ∈ Finset.univ.powersetCard k,
-              ‖(F.submatrix (Subtype.val : s → n) (Subtype.val : s → n)).det‖ := by
-            exact norm_sum_le ..
+              ‖(F.submatrix Subtype.val Subtype.val).det‖ := by
+        exact norm_sum_le ..
       _ ≤ ∑ s ∈ Finset.univ.powersetCard k, ‖F‖ ^ k := by
             gcongr with s hs
             calc
               ‖(F.submatrix Subtype.val Subtype.val).det‖
                   ≤ ‖F.submatrix Subtype.val Subtype.val‖ ^ Fintype.card s :=
-                    norm_det_le_opNorm_pow
+                norm_det_le_opNorm_pow
               _ ≤ ‖F‖ ^ Fintype.card s := by
-                    gcongr
-                    exact l2_opNorm_submatrix_le_of_injective Subtype.val_injective
-                      Subtype.val_injective F
+                gcongr
+                exact l2_opNorm_submatrix_le_of_injective Subtype.val_injective
+                  Subtype.val_injective F
               _ = ‖F‖ ^ k := by simp_all
       _ = (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := by simp
   calc
@@ -569,8 +572,8 @@ lemma det_one_add_norm_sub_one_le [DecidableEq n] (F : Matrix n n ℂ) :
     _ ≤ ∑ k ∈ Finset.range (card n), ‖S (k + 1)‖ := norm_sum_le ..
     _ ≤ ∑ k ∈ Finset.range (card n),
           (Nat.choose (card n) (k + 1) : ℝ) * ‖F‖ ^ (k + 1) := by
-        gcongr
-        exact h_bound _
+      gcongr
+      exact h_bound _
     _ = (1 + ‖F‖) ^ card n - 1 := by
       rw [add_comm 1 ‖F‖, add_pow, Finset.sum_range_succ']
       simp [mul_comm]
