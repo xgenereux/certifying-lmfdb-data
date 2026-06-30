@@ -134,9 +134,56 @@ def lu_inverse_norm_bound(A, p='2'):
     }
 
 
-def print_lu_bound_report(A, digits=8):
-    """Pretty-print the result of lu_inverse_norm_bound(A)."""
+def norm_power_n_minus_1(A, p=2):
+    """Compute ||A||_p^(n-1), where n is the dimension of A."""
+    A = matrix(RDF, A)
+    n = A.nrows()
+    return A.norm(p) ** (n - 1)
+
+
+def det_times_inv_norm_bound(A):
+    """
+    Bound for |det(A)| * ||A^{-1}|| using the PLU decomposition.
+
+    Since A = P^{-1} L U (P a permutation, so |det P| = 1),
+        |det(A)| = |det(L)| * |det(U)| = |det(U)|   (L unit triangular)
+    and
+        ||A^{-1}|| <= ||U^{-1}|| * ||L^{-1}||
+    (bounded via formula (7), as in lu_inverse_norm_bound).  Hence
+
+        |det(A)| * ||A^{-1}||  <=  |det(U)| * bound_Uinv * bound_Linv.
+
+    Returns a dict with the bound and its constituent pieces.
+    """
+    A = matrix(RDF, A)
+    n = A.nrows()
+    if n != A.ncols():
+        raise ValueError("A must be square")
+
     res = lu_inverse_norm_bound(A)
+    U = res['U']
+
+    det_U = U.det()          # = +/- det(A) up to the sign from P
+    det_A = A.det()
+
+    bound = abs(det_U) * res['bound_Uinv'] * res['bound_Linv']
+
+    return {
+        'det_A': det_A,
+        'det_U': det_U,
+        'bound_Linv': res['bound_Linv'],
+        'bound_Uinv': res['bound_Uinv'],
+        'bound_Ainv': res['bound_Ainv'],
+        'bound_det_times_Ainv': bound,
+    }
+
+
+def print_lu_bound_report(A, digits=8):
+    """Pretty-print the result of lu_inverse_norm_bound(A), plus the
+    extra quantities ||A||^(n-1) and the PLU-based bound on
+    |det(A)| * ||A^{-1}||."""
+    res = lu_inverse_norm_bound(A)
+    n = A.nrows()
 
     def fmt(x):
         try:
@@ -171,6 +218,25 @@ def print_lu_bound_report(A, digits=8):
     print("actual ||A^{-1}||_1  :", fmt(actual['1']))
     print("actual ||A^{-1}||_2  :", fmt(actual['2']))
     print("actual ||A^{-1}||_oo :", fmt(actual['oo']))
+
+    # (1) ||A||^(n-1)
+    print("-" * 60)
+    normA2 = A.norm(2)
+    powerA = norm_power_n_minus_1(A, p=2)
+    print("%-45s %s" % ("||A||_2", fmt(normA2)))
+    print("%-45s %s" % ("||A||_2^(n-1)  (n = %d)" % n, fmt(powerA)))
+
+    # (2) bound for |det(A)| * ||A^{-1}|| via PLU
+    print("-" * 60)
+    det_res = det_times_inv_norm_bound(A)
+    print("%-45s %s" % ("|det(A)|", fmt(abs(det_res['det_A']))))
+    print("%-45s %s" % ("|det(U)|  (= |det(A)| up to sign of P)",
+                         fmt(abs(det_res['det_U']))))
+    print("%-45s %s" % ("bound: |det A| * ||A^{-1}||  (via PLU)",
+                         fmt(det_res['bound_det_times_Ainv'])))
+    actual_det_times_inv = abs(det_res['det_A']) * actual['2']
+    print("%-45s %s" % ("actual |det A| * ||A^{-1}||_2",
+                         fmt(actual_det_times_inv)))
     print("=" * 60)
 
 
