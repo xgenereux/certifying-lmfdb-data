@@ -65,7 +65,7 @@ lemma conjTranspose_mul_self_diag_eq_norm_sq (i : n) :
 
 variable [DecidableEq n]
 
-theorem hadamard_aux (hA : ∀ i, ‖toLp 2 (A.col i)‖ = 1) :
+theorem norm_det_le_one_of_toLp_col_eq_one (hA : ∀ i, ‖toLp 2 (A.col i)‖ = 1) :
     ‖A.det‖ ≤ 1 := by
   obtain hn | hn := isEmpty_or_nonempty n
   · simp
@@ -92,7 +92,7 @@ theorem hadamard_aux (hA : ∀ i, ‖toLp 2 (A.col i)‖ = 1) :
         simp +contextual [A.eigenvalues_conjTranspose_mul_self_nonneg]
     _ = _ := by simp [this]
 
-theorem hadamard : ‖A.det‖ ≤ ∏ i : n, ‖toLp 2 (A.col i)‖ := by
+theorem norm_det_le_prod_toLp_col : ‖A.det‖ ≤ ∏ i : n, ‖toLp 2 (A.col i)‖ := by
   obtain hA | hA := eq_or_ne A.det 0
   · simp [hA, norm_zero, prod_nonneg]
   have hPos (i : n) : 0 < ‖toLp 2 (A.col i)‖ := by
@@ -113,7 +113,7 @@ theorem hadamard : ‖A.det‖ ≤ ∏ i : n, ‖toLp 2 (A.col i)‖ := by
     rw [hAB, mul_inv_cancel_left₀]
     simp [prod_eq_zero_iff, hPos, ne_of_gt]
   simp only [← hAB, norm_mul]
-  grw [hadamard_aux hB]
+  grw [norm_det_le_one_of_toLp_col_eq_one hB]
   simp
 
 set_option backward.isDefEq.respectTransparency false in
@@ -123,11 +123,12 @@ lemma toLp_col_le_opNorm (i : n) : ‖toLp 2 (A.col i)‖ ≤ ‖A‖ := by calc
     Matrix.l2_opNorm_mulVec A (EuclideanSpace.single i 1)
   _ ≤ ‖A‖ := by simp
 
-theorem lem_2_5 : ∏ i : n, ‖toLp 2 (A.col i)‖ ≤ ‖A‖ ^ card n := by calc
+theorem prod_toLp_col_le_opNorm_pow : ∏ i : n, ‖toLp 2 (A.col i)‖ ≤ ‖A‖ ^ card n := by calc
   _ ≤ ∏ i, ‖A‖ := prod_le_prod (by simp) fun i hi ↦ toLp_col_le_opNorm i
   _ = ‖A‖ ^ card n := by simp
 
-lemma norm_det_le_opNorm_pow : ‖A.det‖ ≤ ‖A‖ ^ card n := hadamard.trans lem_2_5
+lemma norm_det_le_opNorm_pow : ‖A.det‖ ≤ ‖A‖ ^ card n :=
+  norm_det_le_prod_toLp_col.trans prod_toLp_col_le_opNorm_pow
 
 lemma l2_opNorm_sq_le_frobenius (A : Matrix m n K) : ‖A‖ ≤ √(∑ i, ∑ j, ‖A i j‖ ^ 2) := by
   refine ContinuousLinearMap.opNorm_le_bound _ (by simp) ?_
@@ -171,7 +172,7 @@ lemma l2_opNorm_diagonal (d : n → K) :
     intro i
     simpa [Matrix.toLpLin_apply] using hx (EuclideanSpace.single i 1)
 
-lemma norm_extend {α β : Type*} [Fintype α] [Fintype β] {x : α → K} {f : α → β}
+lemma toLp_extend_eq_toLp {α β : Type*} [Fintype α] [Fintype β] {x : α → K} {f : α → β}
     (hf : Function.Injective f) {p : ENNReal} :
     ‖toLp p (f.extend x 0)‖ = ‖toLp p x‖ := by
   cases p using ENNReal.recTopCoe with
@@ -244,7 +245,7 @@ lemma l2_opNorm_submatrix_le_of_injective {n' m' : Type*}
     rw [← Finset.sum_image hfm.injOn (f := fun i ↦ ‖∑ j, x j * A i (fn j)‖ ^ 2)]
     exact Finset.sum_le_sum_of_subset_of_nonneg (by simp) (by simp)
   have h₃ : ‖toLp 2 (A *ᵥ y)‖ ≤ ‖A‖ * ‖toLp 2 y‖ := Matrix.l2_opNorm_mulVec A (toLp 2 y)
-  have h₄ : ‖toLp 2 y‖ = ‖toLp 2 x‖ := norm_extend hfn
+  have h₄ : ‖toLp 2 y‖ = ‖toLp 2 x‖ := toLp_extend_eq_toLp hfn
   grw [h₂, ← h₁, h₃, h₄]
 
 lemma l2_opNorm_reindex {n' m' : Type*} [Fintype n'] [DecidableEq n'] [Fintype m']
@@ -259,7 +260,8 @@ end
 
 variable {A E F : Matrix n n ℂ}
 
-theorem lem_2_1 {n : ℕ} {A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ} {j : Fin (n + 1)} {t : ℂ} :
+theorem det_add_single_same {n : ℕ} {A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ}
+    {j : Fin (n + 1)} {t : ℂ} :
     (A + single j j t).det = A.det + t * (A.submatrix (Fin.succAbove j) (Fin.succAbove j)).det := by
   rw [det_succ_column _ j]
   rw [det_succ_column A j]
@@ -273,9 +275,9 @@ theorem lem_2_1 {n : ℕ} {A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ} {j : Fin 
   intro b _ hb
   simp [single_apply_of_row_ne hb.symm]
 
-theorem lem_2_1' {n : ℕ} {A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ} {t : ℂ} :
+theorem det_add_single_same_0 {n : ℕ} {A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ} {t : ℂ} :
     (A + single 0 0 t).det = A.det + t * (A.submatrix Fin.succ Fin.succ).det := by
-  simp [lem_2_1]
+  simp [det_add_single_same]
 
 lemma single_same_eq_diagonal_single {n α : Type*} [DecidableEq n] [Zero α] {i : n} {a : α} :
     single i i a = diagonal (Pi.single i a) := by
@@ -310,7 +312,7 @@ theorem main_result_diag_fin_aux {n : ℕ} (d : Fin (n + 1) → ℂ)
     have lem : z = d 0 * z1 + (diagonal d'1 + F).det := by
       replace hd' : diagonal d + F = diagonal d'1 + F + single 0 0 (d 0) := by
         simp only [← hd', add_right_comm]
-      simp only [z, z1, hd, lem_2_1', submatrix_add, Pi.add_apply, hd'1, hd', F1]
+      simp only [z, z1, hd, det_add_single_same_0, submatrix_add, Pi.add_apply, hd'1, hd', F1]
       ring
     replace ih : ‖z1‖ ≤ (n + 1) * ‖F‖ * max ‖diagonal d‖ ‖diagonal d + F‖ ^ n := by calc
       ‖z1‖ ≤ (n + 1) * ‖F1‖ * max ‖diagonal d1‖ ‖diagonal d1 + F1‖ ^ n := ih d1 F1
@@ -323,7 +325,8 @@ theorem main_result_diag_fin_aux {n : ℕ} (d : Fin (n + 1) → ℂ)
         gcongr
         apply l2_opNorm_submatrix_le_of_injective <;> exact Fin.succ_injective _
     have h : ‖(diagonal d'1 + F).det‖ ≤ ‖F‖ * ‖diagonal d + F‖ ^ (n + 1) := by calc
-      ‖(diagonal d'1 + F).det‖ ≤ ∏ i, ‖toLp 2 ((diagonal d'1 + F).col i)‖ := hadamard
+      ‖(diagonal d'1 + F).det‖ ≤ ∏ i, ‖toLp 2 ((diagonal d'1 + F).col i)‖ :=
+        norm_det_le_prod_toLp_col
       _ = ‖toLp 2 ((diagonal d'1).col 0 + F.col 0)‖ *
           ∏ i, ‖toLp 2 ((diagonal d'1 + F).col (Fin.succ i))‖ := by
         rw [Fin.prod_univ_succ]
@@ -407,8 +410,7 @@ theorem approximate_matrix [DecidableEq n] (A : Matrix n n ℂ) :
   simp
 
 open ComplexOrder
-theorem exists_svd_nonsingular {n : Type*} [Fintype n] [DecidableEq n]
-    (A : Matrix n n ℂ) (hA : A.det ≠ 0) :
+theorem exists_svd_nonsingular [DecidableEq n] (A : Matrix n n ℂ) (hA : A.det ≠ 0) :
     ∃ U ∈ unitaryGroup n ℂ, ∃ V ∈ unitaryGroup n ℂ, ∃ d : n → ℂ, A = U * diagonal d * Vᴴ := by
   let S : Matrix n n ℂ := Aᴴ * A
   have hS : S.IsHermitian := Matrix.isHermitian_conjTranspose_mul_self _
@@ -453,7 +455,7 @@ lemma tendsto_diagonal_iff {ι n R : Type*} [DecidableEq n] [TopologicalSpace R]
     · simpa using h i
     · simp [hij, tendsto_const_nhds]
 
-theorem exists_svd_square {n : Type*} [Fintype n] [DecidableEq n] (A : Matrix n n ℂ) :
+theorem exists_svd_square [DecidableEq n] (A : Matrix n n ℂ) :
     ∃ U ∈ unitaryGroup n ℂ, ∃ V ∈ unitaryGroup n ℂ, ∃ d : n → ℂ, A = U * diagonal d * Vᴴ := by
   obtain ⟨B, hBdet, hBlim⟩ := approximate_matrix A
   have (i : ℕ) := exists_svd_nonsingular (B i) (hBdet i)
@@ -499,7 +501,7 @@ lemma norm_of_mem_unitaryGroup [DecidableEq n] [Nonempty n] {U : Matrix n n ℂ}
     (hU : U ∈ unitaryGroup n ℂ) : ‖U‖ = 1 :=
   CStarRing.norm_of_mem_unitary hU
 
-theorem det_error_bound_one [DecidableEq n] :
+theorem main_result [DecidableEq n] :
     ‖(A + E).det - A.det‖ ≤ card n * ‖E‖ * (max ‖A‖ ‖A + E‖) ^ (card n - 1) := by
   obtain ⟨U, hU, V, hV, d, h⟩ := exists_svd_square A
   let F := Uᴴ * E * V
@@ -580,7 +582,7 @@ lemma det_one_add_norm_sub_one_le [DecidableEq n] (F : Matrix n n ℂ) :
       rw [add_comm 1 ‖F‖, add_pow, Finset.sum_range_succ']
       simp [mul_comm]
 
-theorem det_error_bound_two [DecidableEq n] (hA : A.det ≠ 0) :
+theorem relative_error_bound [DecidableEq n] (hA : A.det ≠ 0) :
     ‖(A + E).det - A.det‖ ≤ ‖A.det‖ * ((1 + ‖A⁻¹‖ * ‖E‖) ^ (card n) - 1) := by
   calc
     ‖(A + E).det - A.det‖ = ‖A.det * ((1 + A⁻¹ * E).det - 1)‖ := by
