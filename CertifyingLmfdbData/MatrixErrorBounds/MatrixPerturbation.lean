@@ -595,6 +595,57 @@ theorem absolute_bound_simple [DecidableEq n] :
       gcongr
       exact max_le (le_add_of_nonneg_right (norm_nonneg E)) (norm_add_le A E)
 
+lemma det_one_add_norm_sub_one_le [DecidableEq n] (F : Matrix n n ℂ) :
+    ‖(1 + F).det - 1‖ ≤ (1 + ‖F‖) ^ card n - 1 := by
+  set S := fun k ↦
+    ∑ s ∈ powersetCard k univ, (F.submatrix (Subtype.val : s → n) Subtype.val).det with hS
+  have h_bound (k : ℕ) :
+      ‖S k‖ ≤ (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := by
+    calc
+      ‖S k‖ ≤ ∑ s ∈ Finset.univ.powersetCard k,
+              ‖(F.submatrix Subtype.val Subtype.val).det‖ := by
+        exact norm_sum_le ..
+      _ ≤ ∑ s ∈ Finset.univ.powersetCard k, ‖F‖ ^ k := by
+            gcongr with s hs
+            calc
+              ‖(F.submatrix Subtype.val Subtype.val).det‖
+                  ≤ ‖F.submatrix Subtype.val Subtype.val‖ ^ Fintype.card s :=
+                norm_det_le_opNorm_pow
+              _ ≤ ‖F‖ ^ Fintype.card s := by
+                gcongr
+                exact l2_opNorm_submatrix_le_of_injective Subtype.val_injective
+                  Subtype.val_injective F
+              _ = ‖F‖ ^ k := by simp_all
+      _ = (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := by simp
+  calc
+    _ = ‖∑ k ∈ Finset.range (card n), S (k + 1)‖ := by
+      simp [det_one_add_eq_sum_sum_minors, Finset.sum_range_succ', hS]
+    _ ≤ ∑ k ∈ Finset.range (card n), ‖S (k + 1)‖ := norm_sum_le ..
+    _ ≤ ∑ k ∈ Finset.range (card n),
+          (Nat.choose (card n) (k + 1) : ℝ) * ‖F‖ ^ (k + 1) := by
+      gcongr
+      exact h_bound _
+    _ = (1 + ‖F‖) ^ card n - 1 := by
+      rw [add_comm 1 ‖F‖, add_pow, Finset.sum_range_succ']
+      simp [mul_comm]
+
+theorem relative_bound [DecidableEq n] (hA : A.det ≠ 0) :
+    ‖(A + E).det - A.det‖ ≤ ‖A.det‖ * ((1 + ‖A⁻¹‖ * ‖E‖) ^ (card n) - 1) := by
+  calc
+    ‖(A + E).det - A.det‖ = ‖A.det * ((1 + A⁻¹ * E).det - 1)‖ := by
+      ring_nf
+      rw [← det_mul]
+      noncomm_ring
+      simp [hA]
+      ring_nf
+    _ ≤ ‖A.det‖ * ‖(1 + A⁻¹ * E).det - 1‖ := norm_mul_le ..
+    _ ≤ ‖A.det‖ * ((1 + ‖A⁻¹ * E‖) ^ card n - 1) := by
+      gcongr
+      exact det_one_add_norm_sub_one_le _
+    _ ≤ ‖A.det‖ * ((1 + ‖A⁻¹‖ * ‖E‖) ^ card n - 1) := by
+      gcongr
+      exact norm_mul_le ..
+
 theorem norm_le_of_entry_le [DecidableEq n]
     {δ : ℝ} (hE : ∀ i j, ‖E i j‖ ≤ δ) : ‖E‖ ≤ (card n) * δ := by
   obtain hn | hn := isEmpty_or_nonempty n
@@ -655,7 +706,7 @@ theorem norm_le_of_entry_le_function [DecidableEq n]
     _ = ‖δ‖ * ‖toLp 2 x‖ := by rw [hy_norm]
 
 variable (A E) in
-theorem absolute_bound_frob [DecidableEq n] {δ : Matrix n n ℝ} (hE : ∀ i j, ‖E i j‖ ≤ δ i j) :
+theorem absolute_bound_frob [DecidableEq n] (hE : ∀ i j, ‖E i j‖ ≤ δ i j) :
     ‖(A + E).det - A.det‖ ≤ (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) := by
   have hδ : ∀ i j, 0 ≤ δ i j := fun i j ↦ (norm_nonneg (E i j)).trans (hE i j)
   calc
@@ -675,56 +726,22 @@ theorem absolute_bound_frob' [DecidableEq n] (h_diff : ∀ i j, ‖B i j - A i j
     ‖B.det - A.det‖ ≤ (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) := by
   simpa using absolute_bound_frob A (B - A) (by simpa using h_diff)
 
-lemma det_one_add_norm_sub_one_le [DecidableEq n] (F : Matrix n n ℂ) :
-    ‖(1 + F).det - 1‖ ≤ (1 + ‖F‖) ^ card n - 1 := by
-  set S := fun k ↦
-    ∑ s ∈ powersetCard k univ, (F.submatrix (Subtype.val : s → n) Subtype.val).det with hS
-  have h_bound (k : ℕ) :
-      ‖S k‖ ≤ (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := by
-    calc
-      ‖S k‖ ≤ ∑ s ∈ Finset.univ.powersetCard k,
-              ‖(F.submatrix Subtype.val Subtype.val).det‖ := by
-        exact norm_sum_le ..
-      _ ≤ ∑ s ∈ Finset.univ.powersetCard k, ‖F‖ ^ k := by
-            gcongr with s hs
-            calc
-              ‖(F.submatrix Subtype.val Subtype.val).det‖
-                  ≤ ‖F.submatrix Subtype.val Subtype.val‖ ^ Fintype.card s :=
-                norm_det_le_opNorm_pow
-              _ ≤ ‖F‖ ^ Fintype.card s := by
-                gcongr
-                exact l2_opNorm_submatrix_le_of_injective Subtype.val_injective
-                  Subtype.val_injective F
-              _ = ‖F‖ ^ k := by simp_all
-      _ = (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := by simp
-  calc
-    _ = ‖∑ k ∈ Finset.range (card n), S (k + 1)‖ := by
-      simp [det_one_add_eq_sum_sum_minors, Finset.sum_range_succ', hS]
-    _ ≤ ∑ k ∈ Finset.range (card n), ‖S (k + 1)‖ := norm_sum_le ..
-    _ ≤ ∑ k ∈ Finset.range (card n),
-          (Nat.choose (card n) (k + 1) : ℝ) * ‖F‖ ^ (k + 1) := by
-      gcongr
-      exact h_bound _
-    _ = (1 + ‖F‖) ^ card n - 1 := by
-      rw [add_comm 1 ‖F‖, add_pow, Finset.sum_range_succ']
-      simp [mul_comm]
-
-theorem relative_bound [DecidableEq n] (hA : A.det ≠ 0) :
-    ‖(A + E).det - A.det‖ ≤ ‖A.det‖ * ((1 + ‖A⁻¹‖ * ‖E‖) ^ (card n) - 1) := by
-  calc
-    ‖(A + E).det - A.det‖ = ‖A.det * ((1 + A⁻¹ * E).det - 1)‖ := by
-      ring_nf
-      rw [← det_mul]
-      noncomm_ring
-      simp [hA]
-      ring_nf
-    _ ≤ ‖A.det‖ * ‖(1 + A⁻¹ * E).det - 1‖ := norm_mul_le ..
-    _ ≤ ‖A.det‖ * ((1 + ‖A⁻¹ * E‖) ^ card n - 1) := by
-      gcongr
-      exact det_one_add_norm_sub_one_le _
-    _ ≤ ‖A.det‖ * ((1 + ‖A⁻¹‖ * ‖E‖) ^ card n - 1) := by
-      gcongr
-      exact norm_mul_le ..
+theorem absolute_bound_frob'' {n : Type*} [Fintype n] [DecidableEq n]
+  (A : Matrix n n ℚ) (B : Matrix n n ℝ) {δ : Matrix n n ℚ}
+  (h_diff : ∀ (i j : n), ‖B i j - A i j‖ ≤ δ i j)
+  {bound : ℝ} (h_bound : bound = (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1)) :
+    ‖B.det - A.det‖ ≤ bound := by
+  subst h_bound
+  have h_bound := absolute_bound_frob'
+    ((algebraMap _ ℂ).mapMatrix A) ((algebraMap _ ℂ).mapMatrix B)
+    (δ := (algebraMap _ ℝ).mapMatrix δ) <| by simpa using mod_cast h_diff
+  convert h_bound using 1
+  · have : (B.det : ℂ) - (A.det : ℂ) = ((B.det - A.det : ℝ) : ℂ) := by norm_num
+    simp_rw [← RingHom.map_det]
+    simp only [Complex.coe_algebraMap, eq_ratCast]
+    rw [this]
+    norm_cast
+  · simp [← Rat.norm_cast_real]
 
 def myMat : Matrix (Fin 2) (Fin 2) ℚ :=
   !![0.237543147066448,  -1.53145788325137;
