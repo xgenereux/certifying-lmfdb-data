@@ -295,6 +295,12 @@ lemma polyToZeroFinderDeriv_lipschitzOn
   refine (polyToZeroFinderDeriv_lipschitz_bound p A v hx).trans ?_
   gcongr
 
+lemma norm_toComplex_sq (v : Fin 2 → ℝ) : ‖toComplex v‖^2 = v 0 ^ 2 + v 1 ^ 2 := by
+  rw [← Complex.normSq_eq_norm_sq, Complex.normSq_apply, toComplex_apply]
+  simp only [add_re, add_im, ofReal_re, mul_re, I_re, mul_zero, ofReal_im, I_im, mul_one,
+    sub_self, add_zero, zero_add, mul_im]
+  ring
+
 set_option maxHeartbeats 1000000 in
 -- the `simp`/`norm_num` over the expanded coefficient sum and `√2`/‖v‖ bounds is heavy
 lemma z₂ (x) (hx : x ∈ Metric.closedEBall v 2) :
@@ -302,31 +308,31 @@ lemma z₂ (x) (hx : x ∈ Metric.closedEBall v 2) :
   simp only [derivZeroFinder]
   refine polyToZeroFinderDeriv_lipschitzOn myPoly A v 2 400 ?_ x ?_
   · -- the single numeric obligation `hz`
-    have hQ : myPoly.derivative.map (algebraMap ℚ ℂ) = 5 * X ^ 4 - 1 := by
-      simp [myPoly_derivative, myPolyDeriv]
-    rw [hQ, show (5 * X ^ 4 - 1 : ℂ[X]).natDegree = 4 from by compute_degree!]
+    have hQ : myPoly.derivative.map (algebraMap ℚ ℂ) = myPolyDeriv.map (algebraMap ℚ ℂ) := by
+      simp [myPoly_derivative]
+    simp only [myPolyDeriv, Polynomial.map_sub, Polynomial.map_mul, Polynomial.map_ofNat,
+      Polynomial.map_pow, map_X, Polynomial.map_one] at hQ
+    have hdeg : ((myPoly.derivative).map (algebraMap ℚ ℂ)).natDegree = 4 := by
+      rw [hQ]
+      compute_degree!
+    rw [hdeg]
     set c := toComplex v with hcdef
-    have htay : taylor c (5 * X ^ 4 - 1 : ℂ[X])
-        = monomial 0 (5 * c ^ 4 - 1) + monomial 1 (20 * c ^ 3) + monomial 2 (30 * c ^ 2)
-          + monomial 3 (20 * c) + monomial 4 5 := by
-      rw [taylor_apply]
-      simp only [Polynomial.sub_comp, Polynomial.mul_comp, Polynomial.pow_comp,
-        Polynomial.X_comp, Polynomial.one_comp, Polynomial.ofNat_comp,
-        ← C_mul_X_pow_eq_monomial, map_ofNat, map_sub, map_mul, map_pow, C_1]
-      ring
+    have htay : taylor c (myPoly.derivative.map (algebraMap ℚ ℂ)) = ?poly := by
+      simp only [hQ, taylor_apply, sub_comp, mul_comp, ofNat_comp, Nat.cast_ofNat, pow_comp, X_comp,
+        one_comp]
+      polynomial_nf
+      rfl
+    simp only [← monomial_zero_left, map_add, monomial_mul_X, zero_add,
+      monomial_mul_X_pow] at htay
     simp only [Finset.sum_range_succ, Finset.sum_range_zero]
     simp only [htay, coeff_add, coeff_monomial, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte,
       add_zero, zero_add, OfNat.zero_ne_ofNat, OfNat.ofNat_ne_one, OfNat.one_ne_ofNat,
       NNReal.coe_ofNat, pow_zero, pow_one, mul_one, Complex.norm_mul, norm_ofNat, norm_pow,
       ge_iff_le]
     have hc : ‖c‖ ≤ 1.1 := by
-      have hsq : ‖c‖ ^ 2 = v 0 ^ 2 + v 1 ^ 2 := by
-        rw [hcdef, ← Complex.normSq_eq_norm_sq, Complex.normSq_apply, toComplex_apply]
-        simp only [add_re, add_im, ofReal_re, mul_re, I_re, mul_zero, ofReal_im, I_im, mul_one,
-          sub_self, add_zero, zero_add, mul_im]
-        ring
-      have : ‖c‖ ^ 2 ≤ 1.1 ^ 2 := by rw [hsq, v]; norm_num
-      nlinarith [norm_nonneg c, this]
+      have hsq := norm_toComplex_sq v
+      have : ‖c‖ ^ 2 ≤ 1.1 ^ 2 := by rw [hcdef, hsq, v]; norm_num
+      nlinarith only [norm_nonneg c, this]
     have hA : ‖A‖ ≤ 0.21634 := by
       rw [A]; apply opNorm_mulVecLin_le _ (by norm_num)
       intro i; fin_cases i <;> simp [A_mat, Fin.sum_univ_two] <;> norm_num
@@ -351,7 +357,6 @@ lemma test :
     (R := 2)
     (r := 1e-15)
     y z₁ z₂ (by apply le_of_lt; norm_cast; norm_num) (by apply le_of_lt; norm_num) (by norm_num)
-  -- have : (1 : ℝ) * 2⁻¹ ≤ 3 := by? norm_num
   exact this
 
 #print axioms test
