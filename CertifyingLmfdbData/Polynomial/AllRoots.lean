@@ -143,4 +143,46 @@ lemma rtest1 :
     (by norm_num)
   exact this
 
+/-- Conjugation commutes with evaluation of a polynomial with rational coefficients. -/
+lemma aeval_conj (z : ℂ) (p : Polynomial ℚ) :
+    aeval (starRingEnd ℂ z) p = starRingEnd ℂ (aeval z p) := by
+  have hcomp : (starRingEnd ℂ).comp (algebraMap ℚ ℂ) = algebraMap ℚ ℂ := by ext q; simp
+  rw [aeval_def, aeval_def, Polynomial.hom_eval₂, hcomp]
+
+/-- If a root of `p` is uniquely determined by being close to an approximation `v` with zero
+imaginary part, then that root is genuinely real: the complex conjugate of any root close to `v`
+is again a root the same distance from `v`, so by uniqueness the root equals its own conjugate. -/
+lemma im_zero_of_unique {p : Polynomial ℚ} {v : Fin 2 → ℝ} {r : ℝ≥0} (hv : v 1 = 0)
+    (huniq : ∃! x, polyToZeroFinder p x = 0 ∧ ‖x - v‖₊ ≤ r)
+    {x : Fin 2 → ℝ} (hx : polyToZeroFinder p x = 0 ∧ ‖x - v‖₊ ≤ r) : x 1 = 0 := by
+  obtain ⟨y, -, huniq⟩ := huniq
+  set x' : Fin 2 → ℝ := ![x 0, -(x 1)] with hx'
+  have hconj : toComplex x' = starRingEnd ℂ (toComplex x) := by
+    simp [hx']
+  -- `toComplex x` is a genuine root of `p`
+  have hroot : aeval (toComplex x) p = 0 := by
+    have h := hx.1
+    simp only [polyToZeroFinder, Function.comp_apply] at h
+    have := congrArg toComplex h
+    simpa using this
+  -- the conjugate `x'` also satisfies the defining property
+  have hx'P : polyToZeroFinder p x' = 0 ∧ ‖x' - v‖₊ ≤ r := by
+    refine ⟨?_, ?_⟩
+    · simp only [polyToZeroFinder, Function.comp_apply, hconj, aeval_conj, hroot, map_zero]
+    · simp only [← NNReal.coe_le_coe, coe_nnnorm, pi_norm_le_iff_of_nonempty] at hx ⊢
+      intro i
+      fin_cases i
+      · simpa [hx', Pi.sub_apply] using hx.2 0
+      · simpa [hx', Pi.sub_apply, hv, abs_neg] using hx.2 1
+  -- uniqueness forces `x = x'`, hence `x 1 = -(x 1)`
+  have hxx' : x = x' := (huniq x hx).trans (huniq x' hx'P).symm
+  have := congrFun hxx' 1
+  simp only [hx', Matrix.cons_val_one, Matrix.cons_val_zero] at this
+  linarith
+
+/-- The root approximated by `rroot1` is genuinely real. -/
+lemma rroot1_im_zero {x : Fin 2 → ℝ}
+    (hx : polyToZeroFinder myPoly x = 0 ∧ ‖x - rroot1‖₊ ≤ 1e-57) : x 1 = 0 :=
+  im_zero_of_unique (by simp [rroot1]) rtest1 hx
+
 end DegSix
