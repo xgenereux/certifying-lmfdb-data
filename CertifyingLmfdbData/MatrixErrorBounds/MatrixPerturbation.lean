@@ -9,21 +9,64 @@ section
 
 open Matrix
 
+@[simp]
+lemma Rat.norm_eq_abs (q : ℚ) : ‖q‖ = |q| := by
+  exact_mod_cast Real.norm_eq_abs q
+
+@[simp, norm_cast]
+theorem RCLike.norm_ratCast {K : Type*} [RCLike K] (q : ℚ) :
+    ‖(q : K)‖ = |q| := by
+  rw [← RCLike.ofReal_ratCast]
+  norm_cast
+
+lemma single_same_eq_diagonal_single {n α : Type*} [DecidableEq n] [Zero α] {i : n} {a : α} :
+    single i i a = diagonal (Pi.single i a) := by
+  ext j k
+  simp [diagonal_apply, Pi.single_apply, single]
+  grind
+
+lemma reindex_diagonal {n m α : Type*} [DecidableEq n] [DecidableEq m] [Zero α]
+    (e : n ≃ m) (d : n → α) :
+    (diagonal d).reindex e e = diagonal (d ∘ e.symm) := by
+  classical
+  ext i j
+  simp [diagonal_apply, reindex_apply]
+
+lemma Set.Finite.dense_compl {α : Type*} [TopologicalSpace α] [T1Space α] [PerfectSpace α]
+    {s : Set α} (hs : s.Finite) : Dense (sᶜ : Set α) := by
+  rw [Set.compl_eq_univ_sdiff]
+  exact Dense.sdiff_finite (by simp) hs
+
+open Filter Topology in
 set_option backward.isDefEq.respectTransparency false in
-lemma isCompact_unitaryGroup {n : Type*} [DecidableEq n] [Fintype n] :
-    IsCompact (unitaryGroup n ℂ : Set (Matrix n n ℂ)) := by
+lemma tendsto_diagonal_iff {ι n R : Type*} [DecidableEq n] [TopologicalSpace R] [Zero R]
+    {l : Filter ι} {x : n → R} {f : ι → n → R} :
+    Tendsto (fun i ↦ diagonal (f i)) l (𝓝 (diagonal x)) ↔ Tendsto f l (𝓝 x) := by
+  rw [tendsto_pi_nhds]
+  simp only [tendsto_pi_nhds, diagonal_apply]
+  constructor
+  · intro h i
+    simpa using h i i
+  · intro h i j
+    obtain rfl | hij := eq_or_ne i j
+    · simpa using h i
+    · simp [hij, tendsto_const_nhds]
+
+set_option backward.isDefEq.respectTransparency false in
+lemma isCompact_unitaryGroup {n : Type*} [DecidableEq n] [Fintype n] {K : Type*} [RCLike K] :
+    IsCompact (unitaryGroup n K : Set (Matrix n n K)) := by
   open Norms.Elementwise in
   apply IsCompact.of_isClosed_subset (ProperSpace.isCompact_closedBall 0 1) isClosed_unitary
   simp +contextual [Set.subset_def, entrywise_sup_norm_bound_of_unitary]
 
-instance {n : Type*} [DecidableEq n] [Fintype n] :
-    CompactSpace (unitaryGroup n ℂ : Set (Matrix n n ℂ)) :=
+instance {n : Type*} [DecidableEq n] [Fintype n] {K : Type*} [RCLike K] :
+    CompactSpace (unitaryGroup n K : Set (Matrix n n K)) :=
   isCompact_iff_compactSpace.1 isCompact_unitaryGroup
 
 end
 
 open Fintype (card)
-open WithLp Finset Matrix Norms.L2Operator Polynomial
+open WithLp Finset Matrix Norms.L2Operator Polynomial Filter Topology
 open scoped NNReal Matrix.Norms.L2Operator
 
 local notation "‖" A "‖f" => √(∑ i, ∑ j, ‖A i j‖ ^ 2)
@@ -54,11 +97,30 @@ theorem det_one_add_eq_sum_sum_minors :
       rw [eval_eq_sum_range' (n := Fintype.card n + 1) (by lia)]
       simp [hf]
 
+theorem det_add_single_same {n : ℕ} {A : Matrix (Fin (n + 1)) (Fin (n + 1)) R}
+    {j : Fin (n + 1)} {t : R} :
+    (A + single j j t).det = A.det + t * (A.submatrix (Fin.succAbove j) (Fin.succAbove j)).det := by
+  rw [det_succ_column _ j]
+  rw [det_succ_column A j]
+  have (x : Fin (n + 1)) : (single j j t).submatrix x.succAbove j.succAbove = 0 := by
+    ext a b
+    simp
+  simp only [Matrix.add_apply, submatrix_add, Pi.add_apply, this, add_zero, add_mul, mul_add,
+    Finset.sum_add_distrib, add_right_inj]
+  rw [Finset.sum_eq_single_of_mem j (by simp)]
+  · simp
+  intro b _ hb
+  simp [single_apply_of_row_ne hb.symm]
+
+theorem det_add_single_same_0 {n : ℕ} {A : Matrix (Fin (n + 1)) (Fin (n + 1)) R} {t : R} :
+    (A + single 0 0 t).det = A.det + t * (A.submatrix Fin.succ Fin.succ).det := by
+  simp [det_add_single_same]
+
 end Ring
 
 section
 
-variable {K : Type*} [RCLike K] {A : Matrix n n K}
+variable {K : Type*} [RCLike K] {A : Matrix n n K} {δ : Matrix n n ℝ}
 
 lemma conjTranspose_mul_self_diag_eq_norm_sq (i : n) :
     (Aᴴ * A) i i = ‖toLp 2 (A.col i)‖ ^ 2 := by
@@ -191,7 +253,7 @@ lemma l2_opNorm_sq_le_sqrt_l1_mul_linf (A : Matrix m n K) : ‖A‖ ≤ √(‖A
       rw [← Finset.mul_sum]
       ring
 
-lemma l2_opNorm_isEmpty [IsEmpty n] {A : Matrix m n K} : ‖A‖ = 0 := by
+lemma l2_opNorm_isEmpty [IsEmpty n] : ‖A‖ = 0 := by
   refine le_antisymm ?_ (by simp)
   refine ContinuousLinearMap.opNorm_le_bound _ (by simp) ?_
   intro x
@@ -302,44 +364,108 @@ lemma l2_opNorm_reindex {n' m' : Type*} [Fintype n'] [DecidableEq n'] [Fintype m
   · exact l2_opNorm_submatrix_le_of_injective en.symm.injective em.symm.injective _
   · simpa using l2_opNorm_submatrix_le_of_injective en.injective em.injective (A.reindex em en)
 
-end
+lemma det_one_add_norm_sub_one_le (A : Matrix n n K) :
+    ‖(1 + A).det - 1‖ ≤ (1 + ‖A‖) ^ card n - 1 := by
+  set S := fun k ↦
+    ∑ s ∈ powersetCard k univ, (A.submatrix (Subtype.val : s → n) Subtype.val).det with hS
+  have h_bound (k : ℕ) :
+      ‖S k‖ ≤ (Nat.choose (card n) k : ℝ) * ‖A‖ ^ k := by
+    calc
+      ‖S k‖ ≤ ∑ s ∈ Finset.univ.powersetCard k,
+              ‖(A.submatrix Subtype.val Subtype.val).det‖ := by
+        exact norm_sum_le ..
+      _ ≤ ∑ s ∈ Finset.univ.powersetCard k, ‖A‖ ^ k := by
+            gcongr with s hs
+            calc
+              ‖(A.submatrix Subtype.val Subtype.val).det‖
+                  ≤ ‖A.submatrix Subtype.val Subtype.val‖ ^ Fintype.card s :=
+                norm_det_le_opNorm_pow
+              _ ≤ ‖A‖ ^ Fintype.card s := by
+                gcongr
+                exact l2_opNorm_submatrix_le_of_injective Subtype.val_injective
+                  Subtype.val_injective A
+              _ = ‖A‖ ^ k := by simp_all
+      _ = (Nat.choose (card n) k : ℝ) * ‖A‖ ^ k := by simp
+  calc
+    _ = ‖∑ k ∈ Finset.range (card n), S (k + 1)‖ := by
+      simp [det_one_add_eq_sum_sum_minors, Finset.sum_range_succ', hS]
+    _ ≤ ∑ k ∈ Finset.range (card n), ‖S (k + 1)‖ := norm_sum_le ..
+    _ ≤ ∑ k ∈ Finset.range (card n),
+          (Nat.choose (card n) (k + 1) : ℝ) * ‖A‖ ^ (k + 1) := by
+      gcongr
+      exact h_bound _
+    _ = (1 + ‖A‖) ^ card n - 1 := by
+      rw [add_comm 1 ‖A‖, add_pow, Finset.sum_range_succ']
+      simp [mul_comm]
 
-variable {A B E F : Matrix n n ℂ} {δ : Matrix n n ℝ}
+theorem norm_le_of_entry_le {δ : ℝ}
+    (hA : ∀ i j, ‖A i j‖ ≤ δ) : ‖A‖ ≤ (card n) * δ := by
+  obtain hn | hn := isEmpty_or_nonempty n
+  · simp [l2_opNorm_isEmpty]
+  let i₀ : n := Classical.ofNonempty
+  have hε : 0 ≤ δ := (norm_nonneg (A i₀ i₀)).trans (hA i₀ i₀)
+  calc
+    ‖A‖ ≤ √(∑ i, ∑ j, ‖A i j‖ ^ 2) := l2_opNorm_le_frobenius A
+    _ ≤ √(∑ i : n, ∑ j : n, δ ^ 2) := by
+      gcongr with i j
+      exact hA i j
+    _ = √(((card n : ℝ) * δ) ^ 2) := by
+      congr
+      simp [Finset.sum_const, nsmul_eq_mul]
+      ring
+    _ = (card n) * δ := by rw [Real.sqrt_sq (by positivity)]
 
-theorem det_add_single_same {n : ℕ} {A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ}
-    {j : Fin (n + 1)} {t : ℂ} :
-    (A + single j j t).det = A.det + t * (A.submatrix (Fin.succAbove j) (Fin.succAbove j)).det := by
-  rw [det_succ_column _ j]
-  rw [det_succ_column A j]
-  have (x : Fin (n + 1)) : (single j j t).submatrix x.succAbove j.succAbove = 0 := by
-    ext a b
-    simp
-  simp only [Matrix.add_apply, submatrix_add, Pi.add_apply, this, add_zero, add_mul, mul_add,
-    Finset.sum_add_distrib, add_right_inj]
-  rw [Finset.sum_eq_single_of_mem j (by simp)]
-  · simp
-  intro b _ hb
-  simp [single_apply_of_row_ne hb.symm]
+-- AI generated, not cleaned up
+-- TODO : generalise to norms induced by vector norms
+-- for ‖A‖_p,q = sup { ‖Ax‖_p/‖x‖_q | x ≠ 0 }
+theorem norm_le_of_entry_le_function
+    {δ : Matrix n n ℝ} (hA : ∀ i j, ‖A i j‖ ≤ δ i j) : ‖A‖ ≤ ‖δ‖ := by
+  refine ContinuousLinearMap.opNorm_le_bound _ (norm_nonneg δ) ?_
+  intro x
+  cases x using WithLp.rec with | toLp x =>
+  let y : n → ℝ := fun j ↦ ‖x j‖
+  have hy_norm : ‖toLp 2 y‖ = ‖toLp 2 x‖ := by
+    rw [PiLp.norm_eq_of_L2, PiLp.norm_eq_of_L2]
+    simp [y]
+  have hδy_nonneg (i : n) : 0 ≤ (δ *ᵥ y) i := by
+    calc
+      0 ≤ ∑ j, ‖x j‖ * ‖A i j‖ := by positivity
+      _ ≤ ∑ j, y j * δ i j := by
+        gcongr with j
+        exact hA i j
+      _ = (δ *ᵥ y) i := by simp [Matrix.mulVec_eq_sum, y, mul_comm]
+  have hpoint (i : n) : ‖toLp 2 (A *ᵥ x) i‖ ≤ ‖toLp 2 (δ *ᵥ y) i‖ := by
+    calc
+      ‖toLp 2 (A *ᵥ x) i‖ = ‖∑ j, x j * A i j‖ := by
+        simp [Matrix.mulVec_eq_sum]
+      _ ≤ ∑ j, ‖x j‖ * ‖A i j‖ := by
+        grw [norm_sum_le]
+        simp [mul_comm]
+      _ ≤ ∑ j, y j * δ i j := by
+        gcongr with j
+        exact hA i j
+      _ = (δ *ᵥ y) i := by simp [Matrix.mulVec_eq_sum, y, mul_comm]
+      _ = ‖toLp 2 (δ *ᵥ y) i‖ := by
+        rw [Real.norm_eq_abs, abs_of_nonneg (hδy_nonneg i)]
+  simp only [LinearEquiv.trans_apply, LinearMap.coe_toContinuousLinearMap', toLpLin_toLp,
+    toLin'_apply]
+  calc
+    ‖toLp 2 (A *ᵥ x)‖ ≤ ‖toLp 2 (δ *ᵥ y)‖ := by
+      rw [PiLp.norm_eq_of_L2, PiLp.norm_eq_of_L2]
+      gcongr with i
+      exact hpoint i
+    _ ≤ ‖δ‖ * ‖toLp 2 y‖ := Matrix.l2_opNorm_mulVec δ (toLp 2 y)
+    _ = ‖δ‖ * ‖toLp 2 x‖ := by rw [hy_norm]
 
-theorem det_add_single_same_0 {n : ℕ} {A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ} {t : ℂ} :
-    (A + single 0 0 t).det = A.det + t * (A.submatrix Fin.succ Fin.succ).det := by
-  simp [det_add_single_same]
-
-lemma single_same_eq_diagonal_single {n α : Type*} [DecidableEq n] [Zero α] {i : n} {a : α} :
-    single i i a = diagonal (Pi.single i a) := by
-  ext j k
-  simp [diagonal_apply, Pi.single_apply, single]
-  grind
-
-theorem absolute_bound_diag_fin_aux {n : ℕ} (d : Fin (n + 1) → ℂ)
-    (F : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) :
+theorem absolute_bound_diag_fin_aux {n : ℕ} (d : Fin (n + 1) → K)
+    (F : Matrix (Fin (n + 1)) (Fin (n + 1)) K) :
     ‖(diagonal d + F).det - (diagonal d).det‖ ≤
       (n + 1) * ‖F‖ * (max ‖diagonal d‖ ‖diagonal d + F‖) ^ n := by
   induction n with
   | zero => simpa using norm_det_le_opNorm_pow (A := F)
   | succ n ih =>
-    let d1 : Fin (n + 1) → ℂ := Matrix.vecTail d
-    let d'1 : Fin (n + 2) → ℂ := Matrix.vecCons 0 d1
+    let d1 : Fin (n + 1) → K := Matrix.vecTail d
+    let d'1 : Fin (n + 2) → K := Matrix.vecCons 0 d1
     let F1 := F.submatrix Fin.succ Fin.succ
     set z := (diagonal d + F).det - (diagonal d).det
     set z1 := (diagonal d1 + F1).det - (diagonal d1).det
@@ -403,21 +529,14 @@ theorem absolute_bound_diag_fin_aux {n : ℕ} (d : Fin (n + 1) → ℂ)
         linear_combination
       _ = _ := by congr! 2; norm_cast
 
-theorem absolute_bound_diag_fin {n : ℕ} (d : Fin n → ℂ) (E : Matrix (Fin n) (Fin n) ℂ) :
+theorem absolute_bound_diag_fin {n : ℕ} (d : Fin n → K) (E : Matrix (Fin n) (Fin n) K) :
     ‖(diagonal d + E).det - (diagonal d).det‖ ≤
       n * ‖E‖ * max ‖diagonal d‖ ‖diagonal d + E‖ ^ (n - 1) := by
   cases n with
   | zero => simp
   | succ n => simpa using absolute_bound_diag_fin_aux d E
 
-lemma reindex_diagonal {n m : Type*} [DecidableEq n] [DecidableEq m]
-    (e : n ≃ m) (d : n → ℂ) :
-    (diagonal d).reindex e e = diagonal (d ∘ e.symm) := by
-  classical
-  ext i j
-  simp [diagonal_apply, reindex_apply]
-
-theorem absolute_bound_diag [DecidableEq n] (d : n → ℂ) (E : Matrix n n ℂ) :
+theorem absolute_bound_diag (d : n → K) (E : Matrix n n K) :
     ‖(diagonal d + E).det - (diagonal d).det‖ ≤
       card n * ‖E‖ * (max ‖diagonal d‖ ‖diagonal d + E‖) ^ (card n - 1) := by
   let e : n ≃ Fin (card n) := Fintype.equivFin n
@@ -427,16 +546,11 @@ theorem absolute_bound_diag [DecidableEq n] (d : n → ℂ) (E : Matrix n n ℂ)
     det_reindex_self, det_reindex_self] at h
   exact h
 
-lemma Set.Finite.dense_compl {α : Type*} [TopologicalSpace α] [T1Space α] [PerfectSpace α]
-    {s : Set α} (hs : s.Finite) : Dense (sᶜ : Set α) := by
-  rw [Set.compl_eq_univ_sdiff]
-  exact Dense.sdiff_finite (by simp) hs
-
-open Filter Topology
+open Filter Topology in
 set_option backward.isDefEq.respectTransparency false in
-theorem approximate_matrix [DecidableEq n] (A : Matrix n n ℂ) :
-    ∃ B : ℕ → Matrix n n ℂ, (∀ i, (B i).det ≠ 0) ∧ Filter.Tendsto B Filter.atTop (𝓝 A) := by
-  let s : Set ℂ := {x | x ∈ A.charpoly.roots}
+theorem approximate_matrix (A : Matrix n n K) :
+    ∃ B : ℕ → Matrix n n K, (∀ i, (B i).det ≠ 0) ∧ Filter.Tendsto B Filter.atTop (𝓝 A) := by
+  let s : Set K := {x | x ∈ A.charpoly.roots}
   have : 0 ∈ closure sᶜ := (Multiset.finite_toSet _).dense_compl _
   obtain ⟨u, hu, hu'⟩ := mem_closure_iff_seq_limit.1 this
   replace hu : ∀ i : ℕ, Matrix.det (A - scalar n (u i)) ≠ 0 := by
@@ -455,22 +569,22 @@ theorem approximate_matrix [DecidableEq n] (A : Matrix n n ℂ) :
   convert Tendsto.const_sub _ hu'
   simp
 
-open ComplexOrder
-theorem exists_svd_nonsingular [DecidableEq n] (A : Matrix n n ℂ) (hA : A.det ≠ 0) :
-    ∃ U ∈ unitaryGroup n ℂ, ∃ V ∈ unitaryGroup n ℂ, ∃ d : n → ℂ, A = U * diagonal d * Vᴴ := by
-  let S : Matrix n n ℂ := Aᴴ * A
+open ComplexOrder in
+theorem exists_svd_nonsingular (A : Matrix n n K) (hA : A.det ≠ 0) :
+    ∃ U ∈ unitaryGroup n K, ∃ V ∈ unitaryGroup n K, ∃ d : n → K, A = U * diagonal d * Vᴴ := by
+  let S : Matrix n n K := Aᴴ * A
   have hS : S.IsHermitian := Matrix.isHermitian_conjTranspose_mul_self _
   have hS' : S.PosDef := Matrix.PosDef.conjTranspose_mul_self _ <|
     Matrix.mulVec_injective_of_isUnit <| (Matrix.isUnit_iff_isUnit_det _).2 hA.isUnit
   have hpos (i : n) : (0 : ℝ) < hS.eigenvalues i := hS'.eigenvalues_pos _
-  let V : Matrix n n ℂ := hS.eigenvectorUnitary
-  let Λ : Matrix n n ℂ := diagonal (fun i ↦ hS.eigenvalues i)
-  let D : Matrix n n ℂ := diagonal fun i ↦ Real.sqrt (hS.eigenvalues i)
+  let V : Matrix n n K := hS.eigenvectorUnitary
+  let Λ : Matrix n n K := diagonal (fun i ↦ hS.eigenvalues i)
+  let D : Matrix n n K := diagonal fun i ↦ Real.sqrt (hS.eigenvalues i)
   have hDΛ : Dᴴ * D = Λ := by
     simp only [D, Λ, diagonal_conjTranspose, diagonal_mul_diagonal, Pi.star_apply, RCLike.star_def,
-      Complex.conj_ofReal, diagonal_eq_diagonal_iff]
+      diagonal_eq_diagonal_iff]
     intro i
-    rw [← Complex.ofReal_mul, Real.mul_self_sqrt (hpos i).le]
+    rw [RCLike.conj_ofReal, ← RCLike.ofReal_mul, Real.mul_self_sqrt (hpos i).le]
   have hD : Dᴴ = D := by simp [D]
   have spec : Vᴴ * S * V = Λ := by
     have := hS.conjStarAlgAut_star_eigenvectorUnitary
@@ -478,7 +592,7 @@ theorem exists_svd_nonsingular [DecidableEq n] (A : Matrix n n ℂ) (hA : A.det 
   have : D.det ≠ 0 := by simp [D, prod_eq_zero_iff, Real.sqrt_ne_zero', hpos]
   have : Invertible D := Matrix.invertibleOfIsUnitDet _ this.isUnit
   let U := A * V * D⁻¹
-  have hU : U ∈ unitaryGroup n ℂ := by
+  have hU : U ∈ unitaryGroup n K := by
     rw [Matrix.mem_unitaryGroup_iff']
     calc
       star U * U = D⁻¹ᴴ * Vᴴ * S * V * D⁻¹ := by simp [S, U, star_eq_conjTranspose, mul_assoc]
@@ -487,34 +601,34 @@ theorem exists_svd_nonsingular [DecidableEq n] (A : Matrix n n ℂ) (hA : A.det 
   have : A = U * D * Vᴴ := by simp [U, mul_assoc, ← star_eq_conjTranspose, V]
   exact ⟨U, hU, V, by simp [V], _, this⟩
 
-set_option backward.isDefEq.respectTransparency false in
-lemma tendsto_diagonal_iff {ι n R : Type*} [DecidableEq n] [TopologicalSpace R] [Zero R]
-    {l : Filter ι} {x : n → R} {f : ι → n → R} :
-    Tendsto (fun i ↦ diagonal (f i)) l (𝓝 (diagonal x)) ↔ Tendsto f l (𝓝 x) := by
-  rw [tendsto_pi_nhds]
-  simp only [tendsto_pi_nhds, diagonal_apply]
-  constructor
-  · intro h i
-    simpa using h i i
-  · intro h i j
-    obtain rfl | hij := eq_or_ne i j
-    · simpa using h i
-    · simp [hij, tendsto_const_nhds]
+lemma norm_mul_mem_unitaryGroup
+    {U : Matrix n n K} (hU : U ∈ unitaryGroup n K) (A : Matrix n n K) :
+    ‖A * U‖ = ‖A‖ :=
+  CStarRing.norm_mul_mem_unitary _ hU
 
-theorem exists_svd_square [DecidableEq n] (A : Matrix n n ℂ) :
-    ∃ U ∈ unitaryGroup n ℂ, ∃ V ∈ unitaryGroup n ℂ, ∃ d : n → ℂ, A = U * diagonal d * Vᴴ := by
+lemma norm_mem_unitaryGroup_mul
+    {U : Matrix n n K} (hU : U ∈ unitaryGroup n K) (A : Matrix n n K) :
+    ‖U * A‖ = ‖A‖ :=
+  CStarRing.norm_mem_unitary_mul _ hU
+
+lemma norm_of_mem_unitaryGroup [Nonempty n]
+    {U : Matrix n n K} (hU : U ∈ unitaryGroup n K) : ‖U‖ = 1 :=
+  CStarRing.norm_of_mem_unitary hU
+
+theorem exists_svd_square (A : Matrix n n K) :
+    ∃ U ∈ unitaryGroup n K, ∃ V ∈ unitaryGroup n K, ∃ d : n → K, A = U * diagonal d * Vᴴ := by
   obtain ⟨B, hBdet, hBlim⟩ := approximate_matrix A
   have (i : ℕ) := exists_svd_nonsingular (B i) (hBdet i)
   choose U_ hU_ V_ hV_ d_ h using this
-  let UV : ℕ → Matrix n n ℂ × Matrix n n ℂ := fun i ↦ (U_ i, V_ i)
-  have hUV (i : ℕ) : UV i ∈ (unitaryGroup n ℂ : Set _) ×ˢ (unitaryGroup n ℂ) := by
+  let UV : ℕ → Matrix n n K × Matrix n n K := fun i ↦ (U_ i, V_ i)
+  have hUV (i : ℕ) : UV i ∈ (unitaryGroup n K : Set _) ×ˢ (unitaryGroup n K) := by
     simp [UV, Set.mem_prod, hU_, hV_]
   obtain ⟨⟨U, V⟩, ⟨hU : U ∈ _, hV : V ∈ _⟩, φ, hφ, hlim⟩ :=
     (isCompact_unitaryGroup.prod isCompact_unitaryGroup).isSeqCompact hUV
   obtain ⟨hUφ, hVφ⟩ : Tendsto (U_ ∘ φ) atTop (𝓝 U) ∧ Tendsto (V_ ∘ φ) atTop (𝓝 V) := by
     rwa [Prod.tendsto_iff] at hlim
   have h_eq : Tendsto (fun i => B (φ i)) atTop (𝓝 A) := hBlim.comp hφ.tendsto_atTop;
-  obtain ⟨d, hd⟩ : ∃ d : n → ℂ, Tendsto (d_ ∘ φ) atTop (𝓝 d) := by
+  obtain ⟨d, hd⟩ : ∃ d : n → K, Tendsto (d_ ∘ φ) atTop (𝓝 d) := by
     have h_lim : Tendsto (fun i ↦ U_ (φ i) * diagonal (d_ (φ i)) * (V_ (φ i))ᴴ) atTop (𝓝 A) := by
       simpa only [← h] using h_eq
     have h_lim' : Tendsto (fun i ↦ diagonal (d_ (φ i))) atTop (𝓝 (Uᴴ * A * V)) := by
@@ -533,22 +647,7 @@ theorem exists_svd_square [DecidableEq n] (A : Matrix n n ℂ) :
     exact hd
   exact tendsto_nhds_unique h_eq (by simpa only [h] using h_cont)
 
-lemma norm_mul_mem_unitaryGroup [DecidableEq n] {U : Matrix n n ℂ} (A : Matrix n n ℂ)
-    (hU : U ∈ unitaryGroup n ℂ) :
-    ‖A * U‖ = ‖A‖ :=
-  CStarRing.norm_mul_mem_unitary _ hU
-
-lemma norm_mem_unitaryGroup_mul [DecidableEq n] {U : Matrix n n ℂ} (A : Matrix n n ℂ)
-    (hU : U ∈ unitaryGroup n ℂ) :
-    ‖U * A‖ = ‖A‖ :=
-  CStarRing.norm_mem_unitary_mul _ hU
-
-lemma norm_of_mem_unitaryGroup [DecidableEq n] [Nonempty n] {U : Matrix n n ℂ}
-    (hU : U ∈ unitaryGroup n ℂ) : ‖U‖ = 1 :=
-  CStarRing.norm_of_mem_unitary hU
-
-variable (A E) in
-theorem absolute_bound [DecidableEq n] :
+theorem absolute_bound (A E : Matrix n n K) :
     ‖(A + E).det - A.det‖ ≤ card n * ‖E‖ * (max ‖A‖ ‖A + E‖) ^ (card n - 1) := by
   obtain ⟨U, hU, V, hV, d, h⟩ := exists_svd_square A
   let F := Uᴴ * E * V
@@ -567,13 +666,13 @@ theorem absolute_bound [DecidableEq n] :
     _ = A.det := by simp [det_mul, h]
   let z := (diagonal d + F).det - (diagonal d).det
   have hd : ‖diagonal d‖ = ‖A‖ := by
-    rw [h, norm_mul_mem_unitaryGroup, norm_mem_unitaryGroup_mul _ hU]
+    rw [h, norm_mul_mem_unitaryGroup, norm_mem_unitaryGroup_mul hU]
     exact Unitary.star_mem hV
   have hF : ‖F‖ = ‖E‖ := by
-    rw [norm_mul_mem_unitaryGroup _ hV, norm_mem_unitaryGroup_mul]
+    rw [norm_mul_mem_unitaryGroup hV, norm_mem_unitaryGroup_mul]
     exact Unitary.star_mem hU
   have hdF : ‖diagonal d + F‖ = ‖A + E‖ := by
-    rw [← hAE, norm_mul_mem_unitaryGroup, norm_mem_unitaryGroup_mul _ hU]
+    rw [← hAE, norm_mul_mem_unitaryGroup, norm_mem_unitaryGroup_mul hU]
     exact Unitary.star_mem hV
   have : ‖z‖ ≤ _ := absolute_bound_diag d F
   calc
@@ -586,8 +685,7 @@ theorem absolute_bound [DecidableEq n] :
     _ = card n * ‖E‖ * max ‖A‖ ‖A + E‖ ^ (card n - 1) := by
       simp only [hd, hF, hdF]
 
-variable (A E) in
-theorem absolute_bound_simple [DecidableEq n] :
+theorem absolute_bound_simple (A E : Matrix n n K) :
     ‖(A + E).det - A.det‖ ≤ card n * ‖E‖ * (‖A‖ + ‖E‖) ^ (card n - 1) := by
   calc
     ‖(A + E).det - A.det‖ ≤ card n * ‖E‖ * (max ‖A‖ ‖A + E‖) ^ (card n - 1) := absolute_bound A E
@@ -595,41 +693,7 @@ theorem absolute_bound_simple [DecidableEq n] :
       gcongr
       exact max_le (le_add_of_nonneg_right (norm_nonneg E)) (norm_add_le A E)
 
-lemma det_one_add_norm_sub_one_le [DecidableEq n] (F : Matrix n n ℂ) :
-    ‖(1 + F).det - 1‖ ≤ (1 + ‖F‖) ^ card n - 1 := by
-  set S := fun k ↦
-    ∑ s ∈ powersetCard k univ, (F.submatrix (Subtype.val : s → n) Subtype.val).det with hS
-  have h_bound (k : ℕ) :
-      ‖S k‖ ≤ (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := by
-    calc
-      ‖S k‖ ≤ ∑ s ∈ Finset.univ.powersetCard k,
-              ‖(F.submatrix Subtype.val Subtype.val).det‖ := by
-        exact norm_sum_le ..
-      _ ≤ ∑ s ∈ Finset.univ.powersetCard k, ‖F‖ ^ k := by
-            gcongr with s hs
-            calc
-              ‖(F.submatrix Subtype.val Subtype.val).det‖
-                  ≤ ‖F.submatrix Subtype.val Subtype.val‖ ^ Fintype.card s :=
-                norm_det_le_opNorm_pow
-              _ ≤ ‖F‖ ^ Fintype.card s := by
-                gcongr
-                exact l2_opNorm_submatrix_le_of_injective Subtype.val_injective
-                  Subtype.val_injective F
-              _ = ‖F‖ ^ k := by simp_all
-      _ = (Nat.choose (card n) k : ℝ) * ‖F‖ ^ k := by simp
-  calc
-    _ = ‖∑ k ∈ Finset.range (card n), S (k + 1)‖ := by
-      simp [det_one_add_eq_sum_sum_minors, Finset.sum_range_succ', hS]
-    _ ≤ ∑ k ∈ Finset.range (card n), ‖S (k + 1)‖ := norm_sum_le ..
-    _ ≤ ∑ k ∈ Finset.range (card n),
-          (Nat.choose (card n) (k + 1) : ℝ) * ‖F‖ ^ (k + 1) := by
-      gcongr
-      exact h_bound _
-    _ = (1 + ‖F‖) ^ card n - 1 := by
-      rw [add_comm 1 ‖F‖, add_pow, Finset.sum_range_succ']
-      simp [mul_comm]
-
-theorem relative_bound [DecidableEq n] (hA : A.det ≠ 0) :
+theorem relative_bound (E : Matrix n n K) (hA : A.det ≠ 0) :
     ‖(A + E).det - A.det‖ ≤ ‖A.det‖ * ((1 + ‖A⁻¹‖ * ‖E‖) ^ (card n) - 1) := by
   calc
     ‖(A + E).det - A.det‖ = ‖A.det * ((1 + A⁻¹ * E).det - 1)‖ := by
@@ -646,67 +710,7 @@ theorem relative_bound [DecidableEq n] (hA : A.det ≠ 0) :
       gcongr
       exact norm_mul_le ..
 
-theorem norm_le_of_entry_le [DecidableEq n]
-    {δ : ℝ} (hE : ∀ i j, ‖E i j‖ ≤ δ) : ‖E‖ ≤ (card n) * δ := by
-  obtain hn | hn := isEmpty_or_nonempty n
-  · simp [l2_opNorm_isEmpty]
-  let i₀ : n := Classical.ofNonempty
-  have hε : 0 ≤ δ := (norm_nonneg (E i₀ i₀)).trans (hE i₀ i₀)
-  calc
-    ‖E‖ ≤ √(∑ i, ∑ j, ‖E i j‖ ^ 2) := l2_opNorm_le_frobenius E
-    _ ≤ √(∑ i : n, ∑ j : n, δ ^ 2) := by
-      gcongr with i j
-      exact hE i j
-    _ = √(((card n : ℝ) * δ) ^ 2) := by
-      congr
-      simp [Finset.sum_const, nsmul_eq_mul]
-      ring
-    _ = (card n) * δ := by rw [Real.sqrt_sq (by positivity)]
-
--- AI generated, not cleaned up
--- TODO : generalise to norms induced by vector norms
--- for ‖A‖_p,q = sup { ‖Ax‖_p/‖x‖_q | x ≠ 0 }
-theorem norm_le_of_entry_le_function [DecidableEq n]
-    {δ : Matrix n n ℝ} (hE : ∀ i j, ‖E i j‖ ≤ δ i j) : ‖E‖ ≤ ‖δ‖ := by
-  refine ContinuousLinearMap.opNorm_le_bound _ (norm_nonneg δ) ?_
-  intro x
-  cases x using WithLp.rec with | toLp x =>
-  let y : n → ℝ := fun j ↦ ‖x j‖
-  have hy_norm : ‖toLp 2 y‖ = ‖toLp 2 x‖ := by
-    rw [PiLp.norm_eq_of_L2, PiLp.norm_eq_of_L2]
-    simp [y]
-  have hδy_nonneg (i : n) : 0 ≤ (δ *ᵥ y) i := by
-    calc
-      0 ≤ ∑ j, ‖x j‖ * ‖E i j‖ := by positivity
-      _ ≤ ∑ j, y j * δ i j := by
-        gcongr with j
-        exact hE i j
-      _ = (δ *ᵥ y) i := by simp [Matrix.mulVec_eq_sum, y, mul_comm]
-  have hpoint (i : n) : ‖toLp 2 (E *ᵥ x) i‖ ≤ ‖toLp 2 (δ *ᵥ y) i‖ := by
-    calc
-      ‖toLp 2 (E *ᵥ x) i‖ = ‖∑ j, x j * E i j‖ := by
-        simp [Matrix.mulVec_eq_sum]
-      _ ≤ ∑ j, ‖x j‖ * ‖E i j‖ := by
-        grw [norm_sum_le]
-        simp [mul_comm]
-      _ ≤ ∑ j, y j * δ i j := by
-        gcongr with j
-        exact hE i j
-      _ = (δ *ᵥ y) i := by simp [Matrix.mulVec_eq_sum, y, mul_comm]
-      _ = ‖toLp 2 (δ *ᵥ y) i‖ := by
-        rw [Real.norm_eq_abs, abs_of_nonneg (hδy_nonneg i)]
-  simp only [LinearEquiv.trans_apply, LinearMap.coe_toContinuousLinearMap', toLpLin_toLp,
-    toLin'_apply]
-  calc
-    ‖toLp 2 (E *ᵥ x)‖ ≤ ‖toLp 2 (δ *ᵥ y)‖ := by
-      rw [PiLp.norm_eq_of_L2, PiLp.norm_eq_of_L2]
-      gcongr with i
-      exact hpoint i
-    _ ≤ ‖δ‖ * ‖toLp 2 y‖ := Matrix.l2_opNorm_mulVec δ (toLp 2 y)
-    _ = ‖δ‖ * ‖toLp 2 x‖ := by rw [hy_norm]
-
-variable (A E) in
-theorem absolute_bound_frob [DecidableEq n] (hE : ∀ i j, ‖E i j‖ ≤ δ i j) :
+theorem absolute_bound_frob (A E : Matrix n n K) (hE : ∀ i j, ‖E i j‖ ≤ δ i j) :
     ‖(A + E).det - A.det‖ ≤ (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) := by
   have hδ : ∀ i j, 0 ≤ δ i j := fun i j ↦ (norm_nonneg (E i j)).trans (hE i j)
   calc
@@ -721,27 +725,24 @@ theorem absolute_bound_frob [DecidableEq n] (hE : ∀ i j, ‖E i j‖ ≤ δ i 
       gcongr <;>
         exact l2_opNorm_le_frobenius _
 
-variable (A B) in
-theorem absolute_bound_frob' [DecidableEq n] (h_diff : ∀ i j, ‖B i j - A i j‖ ≤ δ i j) :
+theorem absolute_bound_frob' (A B : Matrix n n K) (h_diff : ∀ i j, ‖B i j - A i j‖ ≤ δ i j) :
     ‖B.det - A.det‖ ≤ (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) := by
   simpa using absolute_bound_frob A (B - A) (by simpa using h_diff)
 
-theorem absolute_bound_frob'' {n : Type*} [Fintype n] [DecidableEq n]
-  (A : Matrix n n ℚ) (B : Matrix n n ℝ) {δ : Matrix n n ℚ}
+theorem absolute_bound_frob''
+  (A : Matrix n n ℚ) (B : Matrix n n K) {δ : Matrix n n ℚ}
   (h_diff : ∀ (i j : n), ‖B i j - A i j‖ ≤ δ i j)
   {bound : ℝ} (h_bound : bound = (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1)) :
     ‖B.det - A.det‖ ≤ bound := by
   subst h_bound
-  have h_bound := absolute_bound_frob'
-    ((algebraMap _ ℂ).mapMatrix A) ((algebraMap _ ℂ).mapMatrix B)
-    (δ := (algebraMap _ ℝ).mapMatrix δ) <| by simpa using mod_cast h_diff
-  convert h_bound using 1
-  · have : (B.det : ℂ) - (A.det : ℂ) = ((B.det - A.det : ℝ) : ℂ) := by norm_num
-    simp_rw [← RingHom.map_det]
-    simp only [Complex.coe_algebraMap, eq_ratCast]
-    rw [this]
-    norm_cast
-  · simp [← Rat.norm_cast_real]
+  have h := absolute_bound_frob' ((algebraMap ℚ K).mapMatrix A) B
+      (δ := (algebraMap ℚ ℝ).mapMatrix δ) <| by
+        intro i j
+        exact_mod_cast h_diff i j
+  rw [← RingHom.map_det] at h
+  simpa using h
+
+end
 
 def myMat : Matrix (Fin 2) (Fin 2) ℚ :=
   !![0.237543147066448,  -1.53145788325137;
