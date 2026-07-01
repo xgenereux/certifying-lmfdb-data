@@ -2,6 +2,50 @@ import CertifyingLmfdbData.Polynomial.Example
 
 noncomputable section
 
+section Lemmas
+
+open Polynomial NNReal
+
+/-- Conjugation commutes with evaluation of a polynomial with rational coefficients. -/
+lemma aeval_conj (z : ℂ) (p : Polynomial ℚ) :
+    aeval (starRingEnd ℂ z) p = starRingEnd ℂ (aeval z p) := by
+  have hcomp : (starRingEnd ℂ).comp (algebraMap ℚ ℂ) = algebraMap ℚ ℂ := by ext q; simp
+  rw [aeval_def, aeval_def, Polynomial.hom_eval₂, hcomp]
+
+/-- If a root of `p` is uniquely determined by being close to an approximation `v` with zero
+imaginary part, then that root is genuinely real: the complex conjugate of any root close to `v`
+is again a root the same distance from `v`, so by uniqueness the root equals its own conjugate. -/
+lemma im_zero_of_unique {p : Polynomial ℚ} {v : Fin 2 → ℝ} {r : ℝ≥0} (hv : v 1 = 0)
+    (huniq : ∃! x, polyToZeroFinder p x = 0 ∧ ‖x - v‖₊ ≤ r)
+    {x : Fin 2 → ℝ} (hx : polyToZeroFinder p x = 0 ∧ ‖x - v‖₊ ≤ r) : x 1 = 0 := by
+  obtain ⟨y, -, huniq⟩ := huniq
+  set x' : Fin 2 → ℝ := ![x 0, -(x 1)] with hx'
+  have hconj : toComplex x' = starRingEnd ℂ (toComplex x) := by
+    simp [hx']
+  -- `toComplex x` is a genuine root of `p`
+  have hroot : aeval (toComplex x) p = 0 := by
+    have h := hx.1
+    simp only [polyToZeroFinder, Function.comp_apply] at h
+    have := congrArg toComplex h
+    simpa using this
+  -- the conjugate `x'` also satisfies the defining property
+  have hx'P : polyToZeroFinder p x' = 0 ∧ ‖x' - v‖₊ ≤ r := by
+    refine ⟨?_, ?_⟩
+    · simp only [polyToZeroFinder, Function.comp_apply, hconj, aeval_conj, hroot, map_zero]
+    · simp only [← NNReal.coe_le_coe, coe_nnnorm, pi_norm_le_iff_of_nonempty] at hx ⊢
+      intro i
+      fin_cases i
+      · simpa [hx', Pi.sub_apply] using hx.2 0
+      · simpa [hx', Pi.sub_apply, hv, abs_neg] using hx.2 1
+  -- uniqueness forces `x = x'`, hence `x 1 = -(x 1)`
+  have hxx' : x = x' := (huniq x hx).trans (huniq x' hx'P).symm
+  have := congrFun hxx' 1
+  simp only [hx', Matrix.cons_val_one, Matrix.cons_val_zero] at this
+  linarith
+
+end Lemmas
+
+
 namespace DegSix
 
 open Polynomial
@@ -143,46 +187,96 @@ lemma rtest1 :
     (by norm_num)
   exact this
 
-/-- Conjugation commutes with evaluation of a polynomial with rational coefficients. -/
-lemma aeval_conj (z : ℂ) (p : Polynomial ℚ) :
-    aeval (starRingEnd ℂ z) p = starRingEnd ℂ (aeval z p) := by
-  have hcomp : (starRingEnd ℂ).comp (algebraMap ℚ ℂ) = algebraMap ℚ ℂ := by ext q; simp
-  rw [aeval_def, aeval_def, Polynomial.hom_eval₂, hcomp]
-
-/-- If a root of `p` is uniquely determined by being close to an approximation `v` with zero
-imaginary part, then that root is genuinely real: the complex conjugate of any root close to `v`
-is again a root the same distance from `v`, so by uniqueness the root equals its own conjugate. -/
-lemma im_zero_of_unique {p : Polynomial ℚ} {v : Fin 2 → ℝ} {r : ℝ≥0} (hv : v 1 = 0)
-    (huniq : ∃! x, polyToZeroFinder p x = 0 ∧ ‖x - v‖₊ ≤ r)
-    {x : Fin 2 → ℝ} (hx : polyToZeroFinder p x = 0 ∧ ‖x - v‖₊ ≤ r) : x 1 = 0 := by
-  obtain ⟨y, -, huniq⟩ := huniq
-  set x' : Fin 2 → ℝ := ![x 0, -(x 1)] with hx'
-  have hconj : toComplex x' = starRingEnd ℂ (toComplex x) := by
-    simp [hx']
-  -- `toComplex x` is a genuine root of `p`
-  have hroot : aeval (toComplex x) p = 0 := by
-    have h := hx.1
-    simp only [polyToZeroFinder, Function.comp_apply] at h
-    have := congrArg toComplex h
-    simpa using this
-  -- the conjugate `x'` also satisfies the defining property
-  have hx'P : polyToZeroFinder p x' = 0 ∧ ‖x' - v‖₊ ≤ r := by
-    refine ⟨?_, ?_⟩
-    · simp only [polyToZeroFinder, Function.comp_apply, hconj, aeval_conj, hroot, map_zero]
-    · simp only [← NNReal.coe_le_coe, coe_nnnorm, pi_norm_le_iff_of_nonempty] at hx ⊢
-      intro i
-      fin_cases i
-      · simpa [hx', Pi.sub_apply] using hx.2 0
-      · simpa [hx', Pi.sub_apply, hv, abs_neg] using hx.2 1
-  -- uniqueness forces `x = x'`, hence `x 1 = -(x 1)`
-  have hxx' : x = x' := (huniq x hx).trans (huniq x' hx'P).symm
-  have := congrFun hxx' 1
-  simp only [hx', Matrix.cons_val_one, Matrix.cons_val_zero] at this
-  linarith
-
-/-- The root approximated by `rroot1` is genuinely real. -/
+/-- The root approximated by `rroot1` is real. -/
 lemma rroot1_im_zero {x : Fin 2 → ℝ}
     (hx : polyToZeroFinder myPoly x = 0 ∧ ‖x - rroot1‖₊ ≤ 1e-57) : x 1 = 0 :=
   im_zero_of_unique (by simp [rroot1]) rtest1 hx
+
+
+/-! ### Real root `rroot2` -/
+
+noncomputable def rA2 : (Fin 2 → ℝ) →L[ℝ] (Fin 2 → ℝ) :=
+  LinearMap.toContinuousLinearMap <| Matrix.mulVecLin rA2_mat
+
+lemma ry2 : ‖rA2 (polyToZeroFinder myPoly rroot2)‖₊ ≤ 1e-58 := by
+  simp only [← NNReal.coe_le_coe, coe_nnnorm, pi_norm_le_iff_of_nonempty]
+  simp only [polyToZeroFinder_myPoly]
+  simp only [rA2, rA2_mat, zeroFinder, rroot2]
+  norm_num
+
+lemma rz1_2 : ‖1 - rA2.comp (derivZeroFinder rroot2)‖₊ ≤ 1e-57 := by
+  simp only [← NNReal.coe_le_coe, coe_nnnorm, derivZeroFinder]
+  apply (opNorm_le_of_basisFun (M := 5e-58) (by norm_num) ?h1).trans (by norm_num)
+  simp [myPoly_derivative, myPolyDeriv, pow_succ, rroot2, rA2, rA2_mat,
+    pi_norm_le_iff_of_nonempty]
+  norm_num
+
+-- the `simp`/`grw` over the expanded coefficient sum and `√2`/‖c‖ bounds is heavy
+lemma rz2_2 (x) (hx : x ∈ Metric.closedEBall rroot2 1) :
+    ‖rA2.comp (derivZeroFinder x - derivZeroFinder rroot2)‖₊ ≤ 400 * ‖x - rroot2‖₊ := by
+  simp only [derivZeroFinder]
+  refine polyToZeroFinderDeriv_lipschitzOn myPoly rA2 rroot2 1 400 ?_ x ?_
+  · have hQ : myPoly.derivative.map (algebraMap ℚ ℂ) = myPolyDeriv.map (algebraMap ℚ ℂ) := by
+      simp [myPoly_derivative]
+    simp only [myPolyDeriv, Polynomial.map_sub, Polynomial.map_mul, Polynomial.map_ofNat,
+      Polynomial.map_pow, map_X] at hQ
+    have hdeg : ((myPoly.derivative).map (algebraMap ℚ ℂ)).natDegree = 5 := by
+      rw [hQ]
+      compute_degree!
+    rw [hdeg]
+    set c := toComplex rroot2 with hcdef
+    have htay : taylor c (myPoly.derivative.map (algebraMap ℚ ℂ)) = ?poly := by
+      simp only [hQ, taylor_apply, sub_comp, mul_comp, ofNat_comp, Nat.cast_ofNat, pow_comp,
+        X_comp]
+      polynomial_nf
+      rfl
+    simp only [← monomial_zero_left, map_add, add_mul, monomial_mul_X, zero_add,
+      monomial_mul_X_pow] at htay
+    simp only [Finset.sum_range_succ, Finset.sum_range_zero]
+    simp only [htay, coeff_add, coeff_monomial, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte,
+      add_zero, zero_add, OfNat.zero_ne_ofNat, OfNat.ofNat_ne_one, OfNat.one_ne_ofNat,
+      NNReal.coe_ofNat, pow_zero, pow_one, mul_one, Complex.norm_mul, norm_ofNat,
+      ge_iff_le]
+    have hc : ‖c‖ ≤ 3.002 := by
+      have hsq := norm_toComplex_sq rroot2
+      have : ‖c‖ ^ 2 ≤ 3.002 ^ 2 := by rw [hcdef, hsq, rroot2]; norm_num
+      nlinarith only [norm_nonneg c, this]
+    have hA : ‖rA2‖ ≤ 0.01 := by
+      rw [rA2]; apply opNorm_mulVecLin_le _ (by norm_num)
+      intro i; fin_cases i <;> simp [rA2_mat, Fin.sum_univ_two] <;> norm_num
+    have hs : Real.sqrt 2 ≤ 1.4143 := by
+      rw [show (1.4143 : ℝ) = Real.sqrt (1.4143 ^ 2) from (Real.sqrt_sq (by norm_num)).symm]
+      exact Real.sqrt_le_sqrt (by norm_num)
+    repeat grw [norm_add_le]
+    grw [norm_sub_le]
+    simp only [norm_neg, norm_ofNat, Complex.norm_mul, norm_pow, NNReal.coe_one, mul_one,
+      Nat.ofNat_nonneg, Real.sq_sqrt]
+    grw [hc, hA, hs, hs]
+    norm_num
+  · simpa using hx
+
+lemma rtest2 :
+    ∃! x, polyToZeroFinder myPoly x = 0 ∧ ‖x - rroot2‖₊ ≤ 1e-57 := by
+  have := newton_kantorovich_fd
+    (F := polyToZeroFinder myPoly)
+    (DF := derivZeroFinder)
+    (by simp)
+    (fun x ↦ hasFDerivAt_polyToZeroFinder)
+    continuous_polyToZeroFinderDeriv
+    (x₀ := rroot2)
+    (A := rA2)
+    (z₂ := 400)
+    (R := 1)
+    (r := 1e-57)
+    ry2 rz1_2 rz2_2 (by apply le_of_lt; norm_cast; norm_num) (by apply le_of_lt; norm_num)
+    (by norm_num)
+  exact this
+
+/-- The root approximated by `rroot1` is real. -/
+lemma rroot2_im_zero {x : Fin 2 → ℝ}
+    (hx : polyToZeroFinder myPoly x = 0 ∧ ‖x - rroot2‖₊ ≤ 1e-57) : x 1 = 0 :=
+  im_zero_of_unique (by simp [rroot2]) rtest2 hx
+
+
 
 end DegSix
