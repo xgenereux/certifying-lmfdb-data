@@ -1,4 +1,5 @@
 import CertifyingLmfdbData.Polynomial.AllRoots
+import CertifyingLmfdbData.SexticExampleHyp
 
 noncomputable section
 
@@ -8,7 +9,7 @@ open DegSix
 
 abbrev f := DegSix.myPoly
 
-instance : Fact (Irreducible f) := by sorry
+-- `Fact (Irreducible f)` comes from `CertifyingLmfdbData.SexticExampleHyp`
 
 theorem exists_torsion_eq_mul {K : Type*} [Field K] [NumberField K] {n : ℕ} (hn : n ≠ 0)
     {ζ : 𝓞 K} (hζ : ζ ^ n = 1) (hζ₂ : ∀ m, m ∣ n → m ≠ n → ζ ^ m ≠ 1) :

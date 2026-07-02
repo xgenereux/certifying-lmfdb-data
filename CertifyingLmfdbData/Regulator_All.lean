@@ -2,6 +2,7 @@ import CertifyingLmfdbData.Polynomial.AllRoots
 import CertifyingLmfdbData.Regulator.RegulatorBound
 import CertifyingLmfdbData.Regulator.MatrixPerturbation
 import CertifyingLmfdbData.IntervalArithmetic.DyadicReal
+import CertifyingLmfdbData.SexticExampleHyp
 
 noncomputable section
 
@@ -66,7 +67,7 @@ abbrev complex_matrix : Matrix (Fin 4) (Fin 4) ℂ :=
 abbrev bound_matrix_approx := Matrix.of fun i j ↦ t j * Real.log ‖complex_matrix i j‖
 abbrev bound_approx := |bound_matrix_approx.det|
 
-instance : Fact (Irreducible f) := by sorry
+-- `Fact (Irreducible f)` comes from `CertifyingLmfdbData.SexticExampleHyp`
 
 -- AI generated
 theorem det_fin_four_scratch (A : Matrix (Fin 4) (Fin 4) ℝ) :
