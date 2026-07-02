@@ -189,7 +189,7 @@ theorem regOfFamily_comp_eq_regOfFamily :
     (NumberField.Units.regOfFamily_eq_det (fun i ↦ v (finCongr hm.symm i)) w' eRank).symm
 
 include hm hα hα₂ hα₃ h_t hu in
-theorem regulator_le_regOfFamily_comp (bound : ℝ) (bound_nonz : bound ≠ 0)
+theorem regulator_le_regOfFamily_comp {bound : ℝ} (bound_nonz : bound ≠ 0)
     (h_bound : bound =
         |(Matrix.of fun i j ↦ t j * Real.log ‖(u i).aeval (α j)‖).det|) :
     ∃ m : ℕ, m ≠ 0 ∧ bound = m * NumberField.Units.regulator (AdjoinRoot f) := by
