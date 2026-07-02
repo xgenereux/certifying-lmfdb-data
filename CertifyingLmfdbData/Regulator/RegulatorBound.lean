@@ -187,7 +187,7 @@ theorem regOfFamily_comp_eq_regOfFamily :
 include hm hα hα₂ hα₃ h_t hu in
 theorem regulator_le_regOfFamily_comp (bound : ℝ) (bound_nonz : bound ≠ 0)
     (h_bound : bound = regOfFamily_comp α t u) :
-    NumberField.Units.regulator (AdjoinRoot f) ≤ regOfFamily_comp α t u := by
+    NumberField.Units.regulator (AdjoinRoot f) ≤ bound := by
   subst h_bound
   rw [regOfFamily_comp_eq_regOfFamily hm hα hα₂ hα₃ h_t hu] at *
   exact NumberField.Units.regulator_le_regOfFamily _ bound_nonz
