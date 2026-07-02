@@ -1,4 +1,5 @@
 import CertifyingLmfdbData.Polynomial.Example
+import CertifyingLmfdbData.Polynomial.Certify
 
 noncomputable section
 
@@ -103,6 +104,30 @@ noncomputable def UniqueRootNear.ofZeroFinder {p : Polynomial ℚ} {v : Fin 2 �
       exact ⟨by simpa using hz, by simpa using hd⟩
     calc z = toComplex (toComplex.symm z) := by simp
       _ = toComplex h.choose := by rw [h.choose_spec.2 _ hx]
+
+/-- Package a full numerical certificate `(v, M, y, z₁, z₂, R, r)` into a `UniqueRootNear`
+witness, via `existsUnique_root_of_certificates`. All hypotheses are rational-arithmetic
+inequalities (after evaluating `aeval` at `toComplex v` and expanding the finite sums), so
+each can be closed by `norm_num` with a suitable simp set. -/
+noncomputable def UniqueRootNear.of_certificates (p : Polynomial ℚ)
+    (M : Matrix (Fin 2) (Fin 2) ℝ) (v : Fin 2 → ℝ) {y z₁ z₂ R r : ℝ≥0} {d : ℕ} {a B s : ℝ}
+    (hy0 : |M 0 0 * (aeval (toComplex v) p).re + M 0 1 * (aeval (toComplex v) p).im| ≤ y)
+    (hy1 : |M 1 0 * (aeval (toComplex v) p).re + M 1 1 * (aeval (toComplex v) p).im| ≤ y)
+    (hz1 : ∀ i, ∑ j, |(1 - M * derivMatrix p v) i j| ≤ z₁)
+    (hdeg : p.derivative.natDegree ≤ d)
+    (ha : ∀ i, ∑ j, |M i j| ≤ a)
+    (hB : v 0 ^ 2 + v 1 ^ 2 ≤ B ^ 2) (hB0 : 0 ≤ B)
+    (hs : Real.sqrt 2 ≤ s)
+    (hnum : 2 * s * a *
+        (∑ k ∈ Finset.range d,
+          (∑ n ∈ Finset.range (d - k), ((n + k + 1).choose (k + 1) : ℝ) *
+            |((p.derivative.coeff (n + k + 1) : ℚ) : ℝ)| * B ^ n) * (s * R) ^ k) ≤ z₂)
+    (hrR : r ≤ R)
+    (hyr : y + z₁ * r + z₂ * r ^ 2 / 2 ≤ r)
+    (hzr : z₁ + z₂ * r < 1) :
+    UniqueRootNear (aeval · p) (toComplex v) r :=
+  .ofZeroFinder <| existsUnique_root_of_certificates p M v hy0 hy1 hz1 hdeg ha hB hB0 hs hnum
+    hrR hyr hzr
 
 /-- If `p` is even (its evaluation is invariant under negating the point), then `polyToZeroFinder`
 is invariant under negating the input, since `toComplex` is linear. -/
@@ -504,5 +529,55 @@ of `croot1`. -/
 noncomputable def uniqueRootNear_croot1' :
     UniqueRootNear (aeval · myPoly) (toComplex croot1') 1e-57 :=
   uniqueRootNear_croot1.conj
+
+/-! ### Demo of the certificate pipeline: `rroot1` again, via `of_certificates`
+
+Every side goal is (close to) plain `norm_num`; this is the shape a `unique_root_near` tactic
+would generate. -/
+
+noncomputable def uniqueRootNear_rroot1' :
+    UniqueRootNear (aeval · myPoly) (toComplex rroot1) 1e-57 := by
+  rw [show (1e-57 : ℝ) = ((1e-57 : ℝ≥0) : ℝ) by norm_num [← NNReal.coe_ofScientific]]
+  refine UniqueRootNear.of_certificates myPoly rA1_mat rroot1
+    (y := 1e-58) (z₁ := 1e-57) (z₂ := 40) (R := 1) (d := 5)
+    (a := 0.00161059) (B := 3.002) (s := 1.42) ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+  · -- hy0
+    simp [myPoly, rroot1, rA1_mat, toComplex_apply]
+    norm_num
+  · -- hy1
+    simp [myPoly, rroot1, rA1_mat, toComplex_apply]
+    norm_num
+  · -- hz1
+    intro i
+    fin_cases i <;>
+    · simp [derivMatrix, myPoly_derivative, myPolyDeriv, rA1_mat, rroot1, toComplex_apply,
+        Matrix.one_apply, Fin.sum_univ_two]
+      norm_num
+  · -- hdeg
+    rw [myPoly_derivative]
+    simp only [myPolyDeriv]
+    compute_degree
+  · -- ha
+    intro i
+    fin_cases i <;> simp [rA1_mat, Fin.sum_univ_two] <;> norm_num
+  · -- hB
+    simp [rroot1]
+    norm_num
+  · -- hB0
+    norm_num
+  · -- hs
+    exact Real.sqrt_two_lt_d2.le
+  · -- hnum
+    simp only [myPoly_derivative, myPolyDeriv, Finset.sum_range_succ, Finset.sum_range_zero]
+    norm_num [← Polynomial.C_ofNat, Polynomial.coeff_sub, Polynomial.coeff_C_mul,
+      Polynomial.coeff_X_pow, Polynomial.coeff_X, Nat.choose]
+  · -- hrR
+    rw [← NNReal.coe_le_coe]
+    norm_num [NNReal.coe_ofScientific]
+  · -- hyr
+    apply le_of_lt
+    norm_num
+  · -- hzr
+    norm_num
 
 end DegSix
