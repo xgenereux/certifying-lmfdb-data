@@ -16,7 +16,7 @@ def f : Polynomial ℚ := f₀.map (algebraMap ℤ ℚ)
 instance : Fact (Irreducible f) := by
   sorry
 
--- Let `K = ℚ[x]/f(x)` be the number field given by adjoining on root of `f`
+-- Let `K = ℚ[x]/f(x)` be the number field given by adjoining the root of `f`
 noncomputable def K : Type := AdjoinRoot f
 deriving Field, NumberField
 
@@ -48,8 +48,8 @@ theorem classNumber_aux : classNumber K ∣ 2 := by
 abbrev reg : ℝ := 15.9596951835
 
 -- The error on our computation of the regulator of `K`
-abbrev α : ℝ := 0.995
-abbrev β : ℝ := 1.005
+abbrev α : ℝ := 1 - 1e-12
+abbrev β : ℝ := 1 + 1e-12
 
 -- We only need an upper bound on the regulator
 theorem regulator_aux : ∃ m : ℕ, 1 ≤ m ∧
@@ -63,10 +63,14 @@ abbrev res : ℝ := 0.366086210051
 theorem dedekindResidue_ge : 0.2 ≤ dedekindZeta_residue K := by
   sorry
 
+-- The final errors on the regulator and residue
+abbrev ε_reg : ℝ := 1e-10
+abbrev ε_res : ℝ := 1e-10
+
 -- The class number formula certifies the torsion order, the regulator, and the class number
 theorem classNumberFormula :
-    torsionOrder K = 2 ∧ |regulator K - reg| < 0.1 ∧
-      classNumber K = 2 ∧ |dedekindZeta_residue K - res| < 0.1 := by
+    torsionOrder K = 2 ∧ |regulator K - reg| < ε_reg ∧
+      classNumber K = 2 ∧ |dedekindZeta_residue K - res| < ε_res := by
   refine NumberField.classNumberFormula K
     4 nrRealPlaces_eq
     1 nrComplexPlaces_eq
@@ -76,8 +80,8 @@ theorem classNumberFormula :
     reg regulator_aux
     2 classNumber_aux (by positivity)
     0.2 dedekindResidue_ge ?_
-    0.1 (by norm_num) (by norm_num)
-    res 0.1 ?_ ?_ <;> norm_cast <;> push_cast <;> dyadic_interval [approx := 100]
+    ε_reg (by dyadic_interval [approx := 40]) (by dyadic_interval [approx := 40])
+    res ε_res ?_ ?_ <;> norm_cast <;> push_cast <;> dyadic_interval [approx := 40]
 
 -- The number field `K` has exactly two roots of unity
 theorem torsionOrder_eq : torsionOrder K = 2 := by
@@ -87,12 +91,12 @@ theorem torsionOrder_eq : torsionOrder K = 2 := by
 theorem classNumber_eq : classNumber K = 2 := by
   exact classNumberFormula.2.2.1
 
--- The regulator of `K` is within `0.1` of `15.9596951835`
-theorem regulator_mem : |regulator K - 15.9596951835| < 0.1 := by
+-- The regulator of `K` is within `10^-10` of `15.9596951835`
+theorem regulator_mem : |regulator K - 15.9596951835| < 1e-10 := by
   exact classNumberFormula.2.1
 
--- The residue of `K` is within `0.1` of `0.366086210051`
-theorem residue_mem : |dedekindZeta_residue K - 0.366086210051| < 0.1 := by
+-- The residue of `K` is within `10^-10` of `0.366086210051`
+theorem residue_mem : |dedekindZeta_residue K - 0.366086210051| < 1e-10 := by
   exact classNumberFormula.2.2.2
 
 end
