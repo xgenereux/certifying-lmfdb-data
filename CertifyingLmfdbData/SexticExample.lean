@@ -1,5 +1,6 @@
 import CertifyingLmfdbData.ClassNumberFormula
 import CertifyingLmfdbData.IntervalArithmetic.DyadicReal
+import CertifyingLmfdbData.Regulator.RegulatorBound
 
 namespace SexticExample
 
@@ -8,7 +9,8 @@ noncomputable section
 open Polynomial Module NumberField InfinitePlace Units
 
 -- Let `f = X^6 - 5*X^4 - 50 * X^2 + 125`
-def f : Polynomial ℚ := X^6 - 5*X^4 - 50 * X^2 + 125
+def f₀ : Polynomial ℤ := X^6 - 5*X^4 - 50 * X^2 + 125
+def f : Polynomial ℚ := f₀.map (algebraMap ℤ ℚ)
 
 -- The polynomial `f` is irreducible
 instance : Fact (Irreducible f) := by
