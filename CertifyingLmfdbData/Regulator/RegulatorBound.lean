@@ -37,12 +37,12 @@ variable {n m : ℕ} {f : ℚ[X]} [hf : Fact (Irreducible f)]
                     IsUnit (⟨_, h⟩ : 𝓞 (AdjoinRoot f)))
 
 variable (α t u) in
-noncomputable def fake_regulator :=
+noncomputable def regOfFamily_comp :=
   |(Matrix.of fun i j ↦ t i * Real.log ‖∑ k : Fin n, (u j k) * α i ^ (k : ℕ)‖).det|
 
 include hα hα₂ hα₃ h_t in
-theorem fake_regulator_eq_regOfFamily :
-    fake_regulator α t u =
+theorem regOfFamily_comp_eq_regOfFamily :
+    regOfFamily_comp α t u =
     NumberField.Units.regOfFamily (fun i ↦ (hu (finCongr hm.symm i)).2.unit) := by
   classical
   let v : Fin m → (𝓞 (AdjoinRoot f))ˣ := fun i ↦ (hu i).2.unit
@@ -56,10 +56,10 @@ theorem fake_regulator_eq_regOfFamily :
     rw [hv j]
     simp [map_sum, map_mul, AdjoinRoot.lift_root]
   have hfake :
-      fake_regulator α t u =
+      regOfFamily_comp α t u =
         |(Matrix.of fun i j ↦
           t i * Real.log ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (v j)‖).det| := by
-    unfold fake_regulator
+    unfold regOfFamily_comp
     congr 1
     apply congrArg Matrix.det
     ext i j
@@ -173,7 +173,7 @@ theorem fake_regulator_eq_regOfFamily :
           t j * Real.log ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α j) (hα j) (v i)‖) := by
     ext i j
     simp [M, eRank, h_t' j, hnorm j i]
-  have hdetM : |M.det| = fake_regulator α t u := by
+  have hdetM : |M.det| = regOfFamily_comp α t u := by
     rw [← Matrix.det_reindex_self placeEquiv.symm M, hM, hfake]
     change |(Matrix.transpose (Matrix.of fun i j : Fin m ↦
       t i * Real.log ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (v j)‖)).det| =
@@ -185,9 +185,9 @@ theorem fake_regulator_eq_regOfFamily :
     (NumberField.Units.regOfFamily_eq_det (fun i ↦ v (finCongr hm.symm i)) w' eRank).symm
 
 include hm hα hα₂ hα₃ h_t hu in
-theorem regulator_le_fake_regulator (h_nonzero : fake_regulator α t u ≠ 0) :
-    NumberField.Units.regulator (AdjoinRoot f) ≤ fake_regulator α t u := by
-  rw [fake_regulator_eq_regOfFamily hm hα hα₂ hα₃ h_t hu] at *
+theorem regulator_le_regOfFamily_comp (h_nonzero : regOfFamily_comp α t u ≠ 0) :
+    NumberField.Units.regulator (AdjoinRoot f) ≤ regOfFamily_comp α t u := by
+  rw [regOfFamily_comp_eq_regOfFamily hm hα hα₂ hα₃ h_t hu] at *
   exact NumberField.Units.regulator_le_regOfFamily _ h_nonzero
 
 end
