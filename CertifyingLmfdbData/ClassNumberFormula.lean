@@ -1,5 +1,7 @@
 import Mathlib
 
+namespace NumberField
+
 open Real NumberField InfinitePlace Units
 
 theorem prod_lt_gap (K : Type*) [Field K] [NumberField K]
@@ -103,3 +105,5 @@ theorem classNumberFormula (K : Type*) [Field K] [NumberField K]
     grw [h]
     simpa [field] using div_self_le_one β
   · simp [field, mul_comm]
+
+end NumberField
