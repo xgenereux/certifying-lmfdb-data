@@ -28,6 +28,17 @@ abbrev bound_approx := |bound_matrix_approx.det|
 
 instance : Fact (Irreducible f) := by sorry
 
+-- AI generated
+theorem det_fin_four_scratch (A : Matrix (Fin 4) (Fin 4) ℝ) :
+    A.det =
+      A 0 0 * (A.submatrix (Fin.succAbove 0) (Fin.succAbove 0)).det
+      - A 0 1 * (A.submatrix (Fin.succAbove 0) (Fin.succAbove 1)).det
+      + A 0 2 * (A.submatrix (Fin.succAbove 0) (Fin.succAbove 2)).det
+      - A 0 3 * (A.submatrix (Fin.succAbove 0) (Fin.succAbove 3)).det := by
+  rw [Matrix.det_succ_row A 0]
+  simp [Fin.sum_univ_four]
+  ring
+
 -- AI generated, not reviewed
 theorem log_bound_norm {x y : ℂ} {ε : ℝ}
     (hεx : ε < ‖y‖) (hxy : ‖x - y‖ ≤ ε) :
@@ -153,7 +164,22 @@ theorem bound_regulator : ∃ k : ℕ, 1 ≤ k ∧ bound = k * NumberField.Units
   · fin_cases i <;>
       simp [rroot1_im_zero, rroot2_im_zero, rroot3_im_zero, zero_lt_croot4_im.ne.symm]
   · sorry
-  · sorry
+  · have := bound_diff
+    rw [hc] at this
+    apply this.not_gt
+    simp
+    sorry
   · rfl
+
+set_option maxHeartbeats 2000000 in
+lemma test_2 : 1e-20 < |bound_matrix_approx.det| := by
+  simp_rw [det_fin_four_scratch, Matrix.det_fin_three]
+  simp [Complex.norm_eq_sqrt_sq_add_sq,
+        Fin.sum_univ_castSucc, approxRoots, rroot1, rroot2, rroot3, croot1,
+        fundUnits, fundU1, fundU2, fundU3, fundU4]
+  ring_nf
+  simp [Complex.I_pow_eq_pow_mod']
+  ring_nf
+  dyadic_interval [approx := 100]
 
 end
