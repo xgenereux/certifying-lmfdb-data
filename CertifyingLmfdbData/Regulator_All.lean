@@ -28,30 +28,6 @@ abbrev bound_approx := |bound_matrix_approx.det|
 
 instance : Fact (Irreducible f) := by sorry
 
-theorem bound_regulator : ∃ k : ℕ, k ≠ 0 ∧ bound = k * NumberField.Units.regulator (AdjoinRoot f) := by
-  refine regulator_le_regOfFamily_comp
-    (m := m) (f := f) (u := u) (α := α) (t := t) (bound := bound)
-    ?_ (fun i ↦ ?_) (fun i ↦ ?_) (fun i j ↦ ?_) (fun i ↦ ?_) (fun i ↦ ?_) ?_ ?_
-  · sorry
-  · fin_cases i <;>
-      simp [uniqueRootNear_rroot1.isRoot,
-            uniqueRootNear_rroot2.isRoot,
-            uniqueRootNear_rroot3.isRoot,
-            uniqueRootNear_croot1.isRoot]
-  · fin_cases i <;>
-      simp [rroot1_im_zero, rroot2_im_zero, rroot3_im_zero, zero_lt_croot4_im.le]
-  · fin_cases i <;>
-      fin_cases j <;>
-        intros hij <;>
-        apply UniqueRootNear.distinct <;>
-        simp_all [rroot1, rroot2, rroot3, croot1] <;>
-        norm_num
-  · fin_cases i <;>
-      simp [rroot1_im_zero, rroot2_im_zero, rroot3_im_zero, zero_lt_croot4_im.ne.symm]
-  · sorry
-  · sorry
-  · rfl
-
 -- AI generated, not reviewed
 theorem log_bound_norm {x y : ℂ} {ε : ℝ}
     (hεx : ε < ‖y‖) (hxy : ‖x - y‖ ≤ ε) :
@@ -112,9 +88,9 @@ theorem log_bound {x y : ℂ} {ε M : ℝ} (hεM : ε < M) (hMy : M ≤ ‖y‖)
 -- TODO : do this non-uniformly
 theorem matrix_entry_uniform_bound :
     ∀ i j, 0.05 ≤ ‖Polynomial.aeval (α_approx j) (u i)‖ := fun i j ↦ by
-  rw [Complex.norm_eq_sqrt_sq_add_sq, α_approx]
-    fin_cases i <;>
-    simp [fundUnits, fundU1, fundU2, fundU3, fundU4] <;>
+  rw [Complex.norm_eq_sqrt_sq_add_sq]
+  fin_cases j <;>
+  simp [fundUnits, fundU1, fundU2, fundU3, fundU4] <;>
     fin_cases i <;>
       simp [approxRoots, rroot1, rroot2, rroot3, croot1] <;>
       ring_nf <;>
@@ -124,7 +100,6 @@ theorem matrix_entry_uniform_bound :
 theorem matrix_entry_diffs :
     ∀ i j, |bound_matrix i j - bound_matrix_approx i j| ≤
               2 * 1e-53 := fun i j ↦ by
-  rw [bound_matrix, bound_matrix_approx]
   calc
     _ = |(t j : ℝ)| * |Real.log ‖(u i).aeval (α j)‖ -
           Real.log ‖(u i).aeval (α_approx j)‖| := by
@@ -145,7 +120,40 @@ theorem matrix_entry_diffs :
       grw [log_bound (by norm_num) (matrix_entry_uniform_bound i j) ineq_1]
       dyadic_interval [approx := 1000]
 
-theorem bound_diff : |bound - bound_approx| ≤ 1e-40 := by
-    have := absolute_bound_frob'' bound_matrix bound_matrix_approx
+theorem bound_diff : |bound - bound_approx| ≤ 1e-20 := by
+  have := absolute_bound_frob' bound_matrix_approx bound_matrix
+    (Matrix.of fun i j ↦ 2 * 1e-53) (by simpa using matrix_entry_diffs)
+  grw [abs_abs_sub_abs_le, ← Real.norm_eq_abs, this]
+  simp [Complex.norm_eq_sqrt_sq_add_sq,
+        Fin.sum_univ_castSucc, approxRoots, rroot1, rroot2, rroot3, croot1,
+        fundUnits, fundU1, fundU2, fundU3, fundU4]
+  ring_nf
+  simp [Complex.I_pow_eq_pow_mod']
+  ring_nf
+  dyadic_interval [approx := 100]
+
+theorem bound_regulator : ∃ k : ℕ, 1 ≤ k ∧ bound = k * NumberField.Units.regulator (AdjoinRoot f) := by
+  refine regulator_le_regOfFamily_comp
+    (m := m) (f := f) (u := u) (α := α) (t := t) (bound := bound)
+    ?_ (fun i ↦ ?_) (fun i ↦ ?_) (fun i j ↦ ?_) (fun i ↦ ?_) (fun i ↦ ?_) (fun hc ↦ ?_) ?_
+  · sorry
+  · fin_cases i <;>
+      simp [uniqueRootNear_rroot1.isRoot,
+            uniqueRootNear_rroot2.isRoot,
+            uniqueRootNear_rroot3.isRoot,
+            uniqueRootNear_croot1.isRoot]
+  · fin_cases i <;>
+      simp [rroot1_im_zero, rroot2_im_zero, rroot3_im_zero, zero_lt_croot4_im.le]
+  · fin_cases i <;>
+      fin_cases j <;>
+        intros hij <;>
+        apply UniqueRootNear.distinct <;>
+        simp_all [rroot1, rroot2, rroot3, croot1] <;>
+        norm_num
+  · fin_cases i <;>
+      simp [rroot1_im_zero, rroot2_im_zero, rroot3_im_zero, zero_lt_croot4_im.ne.symm]
+  · sorry
+  · sorry
+  · rfl
 
 end

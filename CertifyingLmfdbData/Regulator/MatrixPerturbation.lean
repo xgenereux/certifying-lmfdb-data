@@ -122,7 +122,7 @@ end Ring
 
 section
 
-variable {K : Type*} [RCLike K] {A : Matrix n n K} {δ : Matrix n n ℝ}
+variable {K : Type*} [RCLike K] {A : Matrix n n K}
 
 lemma conjTranspose_mul_self_diag_eq_norm_sq (i : n) :
     (Aᴴ * A) i i = ‖toLp 2 (A.col i)‖ ^ 2 := by
@@ -712,9 +712,9 @@ theorem relative_bound (E : Matrix n n K) (hA : A.det ≠ 0) :
       gcongr
       exact norm_mul_le ..
 
-theorem absolute_bound_frob (A E : Matrix n n K) (hE : ∀ i j, ‖E i j‖ ≤ δ i j) :
+theorem absolute_bound_frob (A E : Matrix n n K) (δ : Matrix n n ℝ) (h : ∀ i j, ‖E i j‖ ≤ δ i j) :
     ‖(A + E).det - A.det‖ ≤ (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) := by
-  have hδ : ∀ i j, 0 ≤ δ i j := fun i j ↦ (norm_nonneg (E i j)).trans (hE i j)
+  have hδ : ∀ i j, 0 ≤ δ i j := fun i j ↦ (norm_nonneg (E i j)).trans (h i j)
   calc
     _ ≤ card n * ‖E‖ * (max ‖A‖ ‖A + E‖) ^ (card n - 1) := absolute_bound A E
     _ ≤ card n * ‖E‖ * (‖A‖ + ‖E‖) ^ (card n - 1) := by
@@ -722,27 +722,15 @@ theorem absolute_bound_frob (A E : Matrix n n K) (hE : ∀ i j, ‖E i j‖ ≤ 
       exact max_le (le_add_of_nonneg_right (norm_nonneg E)) (norm_add_le A E)
     _ ≤ (card n : ℝ) * ‖δ‖ * (‖A‖ + ‖δ‖) ^ (card n - 1) := by
       gcongr <;>
-        exact norm_le_of_entry_le_function hE
+        exact norm_le_of_entry_le_function h
     _ ≤ (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) := by
       gcongr <;>
         exact l2_opNorm_le_frobenius _
 
-theorem absolute_bound_frob' (A B : Matrix n n K) (h_diff : ∀ i j, ‖B i j - A i j‖ ≤ δ i j) :
+theorem absolute_bound_frob' (A B : Matrix n n K) (δ : Matrix n n ℝ)
+    (h_diff : ∀ i j, ‖B i j - A i j‖ ≤ δ i j) :
     ‖B.det - A.det‖ ≤ (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) := by
-  simpa using absolute_bound_frob A (B - A) (by simpa using h_diff)
-
-theorem absolute_bound_frob''
-  (A : Matrix n n ℝ) (B : Matrix n n K) {δ : Matrix n n ℚ}
-  (h_diff : ∀ (i j : n), ‖B i j - A i j‖ ≤ δ i j)
-  {bound : ℝ} (h_bound : (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) = bound) :
-    ‖B.det - A.det‖ ≤ bound := by
-  subst h_bound
-  have h := absolute_bound_frob' ((algebraMap ℝ K).mapMatrix A) B
-      (δ := (algebraMap ℚ ℝ).mapMatrix δ) <| by
-        intro i j
-        exact_mod_cast h_diff i j
-  rw [← RingHom.map_det] at h
-  simpa using h
+  simpa using absolute_bound_frob A (B - A) δ (by simpa using h_diff)
 
 end
 
