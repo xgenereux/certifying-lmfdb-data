@@ -1010,7 +1010,7 @@ def PBC601 : ContainsPrimesAboveP 601 ![I601N0] where
 lemma PB692I10_primes (p : ℕ) :
   p ∈ Set.range ![547, 557, 563, 569, 571, 577, 587, 593, 599, 601] ↔ Nat.Prime p ∧ 541 < p ∧ p ≤ 601 := by
   rw [← List.mem_ofFn']
-  convert primes_range 541 601 (by omega)
+  convert primes_range 541 601 (by omega) <;> decide
 
 def PB692I10 : PrimesBelowBoundCertificateInterval' O 541 601 692 where
   m := 10

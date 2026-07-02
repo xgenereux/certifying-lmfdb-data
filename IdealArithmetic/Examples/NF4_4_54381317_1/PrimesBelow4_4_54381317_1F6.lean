@@ -996,7 +996,7 @@ def PBC349 : ContainsPrimesAboveP 349 ![I349N0] where
 lemma PB692I6_primes (p : ℕ) :
   p ∈ Set.range ![283, 293, 307, 311, 313, 317, 331, 337, 347, 349] ↔ Nat.Prime p ∧ 281 < p ∧ p ≤ 349 := by
   rw [← List.mem_ofFn']
-  convert primes_range 281 349 (by omega)
+  convert primes_range 281 349 (by omega) <;> decide
 
 def PB692I6 : PrimesBelowBoundCertificateInterval' O 281 349 692 where
   m := 10

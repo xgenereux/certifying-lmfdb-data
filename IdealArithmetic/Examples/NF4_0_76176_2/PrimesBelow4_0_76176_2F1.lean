@@ -401,7 +401,7 @@ def PBC41 : ContainsPrimesAboveP 41 ![I41N0, I41N1] where
 lemma PB42I1_primes (p : ℕ) :
   p ∈ Set.range ![31, 37, 41] ↔ Nat.Prime p ∧ 29 < p ∧ p ≤ 41 := by
   rw [← List.mem_ofFn']
-  convert primes_range 29 41 (by omega)
+  convert primes_range 29 41 (by omega) <;> decide
 
 def PB42I1 : PrimesBelowBoundCertificateInterval' O 29 41 42 where
   m := 3

@@ -978,7 +978,7 @@ def PBC61 : ContainsPrimesAboveP 61 ![I61N0, I61N1, I61N2] where
 lemma PB122I1_primes (p : ℕ) :
   p ∈ Set.range ![29, 31, 37, 41, 43, 47, 53, 59, 61] ↔ Nat.Prime p ∧ 23 < p ∧ p ≤ 61 := by
   rw [← List.mem_ofFn']
-  convert primes_range 23 61 (by omega)
+  convert primes_range 23 61 (by omega) <;> decide
 
 def PB122I1 : PrimesBelowBoundCertificateInterval' O 23 61 122 where
   m := 9

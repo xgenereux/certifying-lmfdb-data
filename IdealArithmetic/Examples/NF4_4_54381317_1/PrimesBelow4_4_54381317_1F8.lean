@@ -1192,7 +1192,7 @@ def PBC463 : ContainsPrimesAboveP 463 ![I463N0, I463N1, I463N2, I463N3] where
 lemma PB692I8_primes (p : ℕ) :
   p ∈ Set.range ![419, 421, 431, 433, 439, 443, 449, 457, 461, 463] ↔ Nat.Prime p ∧ 409 < p ∧ p ≤ 463 := by
   rw [← List.mem_ofFn']
-  convert primes_range 409 463 (by omega)
+  convert primes_range 409 463 (by omega) <;> decide
 
 def PB692I8 : PrimesBelowBoundCertificateInterval' O 409 463 692 where
   m := 10

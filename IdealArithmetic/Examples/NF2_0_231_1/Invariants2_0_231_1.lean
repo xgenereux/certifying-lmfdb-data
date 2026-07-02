@@ -185,8 +185,8 @@ def NPSU2 : pSaturatedClassGroupCertificateDvdT 2 ![J0, J1] ![6, 2] where
   · decide
  h := fun i =>
   match i with 
-  | 0 => by convert J0_pow6
-  | 1 => by convert J1_pow2
+  | 0 => by convert J0_pow6 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide
+  | 1 => by convert J1_pow2 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide
  N := ![![0, 0], ![0, 1], ![1, 1]]
  hM3 := by 
   intro (i : Fin 3) j
@@ -270,8 +270,8 @@ def NPSU3 : pSaturatedClassGroupCertificateNDvdT 3 ![J0, J1] ![6, 2] where
       refine (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide) 
  h := fun i =>
   match i with 
-  | 0 => by convert J0_pow6
-  | 1 => by convert J1_pow2
+  | 0 => by convert J0_pow6 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide
+  | 1 => by convert J1_pow2 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide
  N := ![![2]]
  hM2 := by 
   intro (i : Fin 1) j
@@ -284,6 +284,7 @@ def NPSU3 : pSaturatedClassGroupCertificateNDvdT 3 ![J0, J1] ![6, 2] where
 lemma T_discr : T.discr = -231 :=  by
   convert discriminant_eq_DiscriminantOfPRemainder_of_SturmBuilderOfList SturmRC
   rw [T_ofList]
+  decide
 
 theorem K_discr : NumberField.discr K = -231 := by
   rw [discr_numberField_eq_discrSubalgebraBuilder T_irreducible BQ O_integral_closure]
@@ -344,14 +345,24 @@ def g' : Fin 6 → nonZeroDivisors (Ideal O) := by
 
 def x : Fin 2 → Ideal O := ![J0,J1] 
 
-def x' :  Fin 2 → nonZeroDivisors (Ideal O) := by 
+def x' :  Fin 2 → nonZeroDivisors (Ideal O) := by
   refine fun i => Ideal.toNonZeroDivisorOfNeZero (x i) (?_ )
   unfold x
-  rw [← Submodule.zero_eq_bot, ← pow_ne_zero_iff (n := ![6, 2] i) (by fin_cases i <;> decide) , NPSU2.h] 
-  simp only [ Submodule.zero_eq_bot, ne_eq, Ideal.span_singleton_eq_bot, NPSU2]
-  fin_cases i    
-  · dsimp [alpha0] ; rw [(LinearEquiv.map_eq_zero_iff B.equivFun.symm)] ; decide 
-  · dsimp [alpha1] ; rw [(LinearEquiv.map_eq_zero_iff B.equivFun.symm)] ; decide 
+  -- v4.32: the old `rw [← Submodule.zero_eq_bot, ← pow_ne_zero_iff …]` no longer
+  -- fires (two distinct `Zero (Ideal O)` instances: `⊥` vs the `MonoidWithZero` 0).
+  -- Argue by contradiction instead: if `Jᵢ = ⊥` then `Jᵢ ^ nᵢ ≤ ⊥`, but `Jᵢ ^ nᵢ`
+  -- is a nonzero principal ideal by the certificate.
+  intro hc
+  have hle : ![J0, J1] i ^ ![6, 2] i = ⊥ :=
+    le_bot_iff.mp ((Ideal.pow_le_self (by fin_cases i <;> decide)).trans hc.le)
+  -- `NPSU2.h`'s LHS is phrased with the certificate's own fields (defeq, not
+  -- syntactic), so coerce it to this exact power term before rewriting.
+  rw [show ![J0, J1] i ^ ![6, 2] i = _ from NPSU2.h i] at hle
+  revert hle
+  simp only [imp_false, ne_eq, Ideal.span_singleton_eq_bot, NPSU2]
+  fin_cases i
+  · dsimp [alpha0] ; rw [(LinearEquiv.map_eq_zero_iff B.equivFun.symm)] ; decide
+  · dsimp [alpha1] ; rw [(LinearEquiv.map_eq_zero_iff B.equivFun.symm)] ; decide
 
 lemma g'_apply : ∀ (i : Fin 6), ↑(g' i) = (Fin.addCasesIter e g) i := by
   intro i
@@ -366,22 +377,22 @@ lemma relations_proof0 (i : Fin 6) : IsInClass O x (g 0 i) (BM 0 i) := by
   unfold IsInClass
   simp only [Fin.isValue, Fin.prod_univ_castSucc, Finset.univ_eq_empty, Finset.prod_empty, Fin.succ_zero_eq_one, one_mul]
   fin_cases i
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R2N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R2N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R2N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R2N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R3N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R3N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R5N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R5N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R5N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R5N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R7N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R7N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
 

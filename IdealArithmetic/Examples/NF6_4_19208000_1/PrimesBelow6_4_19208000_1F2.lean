@@ -618,7 +618,7 @@ def PBC83 : ContainsPrimesAboveP 83 ![I83N0, I83N1, I83N2, I83N3] where
 lemma PB87I2_primes (p : ℕ) :
   p ∈ Set.range ![67, 71, 73, 79, 83] ↔ Nat.Prime p ∧ 61 < p ∧ p ≤ 86 := by
   rw [← List.mem_ofFn']
-  convert primes_range 61 86 (by omega)
+  convert primes_range 61 86 (by omega) <;> decide
 
 def PB87I2 : PrimesBelowBoundCertificateInterval' O 61 86 87 where
   m := 5

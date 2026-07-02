@@ -221,7 +221,7 @@ def NPSU2 : pSaturatedClassGroupCertificateDvdT 2 ![J0] ![2] where
   · decide
  h := fun i =>
   match i with 
-  | 0 => by convert J0_pow2
+  | 0 => by convert J0_pow2 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide
  N := ![![0], ![0], ![1], ![0], ![0], ![0]]
  hM3 := by 
   intro (i : Fin 6) j
@@ -239,6 +239,7 @@ def NPSU2 : pSaturatedClassGroupCertificateDvdT 2 ![J0] ![2] where
 lemma T_discr : T.discr = -4689453125000000 :=  by
   convert discriminant_eq_DiscriminantOfPRemainder_of_SturmBuilderOfList SturmRC
   rw [T_ofList]
+  decide
 
 theorem K_discr : NumberField.discr K = -19208000 := by
   rw [discr_numberField_eq_discrSubalgebraBuilder T_irreducible BQ O_integral_closure]
@@ -318,9 +319,16 @@ def x : Fin 1 → Ideal O := ![J0]
 
 def x' :  Fin 1 → nonZeroDivisors (Ideal O) := by
   refine fun i => Ideal.toNonZeroDivisorOfNeZero (x i) (?_ )
-  unfold x
-  rw [← Submodule.zero_eq_bot, ← pow_ne_zero_iff (n := ![2] i) (by fin_cases i <;> decide) , NPSU2.h]
-  simp only [ Submodule.zero_eq_bot, ne_eq, Ideal.span_singleton_eq_bot, NPSU2]
+  -- v4.32: the old `rw [← Submodule.zero_eq_bot, ← pow_ne_zero_iff …]` no longer
+  -- fires (two distinct `Zero (Ideal O)` instances: `⊥` vs the `MonoidWithZero` 0).
+  -- Argue by contradiction: if `xᵢ = ⊥` then `xᵢ ^ nᵢ ≤ ⊥`, but the certificate says
+  -- `xᵢ ^ nᵢ` is a nonzero principal ideal.
+  intro hc
+  have hle : x i ^ ![2] i = ⊥ :=
+    le_bot_iff.mp ((Ideal.pow_le_self (by fin_cases i <;> decide)).trans hc.le)
+  rw [show x i ^ ![2] i = _ from NPSU2.h i] at hle
+  revert hle
+  simp only [imp_false, ne_eq, Ideal.span_singleton_eq_bot, NPSU2]
   fin_cases i
   · dsimp [alpha0] ; rw [(LinearEquiv.map_eq_zero_iff B.equivFun.symm)] ; decide 
 
@@ -332,36 +340,44 @@ lemma x'_apply : ∀ (i : Fin 1), ↑(x' i) = x i := by
   intro i
   rfl
 
+/-- v4.32 helper. Proven in a clean *generic* `[CommRing A]` context, where `simp`
+reduces the all-`^0` product to `1`. Inside this file the local instances stop
+`simp`/`rw` from firing `pow_zero`/`mul_one` on the goal's product directly, so the
+all-zero-exponent `IsInClass` bullets multiply through this instead (matched by
+`Eq.trans` up to defeq). -/
+private lemma span_eq_span_mul_prod_zero₁ {A : Type*} [CommRing A] (β : A) (a : Ideal A) :
+    Ideal.span {β} = Ideal.span {β} * (1 * a ^ 0) := by simp
+
 lemma relations_proof0 (i : Fin 9) : IsInClass O x (g 0 i) (BM 0 i) := by
   show IsInClass O x (g 0 i) (![![1], ![1], ![1], ![1], ![1], ![1], ![1], ![1], ![1]] i)
   unfold IsInClass
   simp only [Fin.isValue, Fin.prod_univ_castSucc, Finset.univ_eq_empty, Finset.prod_empty, Fin.succ_zero_eq_one, one_mul]
   fin_cases i
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R2N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R2N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R3N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R3N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R3N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R3N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R7N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R7N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R7N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R7N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R13N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R13N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R13N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R13N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R13N2))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R13N2 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R13N3))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R13N3 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
 
@@ -370,26 +386,42 @@ lemma relations_proof1 (i : Fin 6) : IsInClass O x (g 1 i) (BM 1 i) := by
   unfold IsInClass
   simp only [Fin.isValue, Fin.prod_univ_castSucc, Finset.univ_eq_empty, Finset.prod_empty, Fin.succ_zero_eq_one, one_mul]
   fin_cases i
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
+  · -- v4.32: `ideal_mem_principal_class''` needs `v` pinned; the opaque `g`/`e`/`BM` leave
+    -- the index `⟨0,_⟩ : Fin (e 1)` stuck, so restate via `suffices` (its `= span {b}`
+    -- conclusion pins `v`) and bridge the all-`^0` product through the generic helper.
+    suffices h : ∃ a b : ↑O, ∃ (_ : a ≠ 0) (_ : b ≠ 0),
+        Ideal.span {a} * g 1 ((fun i ↦ i) ⟨0, by decide⟩) = Ideal.span {b} by
+      obtain ⟨a, b, ha, hb, hab⟩ := h
+      exact ⟨a, b, ha, hb, hab.trans (span_eq_span_mul_prod_zero₁ b (x 0))⟩
     exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
+  · -- v4.32: `ideal_mem_principal_class''` needs `v` pinned; the opaque `g`/`e`/`BM` leave
+    -- the index `⟨1,_⟩ : Fin (e 1)` stuck, so restate via `suffices` (its `= span {b}`
+    -- conclusion pins `v`) and bridge the all-`^0` product through the generic helper.
+    suffices h : ∃ a b : ↑O, ∃ (_ : a ≠ 0) (_ : b ≠ 0),
+        Ideal.span {a} * g 1 ((fun i ↦ i) ⟨1, by decide⟩) = Ideal.span {b} by
+      obtain ⟨a, b, ha, hb, hab⟩ := h
+      exact ⟨a, b, ha, hb, hab.trans (span_eq_span_mul_prod_zero₁ b (x 0))⟩
     exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
+  · -- v4.32: `ideal_mem_principal_class''` needs `v` pinned; the opaque `g`/`e`/`BM` leave
+    -- the index `⟨2,_⟩ : Fin (e 1)` stuck, so restate via `suffices` (its `= span {b}`
+    -- conclusion pins `v`) and bridge the all-`^0` product through the generic helper.
+    suffices h : ∃ a b : ↑O, ∃ (_ : a ≠ 0) (_ : b ≠ 0),
+        Ideal.span {a} * g 1 ((fun i ↦ i) ⟨2, by decide⟩) = Ideal.span {b} by
+      obtain ⟨a, b, ha, hb, hab⟩ := h
+      exact ⟨a, b, ha, hb, hab.trans (span_eq_span_mul_prod_zero₁ b (x 0))⟩
     exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
+  · -- v4.32: `ideal_mem_principal_class''` needs `v` pinned; the opaque `g`/`e`/`BM` leave
+    -- the index `⟨3,_⟩ : Fin (e 1)` stuck, so restate via `suffices` (its `= span {b}`
+    -- conclusion pins `v`) and bridge the all-`^0` product through the generic helper.
+    suffices h : ∃ a b : ↑O, ∃ (_ : a ≠ 0) (_ : b ≠ 0),
+        Ideal.span {a} * g 1 ((fun i ↦ i) ⟨3, by decide⟩) = Ideal.span {b} by
+      obtain ⟨a, b, ha, hb, hab⟩ := h
+      exact ⟨a, b, ha, hb, hab.trans (span_eq_span_mul_prod_zero₁ b (x 0))⟩
     exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R43N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R43N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R43N2))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R43N2 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
 
@@ -398,26 +430,42 @@ lemma relations_proof2 (i : Fin 6) : IsInClass O x (g 2 i) (BM 2 i) := by
   unfold IsInClass
   simp only [Fin.isValue, Fin.prod_univ_castSucc, Finset.univ_eq_empty, Finset.prod_empty, Fin.succ_zero_eq_one, one_mul]
   fin_cases i
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
+  · -- v4.32: `ideal_mem_principal_class''` needs `v` pinned; the opaque `g`/`e`/`BM` leave
+    -- the index `⟨0,_⟩ : Fin (e 2)` stuck, so restate via `suffices` (its `= span {b}`
+    -- conclusion pins `v`) and bridge the all-`^0` product through the generic helper.
+    suffices h : ∃ a b : ↑O, ∃ (_ : a ≠ 0) (_ : b ≠ 0),
+        Ideal.span {a} * g 2 ((fun i ↦ i) ⟨0, by decide⟩) = Ideal.span {b} by
+      obtain ⟨a, b, ha, hb, hab⟩ := h
+      exact ⟨a, b, ha, hb, hab.trans (span_eq_span_mul_prod_zero₁ b (x 0))⟩
     exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
+  · -- v4.32: `ideal_mem_principal_class''` needs `v` pinned; the opaque `g`/`e`/`BM` leave
+    -- the index `⟨1,_⟩ : Fin (e 2)` stuck, so restate via `suffices` (its `= span {b}`
+    -- conclusion pins `v`) and bridge the all-`^0` product through the generic helper.
+    suffices h : ∃ a b : ↑O, ∃ (_ : a ≠ 0) (_ : b ≠ 0),
+        Ideal.span {a} * g 2 ((fun i ↦ i) ⟨1, by decide⟩) = Ideal.span {b} by
+      obtain ⟨a, b, ha, hb, hab⟩ := h
+      exact ⟨a, b, ha, hb, hab.trans (span_eq_span_mul_prod_zero₁ b (x 0))⟩
     exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
+  · -- v4.32: `ideal_mem_principal_class''` needs `v` pinned; the opaque `g`/`e`/`BM` leave
+    -- the index `⟨2,_⟩ : Fin (e 2)` stuck, so restate via `suffices` (its `= span {b}`
+    -- conclusion pins `v`) and bridge the all-`^0` product through the generic helper.
+    suffices h : ∃ a b : ↑O, ∃ (_ : a ≠ 0) (_ : b ≠ 0),
+        Ideal.span {a} * g 2 ((fun i ↦ i) ⟨2, by decide⟩) = Ideal.span {b} by
+      obtain ⟨a, b, ha, hb, hab⟩ := h
+      exact ⟨a, b, ha, hb, hab.trans (span_eq_span_mul_prod_zero₁ b (x 0))⟩
     exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
+  · -- v4.32: `ideal_mem_principal_class''` needs `v` pinned; the opaque `g`/`e`/`BM` leave
+    -- the index `⟨3,_⟩ : Fin (e 2)` stuck, so restate via `suffices` (its `= span {b}`
+    -- conclusion pins `v`) and bridge the all-`^0` product through the generic helper.
+    suffices h : ∃ a b : ↑O, ∃ (_ : a ≠ 0) (_ : b ≠ 0),
+        Ideal.span {a} * g 2 ((fun i ↦ i) ⟨3, by decide⟩) = Ideal.span {b} by
+      obtain ⟨a, b, ha, hb, hab⟩ := h
+      exact ⟨a, b, ha, hb, hab.trans (span_eq_span_mul_prod_zero₁ b (x 0))⟩
     exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R83N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R83N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R83N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R83N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
 

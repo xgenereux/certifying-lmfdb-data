@@ -934,7 +934,7 @@ def PBC229 : ContainsPrimesAboveP 229 ![I229N0, I229N0, I229N1, I229N1] where
 lemma PB692I4_primes (p : ℕ) :
   p ∈ Set.range ![179, 181, 191, 193, 197, 199, 211, 223, 227, 229] ↔ Nat.Prime p ∧ 173 < p ∧ p ≤ 229 := by
   rw [← List.mem_ofFn']
-  convert primes_range 173 229 (by omega)
+  convert primes_range 173 229 (by omega) <;> decide
 
 def PB692I4 : PrimesBelowBoundCertificateInterval' O 173 229 692 where
   m := 10
