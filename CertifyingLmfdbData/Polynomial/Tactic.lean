@@ -59,7 +59,7 @@ noncomputable def UniqueRootNear.of_certificates' (p pd : ℚ[X])
     (hrR : r' ≤ R)
     (hyr : y + z₁ * r' + z₂ * r' ^ 2 / 2 ≤ r')
     (hzr : z₁ + z₂ * r' < 1) :
-    UniqueRootNear (aeval · p) (toComplex v) r := by
+    UniqueRootNear p (toComplex v) r := by
   subst hr hpd
   exact .of_certificates p M v hy0 hy1 hz1 hdeg ha hB hB0 hnum hrR hyr hzr
 
@@ -326,12 +326,11 @@ elab_rules : tactic
         {indentD "UniqueRootNear (aeval · p) (toComplex v) r"}\ngot{indentExpr goalTy}"
     let args := goalTy.getAppArgs
     let p ← match args[0]!.consumeMData with
-      | .lam _ _ body _ =>
-        let pe := body.appArg!
+      | pe =>
         if pe.hasLooseBVars then
           throwError "unique_root_near: cannot extract the polynomial from{indentExpr args[0]!}"
         pure pe
-      | _ => throwError "unique_root_near: cannot extract the polynomial from{indentExpr args[0]!}"
+      -- | _ => throwError "unique_root_near: cannot extract the polynomial from{indentExpr args[0]!}"
     unless args[1]!.consumeMData.isApp do
       throwError "unique_root_near: expected `toComplex v`, got{indentExpr args[1]!}"
     let v := args[1]!.consumeMData.appArg!

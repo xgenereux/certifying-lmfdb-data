@@ -33,16 +33,16 @@ together with proofs that it is a root, that it lies within `r` of `v`, and that
 such root. Here distance is measured in the sup norm (viewing `ℂ` as `ℝ²`), not in the usual
 absolute value on `ℂ`: the certified region is a square of side `2 * r` centred at `v`, not a
 disc. -/
-structure UniqueRootNear (f : ℂ → ℂ) (v : ℂ) (r : ℝ) where
+structure UniqueRootNear (f : Polynomial ℚ) (v : ℂ) (r : ℝ) where
   /-- The root of `f` certified to be unique near `v`. -/
   root : ℂ
-  isRoot : f root = 0
+  isRoot : f.aeval root = 0
   near : max |(root - v).re| |(root - v).im| ≤ r
-  unique : ∀ ⦃z : ℂ⦄, f z = 0 → max |(z - v).re| |(z - v).im| ≤ r → z = root
+  unique : ∀ ⦃z : ℂ⦄, f.aeval z = 0 → max |(z - v).re| |(z - v).im| ≤ r → z = root
 
 namespace UniqueRootNear
 
-variable {f : ℂ → ℂ} {v : ℂ} {r : ℝ}
+variable {f : Polynomial ℚ} {v : ℂ} {r : ℝ}
 
 lemma re_near (h : UniqueRootNear f v r) : |(h.root - v).re| ≤ r :=
   (le_max_left _ _).trans h.near
@@ -51,14 +51,14 @@ lemma im_near (h : UniqueRootNear f v r) : |(h.root - v).im| ≤ r :=
   (le_max_right _ _).trans h.near
 
 lemma existsUnique (h : UniqueRootNear f v r) :
-    ∃! z : ℂ, f z = 0 ∧ max |(z - v).re| |(z - v).im| ≤ r :=
+    ∃! z : ℂ, f.aeval z = 0 ∧ max |(z - v).re| |(z - v).im| ≤ r :=
   ⟨h.root, ⟨h.isRoot, h.near⟩, fun _ hz ↦ h.unique hz.1 hz.2⟩
 
 /-- Conjugating a certified unique root: since conjugation commutes with evaluation of a
 rational polynomial and preserves sup-norm distances, a unique root near `v` gives a unique
 root near `conj v`, namely the conjugate of the original root. -/
-noncomputable def conj {p : Polynomial ℚ} (h : UniqueRootNear (aeval · p) v r) :
-    UniqueRootNear (aeval · p) (starRingEnd ℂ v) r where
+noncomputable def conj {p : Polynomial ℚ} (h : UniqueRootNear p v r) :
+    UniqueRootNear p (starRingEnd ℂ v) r where
   root := starRingEnd ℂ h.root
   isRoot := by
     have hroot : aeval h.root p = 0 := h.isRoot
@@ -76,13 +76,13 @@ noncomputable def conj {p : Polynomial ℚ} (h : UniqueRootNear (aeval · p) v r
       simpa only [Complex.conj_re, Complex.conj_im, abs_neg] using hd
     rw [← Complex.conj_conj z, h.unique hz' hd']
 
-@[simp] lemma conj_root {p : Polynomial ℚ} (h : UniqueRootNear (aeval · p) v r) :
+@[simp] lemma conj_root {p : Polynomial ℚ} (h : UniqueRootNear p v r) :
     h.conj.root = starRingEnd ℂ h.root := rfl
 
 /-- The unique root near a point `v` with zero imaginary part is genuinely real: its complex
 conjugate is again a root the same distance from `v`, so by uniqueness the root equals its own
 conjugate. -/
-lemma im_eq_zero {p : Polynomial ℚ} (h : UniqueRootNear (aeval · p) v r) (hv : v.im = 0) :
+lemma im_eq_zero {p : Polynomial ℚ} (h : UniqueRootNear p v r) (hv : v.im = 0) :
     h.root.im = 0 := by
   have hroot : aeval h.root p = 0 := h.isRoot
   have hd' : max |(starRingEnd ℂ h.root - v).re| |(starRingEnd ℂ h.root - v).im| ≤ r := by
@@ -109,7 +109,7 @@ lemma polyToZeroFinder_root_near_iff {p : Polynomial ℚ} {v : Fin 2 → ℝ} {r
 `UniqueRootNear` certificate for the polynomial itself. -/
 noncomputable def UniqueRootNear.ofZeroFinder {p : Polynomial ℚ} {v : Fin 2 → ℝ} {r : ℝ≥0}
     (h : ∃! x, polyToZeroFinder p x = 0 ∧ ‖x - v‖₊ ≤ r) :
-    UniqueRootNear (aeval · p) (toComplex v) r where
+    UniqueRootNear p (toComplex v) r where
   root := toComplex h.choose
   isRoot := (polyToZeroFinder_root_near_iff.mp h.choose_spec.1).1
   near := (polyToZeroFinder_root_near_iff.mp h.choose_spec.1).2
@@ -145,7 +145,7 @@ noncomputable def UniqueRootNear.of_certificates (p : Polynomial ℚ)
     (hrR : r ≤ R)
     (hyr : y + z₁ * r + z₂ * r ^ 2 / 2 ≤ r)
     (hzr : z₁ + z₂ * r < 1) :
-    UniqueRootNear (aeval · p) (toComplex v) r := by
+    UniqueRootNear p (toComplex v) r := by
   refine .ofZeroFinder <| existsUnique_root_of_certificates p M v hy0 hy1 hz1 hdeg ha hB hB0
     (show √2 ≤ 1.5 from Real.sqrt_two_lt_d2.le.trans (by norm_num)) ?_ hrR hyr hzr
   norm_num
