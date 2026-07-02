@@ -58,7 +58,7 @@ theorem regulator_aux : ∃ m : ℕ, 1 ≤ m ∧
 abbrev res : ℝ := 0.366086210051
 
 -- But we only need a weak lower bound on the residue
-theorem dedekindResidue_ge : 0.3 ≤ dedekindZeta_residue K := by
+theorem dedekindResidue_ge : 0.2 ≤ dedekindZeta_residue K := by
   sorry
 
 -- The class number formula certifies the torsion order, the regulator, and the class number
@@ -73,9 +73,9 @@ theorem classNumberFormula :
     α β (by positivity)
     reg regulator_aux
     2 classNumber_aux (by positivity)
-    0.3 dedekindResidue_ge ?_
+    0.2 dedekindResidue_ge ?_
     0.1 (by norm_num) (by norm_num)
-    res 0.1 ?_ ?_ <;> norm_cast <;> push_cast <;> dyadic_interval [approx := 10]
+    res 0.1 ?_ ?_ <;> norm_cast <;> push_cast <;> dyadic_interval [approx := 100]
 
 -- The number field `K` has exactly two roots of unity
 theorem torsionOrder_eq : torsionOrder K = 2 := by
