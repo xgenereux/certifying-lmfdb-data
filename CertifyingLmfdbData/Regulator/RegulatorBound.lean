@@ -17,18 +17,6 @@ lemma NumberField.Units.exists_regOfFamily_eq_mul
     exact this
   exact ⟨(Subgroup.closure (Set.range u) ⊔ torsion K).index, fun _ ↦ by simp_all, key⟩
 
-theorem exists_torsion_eq_mul {n : ℕ} (hn : n ≠ 0)
-    {ζ : 𝓞 K} (hζ : ζ ^ n = 1) (hζ₂ : ∀ m, m ∣ n → m ≠ n → ζ ^ m ≠ 1) :
-    n ∣ NumberField.Units.torsionOrder K := by
-  have : NeZero n := ⟨hn⟩
-  have horder : orderOf ζ = n := by
-    by_contra hne
-    exact hζ₂ (orderOf ζ) (orderOf_dvd_of_pow_eq_one hζ) hne (pow_orderOf_eq_one ζ)
-  have hprim : IsPrimitiveRoot ζ n := by
-    simpa [horder] using (IsPrimitiveRoot.orderOf ζ)
-  exact NumberField.Units.dvd_torsionOrder_of_isPrimitiveRoot
-    (hprim.map_of_injective RingOfIntegers.coe_injective)
-
 end
 
 section
