@@ -36,6 +36,7 @@ variable {n m : ℕ} {f : ℚ[X]} [hf : Fact (Irreducible f)]
                 (∑ k : Fin n, (u i k : AdjoinRoot f) * (AdjoinRoot.root f) ^ (k : ℕ)),
                     IsUnit (⟨_, h⟩ : 𝓞 (AdjoinRoot f)))
 
+-- AI generated, not thought about
 include hα hα₂ hα₃ h_t in
 theorem regOfFamily_comp_eq_regOfFamily :
     |(Matrix.of fun i j ↦ t i * Real.log ‖∑ k : Fin n, (u j k) * α i ^ (k : ℕ)‖).det| =
@@ -46,11 +47,6 @@ theorem regOfFamily_comp_eq_regOfFamily :
       (v j : AdjoinRoot f) =
         ∑ k : Fin n, (u j k : AdjoinRoot f) * (AdjoinRoot.root f) ^ (k : ℕ) := by
     exact congrArg (fun x : 𝓞 (AdjoinRoot f) ↦ (x : AdjoinRoot f)) (hu j).2.unit_spec
-  have hlift (i j : Fin m) :
-      AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (v j) =
-        ∑ k : Fin n, (u j k : ℂ) * α i ^ (k : ℕ) := by
-    rw [hv j]
-    simp [map_sum, map_mul, AdjoinRoot.lift_root]
   have hfake :
       |(Matrix.of fun i j ↦ t i * Real.log ‖∑ k : Fin n, (u j k) * α i ^ (k : ℕ)‖).det| =
         |(Matrix.of fun i j ↦
@@ -58,7 +54,7 @@ theorem regOfFamily_comp_eq_regOfFamily :
     congr 1
     apply congrArg Matrix.det
     ext i j
-    simp [hlift i j]
+    simp [hv j]
   let placeOfRoot : Fin m → InfinitePlace (AdjoinRoot f) := fun i ↦
     InfinitePlace.mk (AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i))
   have hroot (i : Fin m) :
