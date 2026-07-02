@@ -42,7 +42,7 @@ structure UniqueRootNear (f : Polynomial ℚ) (v : ℂ) (r : ℝ) where
 
 namespace UniqueRootNear
 
-variable {f : Polynomial ℚ} {v : ℂ} {r : ℝ}
+variable {f : Polynomial ℚ} {v v' : ℂ} {r r' : ℝ}
 
 lemma re_near (h : UniqueRootNear f v r) : |(h.root - v).re| ≤ r :=
   (le_max_left _ _).trans h.near
@@ -53,6 +53,12 @@ lemma im_near (h : UniqueRootNear f v r) : |(h.root - v).im| ≤ r :=
 lemma existsUnique (h : UniqueRootNear f v r) :
     ∃! z : ℂ, f.aeval z = 0 ∧ max |(z - v).re| |(z - v).im| ≤ r :=
   ⟨h.root, ⟨h.isRoot, h.near⟩, fun _ hz ↦ h.unique hz.1 hz.2⟩
+
+lemma distinct (h₁ : UniqueRootNear f v r) (h₂ : UniqueRootNear f v' r')
+    (h : r + r' < max |v.re - v'.re| |v.im - v'.im|) : h₁.root ≠ h₂.root := by
+  have := h₁.near
+  have := h₂.near
+  grind [Complex.sub_re, Complex.sub_im]
 
 /-- Conjugating a certified unique root: since conjugation commutes with evaluation of a
 rational polynomial and preserves sup-norm distances, a unique root near `v` gives a unique
