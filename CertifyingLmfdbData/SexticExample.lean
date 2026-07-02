@@ -46,20 +46,16 @@ theorem classNumber_aux : classNumber K ∣ 2 := by
 abbrev reg : ℝ := 15.9596951835
 
 -- The error on our computation of the regulator of `K`
-abbrev α : ℝ := 0.9
-abbrev β : ℝ := 1.1
+abbrev α : ℝ := 0.995
+abbrev β : ℝ := 1.005
 
 -- We only need an upper bound on the regulator
 theorem regulator_aux : ∃ m : ℕ, 1 ≤ m ∧
     reg ∈ Set.Icc (α * m • regulator K) (β * m • regulator K) := by
   sorry
 
--- We will certify that the residue of `K` is roughly `0.366086210051`
-abbrev res : ℝ := 0.366086210051
-
--- But we only need a weak lower bound on the residue
-abbrev res_bound : ℝ := 0.3
-theorem dedekindResidue_ge : res_bound ≤ dedekindZeta_residue K := by
+-- W only need a weak lower bound on the residue
+theorem dedekindResidue_ge : 0.3 ≤ dedekindZeta_residue K := by
   sorry
 
 -- The class number formula certifies the torsion order, the regulator, and the class number
@@ -73,7 +69,7 @@ theorem classNumberFormula :
     α β (by positivity)
     reg regulator_aux
     2 classNumber_aux (by positivity)
-    res_bound dedekindResidue_ge
+    0.3 dedekindResidue_ge
   norm_cast
   push_cast
   dyadic_interval [approx := 10]
@@ -86,9 +82,16 @@ theorem torsionOrder_eq : torsionOrder K = 2 := by
 theorem classNumber_eq : classNumber K = 2 := by
   exact classNumberFormula.2.2
 
--- todo: write this as `|regulator K - reg| < x`
-theorem regulator_mem : regulator K ∈ Set.Icc (reg / β) (reg / α) := by
-  exact classNumberFormula.2.1
+-- The regulator of `K` is within `0.01` of `15.9596951835`
+theorem regulator_mem : |regulator K - 15.9596951835| < 0.1 := by
+  rw [abs_lt]
+  apply classNumberFormula.2.1.imp
+  · intro h
+    grw [← h]
+    dyadic_interval [approx := 10]
+  · intro h
+    grw [h]
+    dyadic_interval [approx := 10]
 
 end
 
