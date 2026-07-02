@@ -103,7 +103,10 @@ namespace DegSix
 
 open Polynomial Complex NNReal
 
-def myPoly : Polynomial ℚ := X^6 - 5*X^4 - 50 * X^2 + 125
+def myPoly : Polynomial ℚ := (X^6 - 5*X^4 - 50 * X^2 + 125 : Polynomial ℤ).map (algebraMap ℤ ℚ)
+
+theorem myPoly_eq : myPoly = X^6 - 5*X^4 - 50 * X^2 + 125 := by
+  simp [myPoly]
 
 /-! ### Approximate roots and inverse Jacobians -/
 
@@ -139,6 +142,7 @@ def croot1' : Fin 2 → ℝ := ![0, -2.49697777695103552262164392502670290335505
 /-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `rroot1`. -/
 noncomputable def uniqueRootNear_rroot1 :
     UniqueRootNear myPoly (toComplex rroot1) 1e-57 := by
+  rw [myPoly_eq]
   unique_root_near rA1_mat
 
 /-- The root approximated by `rroot1` is real. -/
@@ -148,6 +152,7 @@ lemma rroot1_im_zero : uniqueRootNear_rroot1.root.im = 0 :=
 /-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `rroot2`. -/
 noncomputable def uniqueRootNear_rroot2 :
     UniqueRootNear myPoly (toComplex rroot2) 1e-57 := by
+  rw [myPoly_eq]
   unique_root_near rA2_mat
 
 /-- The root approximated by `rroot2` is real. -/
@@ -157,6 +162,7 @@ lemma rroot2_im_zero : uniqueRootNear_rroot2.root.im = 0 :=
 /-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `rroot3`. -/
 noncomputable def uniqueRootNear_rroot3 :
     UniqueRootNear myPoly (toComplex rroot3) 1e-57 := by
+  rw [myPoly_eq]
   unique_root_near rA3_mat
 
 /-- The root approximated by `rroot3` is real. -/
@@ -166,6 +172,7 @@ lemma rroot3_im_zero : uniqueRootNear_rroot3.root.im = 0 :=
 /-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `rroot4`. -/
 noncomputable def uniqueRootNear_rroot4 :
     UniqueRootNear myPoly (toComplex rroot4) 1e-57 := by
+  rw [myPoly_eq]
   unique_root_near rA4_mat
 
 /-- The root approximated by `rroot4` is real. -/
@@ -177,6 +184,7 @@ lemma rroot4_im_zero : uniqueRootNear_rroot4.root.im = 0 :=
 /-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `croot1`. -/
 noncomputable def uniqueRootNear_croot1 :
     UniqueRootNear myPoly (toComplex croot1) 1e-57 := by
+  rw [myPoly_eq]
   unique_root_near cA1_mat
 
 /-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `croot1'`, the conjugate
