@@ -133,6 +133,90 @@ lemma Real.sqrt_two_lt_d10 : √2 < 1.4142135624 := by
 lemma Real.sqrt_two_lt_d2 : √2 < 1.42 := by
   rw [Real.sqrt_lt] <;> norm_num
 
+/-! ### Root ball → embedding-value ball, uniformly in the root
+
+Unlike `embedding_value_ball` (Taylor coefficients at each approximation `v`), the bound here
+only depends on the polynomial `U` and one radius `ρ` covering *all* roots, so a single numeric
+evaluation per unit serves every embedding. -/
+
+open Finset in
+/-- `‖x^n - y^n‖ ≤ n·ρ^(n-1)·‖x - y‖` on the ball of radius `ρ`, via the factorization
+`x^n - y^n = (∑ xⁱy^(n-1-i))·(x - y)`. -/
+lemma norm_pow_sub_pow_le (x y : ℂ) {ρ : ℝ} (hx : ‖x‖ ≤ ρ) (hy : ‖y‖ ≤ ρ) (n : ℕ) :
+    ‖x ^ n - y ^ n‖ ≤ n * ρ ^ (n - 1) * ‖x - y‖ := by
+  rw [← geom_sum₂_mul, norm_mul]
+  gcongr
+  refine (norm_sum_le _ _).trans ?_
+  calc ∑ i ∈ range n, ‖x ^ i * y ^ (n - 1 - i)‖
+      ≤ ∑ i ∈ range n, ρ ^ (n - 1) := by
+        refine Finset.sum_le_sum fun i hi => ?_
+        have hρ0 : 0 ≤ ρ := (norm_nonneg x).trans hx
+        rw [norm_mul, norm_pow, norm_pow]
+        calc ‖x‖ ^ i * ‖y‖ ^ (n - 1 - i)
+            ≤ ρ ^ i * ρ ^ (n - 1 - i) :=
+              mul_le_mul (pow_le_pow_left₀ (norm_nonneg x) hx i)
+                (pow_le_pow_left₀ (norm_nonneg y) hy _) (by positivity) (pow_nonneg hρ0 i)
+          _ = ρ ^ (n - 1) := by
+              rw [← pow_add]
+              congr 1
+              have := Finset.mem_range.mp hi
+              omega
+    _ = n * ρ ^ (n - 1) := by rw [Finset.sum_const, card_range, nsmul_eq_mul]
+
+open Finset in
+/-- Coefficient-wise Lipschitz constant for `U : ℚ[X]` on the closed ball of radius `ρ` in `ℂ`:
+a computable finite sum, independent of the base point. -/
+noncomputable def polyLipBound (U : Polynomial ℚ) (ρ : ℝ) : ℝ :=
+  ∑ k ∈ range (U.natDegree + 1), |(U.coeff k : ℝ)| * k * ρ ^ (k - 1)
+
+lemma polyLipBound_nonneg (U : Polynomial ℚ) {ρ : ℝ} (hρ : 0 ≤ ρ) : 0 ≤ polyLipBound U ρ :=
+  Finset.sum_nonneg fun k _ => by positivity
+
+open Finset in
+/-- `U` is `polyLipBound U ρ`-Lipschitz on the ball of radius `ρ`. -/
+lemma norm_aeval_sub_aeval_le_polyLipBound (U : Polynomial ℚ) {α v : ℂ} {ρ : ℝ}
+    (hα : ‖α‖ ≤ ρ) (hv : ‖v‖ ≤ ρ) :
+    ‖aeval α U - aeval v U‖ ≤ polyLipBound U ρ * ‖α - v‖ := by
+  set Q := U.map (algebraMap ℚ ℂ) with hQ
+  have ha : ∀ z : ℂ, aeval z U = Q.eval z := fun z => by rw [hQ, eval_map, aeval_def]
+  have hdeg : Q.natDegree < U.natDegree + 1 := Nat.lt_succ_of_le (natDegree_map_le)
+  rw [ha, ha, eval_eq_sum_range' hdeg, eval_eq_sum_range' hdeg, ← Finset.sum_sub_distrib]
+  simp_rw [← mul_sub]
+  refine (norm_sum_le _ _).trans ?_
+  rw [polyLipBound, Finset.sum_mul]
+  refine Finset.sum_le_sum fun k _ => ?_
+  rw [norm_mul, hQ, coeff_map]
+  have hcoeff : ‖(algebraMap ℚ ℂ) (U.coeff k)‖ = |(U.coeff k : ℝ)| := by
+    rw [show (algebraMap ℚ ℂ) (U.coeff k) = ((U.coeff k : ℝ) : ℂ) from by push_cast; rfl,
+      Complex.norm_real, Real.norm_eq_abs]
+  calc ‖(algebraMap ℚ ℂ) (U.coeff k)‖ * ‖α ^ k - v ^ k‖
+      ≤ |(U.coeff k : ℝ)| * (k * ρ ^ (k - 1) * ‖α - v‖) := by
+        rw [hcoeff]
+        exact mul_le_mul_of_nonneg_left (norm_pow_sub_pow_le α v hα hv k) (abs_nonneg _)
+    _ = |(U.coeff k : ℝ)| * k * ρ ^ (k - 1) * ‖α - v‖ := by ring
+
+/-- Root-ball to embedding-value-ball bridge: if `x` is within `r` of the approximation `v`
+(in `ℝ²`) and the ball of radius `ρ` swallows both, then `σ(u) = aeval (toComplex x) U` is
+within `polyLipBound U ρ · √2·r` of the computable center `aeval (toComplex v) U`. -/
+lemma embedding_bound_of_close {v x : Fin 2 → ℝ} {r ρ : ℝ}
+    (hxv : ‖x - v‖ ≤ r) (hρ : ‖toComplex v‖ + Real.sqrt 2 * r ≤ ρ) (U : Polynomial ℚ) :
+    ‖aeval (toComplex x) U - aeval (toComplex v) U‖
+      ≤ polyLipBound U ρ * (Real.sqrt 2 * r) := by
+  have hr0 : 0 ≤ r := (norm_nonneg _).trans hxv
+  have hsr0 : 0 ≤ Real.sqrt 2 * r := mul_nonneg (Real.sqrt_nonneg 2) hr0
+  have hρ0 : 0 ≤ ρ := le_trans (add_nonneg (norm_nonneg _) hsr0) hρ
+  have hαv : ‖toComplex x - toComplex v‖ ≤ Real.sqrt 2 * r := by
+    rw [← map_sub]
+    exact (norm_toComplex_le _).trans (by gcongr)
+  have hv' : ‖toComplex v‖ ≤ ρ := le_trans (le_add_of_nonneg_right hsr0) hρ
+  have hα : ‖toComplex x‖ ≤ ρ := by
+    calc ‖toComplex x‖ = ‖toComplex v + (toComplex x - toComplex v)‖ := by ring_nf
+      _ ≤ ‖toComplex v‖ + ‖toComplex x - toComplex v‖ := norm_add_le _ _
+      _ ≤ ‖toComplex v‖ + Real.sqrt 2 * r := by gcongr
+      _ ≤ ρ := hρ
+  refine (norm_aeval_sub_aeval_le_polyLipBound U hα hv').trans ?_
+  exact mul_le_mul_of_nonneg_left hαv (polyLipBound_nonneg U hρ0)
+
 end Lemmas
 
 
@@ -504,5 +588,124 @@ of `croot1`. -/
 noncomputable def uniqueRootNear_croot1' :
     UniqueRootNear (aeval · myPoly) (toComplex croot1') 1e-57 :=
   uniqueRootNear_croot1.conj
+
+/-! ### Fundamental units (LMFDB 6.4.19208000.1)
+
+The unit group has rank 4 (signature `(4,1)`); the fundamental units from LMFDB are
+`u₁ = a⁴/25 - 2`, `u₂ = a⁴/25 - 1`, `u₃ = a⁵/25 - 2a⁴/25 - 2a + 3`,
+`u₄ = a⁵/25 - a²/5 - 2a - 2`. -/
+
+def fundU1 : Polynomial ℚ := C (1/25) * X^4 - C 2
+def fundU2 : Polynomial ℚ := C (1/25) * X^4 - C 1
+def fundU3 : Polynomial ℚ := C (1/25) * X^5 - C (2/25) * X^4 - C 2 * X + C 3
+def fundU4 : Polynomial ℚ := C (1/25) * X^5 - C (1/5) * X^2 - C 2 * X - C 2
+
+def fundUnits : Fin 4 → Polynomial ℚ := ![fundU1, fundU2, fundU3, fundU4]
+
+/-! All six roots of `myPoly` have modulus `< 3.01`, so the ball of radius `ρ = 3.1` swallows
+every certified root ball; one Lipschitz constant per unit then serves all embeddings. -/
+
+lemma polyLipBound_fundU1 : polyLipBound fundU1 3.1 ≤ 4.77 := by
+  have hdeg : fundU1.natDegree = 4 := by unfold fundU1; compute_degree!
+  rw [polyLipBound, hdeg]
+  simp only [Finset.sum_range_succ, Finset.sum_range_zero, fundU1, coeff_sub, coeff_C_mul,
+    coeff_X_pow, coeff_C]
+  norm_num
+
+lemma polyLipBound_fundU2 : polyLipBound fundU2 3.1 ≤ 4.77 := by
+  have hdeg : fundU2.natDegree = 4 := by unfold fundU2; compute_degree!
+  rw [polyLipBound, hdeg]
+  simp only [Finset.sum_range_succ, Finset.sum_range_zero, fundU2, coeff_sub, coeff_C_mul,
+    coeff_X_pow, coeff_C]
+  norm_num
+
+lemma polyLipBound_fundU3 : polyLipBound fundU3 3.1 ≤ 30.01 := by
+  have hdeg : fundU3.natDegree = 5 := by unfold fundU3; compute_degree!
+  rw [polyLipBound, hdeg]
+  simp only [Finset.sum_range_succ, Finset.sum_range_zero, fundU3, coeff_add, coeff_sub,
+    coeff_C_mul, coeff_X_pow, coeff_C, coeff_X]
+  norm_num
+
+lemma polyLipBound_fundU4 : polyLipBound fundU4 3.1 ≤ 21.72 := by
+  have hdeg : fundU4.natDegree = 5 := by unfold fundU4; compute_degree!
+  rw [polyLipBound, hdeg]
+  simp only [Finset.sum_range_succ, Finset.sum_range_zero, fundU4, coeff_sub, coeff_C_mul,
+    coeff_X_pow, coeff_C, coeff_X]
+  norm_num
+
+/-! ### Certified balls for every embedding value `σᵢ(uⱼ)`
+
+One approximation per embedding (the fifth is the complex place; its conjugate carries the same
+data), and one radius `δⱼ = polyLipBound uⱼ 3.1 · √2 · 1e-57` per unit — the same `δⱼ` works at
+every embedding, and `c = 1e-55` works everywhere. -/
+
+def approxRoots : Fin 5 → (Fin 2 → ℝ) := ![rroot1, rroot2, rroot3, rroot4, croot1]
+
+/-- Per-unit radii `δⱼ` for the embedding-value balls. -/
+def unitDelta : Fin 4 → ℝ := ![7e-57, 7e-57, 4.3e-56, 3.1e-56]
+
+lemma norm_toComplex_approxRoots (i : Fin 5) : ‖toComplex (approxRoots i)‖ ≤ 3.01 := by
+  have h : ‖toComplex (approxRoots i)‖ ^ 2 ≤ 3.01 ^ 2 := by
+    rw [norm_toComplex_sq]
+    fin_cases i <;>
+      simp [approxRoots, rroot1, rroot2, rroot3, rroot4, croot1] <;> norm_num
+  nlinarith [norm_nonneg (toComplex (approxRoots i)), h]
+
+lemma polyLipBound_mul_le (j : Fin 4) :
+    polyLipBound (fundUnits j) 3.1 * (Real.sqrt 2 * 1e-57) ≤ unitDelta j := by
+  fin_cases j
+  · change polyLipBound fundU1 3.1 * (Real.sqrt 2 * 1e-57) ≤ (7e-57 : ℝ)
+    grw [polyLipBound_fundU1, Real.sqrt_two_lt_d2]; norm_num
+  · change polyLipBound fundU2 3.1 * (Real.sqrt 2 * 1e-57) ≤ (7e-57 : ℝ)
+    grw [polyLipBound_fundU2, Real.sqrt_two_lt_d2]; norm_num
+  · change polyLipBound fundU3 3.1 * (Real.sqrt 2 * 1e-57) ≤ (4.3e-56 : ℝ)
+    grw [polyLipBound_fundU3, Real.sqrt_two_lt_d2]; norm_num
+  · change polyLipBound fundU4 3.1 * (Real.sqrt 2 * 1e-57) ≤ (3.1e-56 : ℝ)
+    grw [polyLipBound_fundU4, Real.sqrt_two_lt_d2]; norm_num
+
+/-- Any point in the certified root ball at embedding `i` has all its unit-embedding values
+within `unitDelta j` of the computable centers. -/
+lemma embedding_bound {i : Fin 5} {x : Fin 2 → ℝ}
+    (hxv : ‖x - approxRoots i‖ ≤ 1e-57) (j : Fin 4) :
+    ‖aeval (toComplex x) (fundUnits j) - aeval (toComplex (approxRoots i)) (fundUnits j)‖
+      ≤ unitDelta j := by
+  have hρ : ‖toComplex (approxRoots i)‖ + Real.sqrt 2 * 1e-57 ≤ 3.1 := by
+    grw [norm_toComplex_approxRoots i, Real.sqrt_two_lt_d2]; norm_num
+  exact (embedding_bound_of_close hxv hρ _).trans (polyLipBound_mul_le j)
+
+/-- The five Newton–Kantorovich certificates, uniformly indexed. -/
+lemma exists_certified_root (i : Fin 5) :
+    ∃! x, polyToZeroFinder myPoly x = 0 ∧ ‖x - approxRoots i‖₊ ≤ 1e-57 := by
+  fin_cases i
+  · exact rtest1
+  · exact rtest2
+  · exact rtest3
+  · exact rtest4
+  · exact ctest1
+
+/-- **Certified embedding values.** At each embedding `i` there is a (unique) genuine root `x` of
+`myPoly` within `1e-57` of `approxRoots i`, and for every fundamental unit `uⱼ` the embedding
+value `σᵢ(uⱼ) = aeval (toComplex x) uⱼ` lies within `unitDelta j` of the computable center
+`aeval (toComplex (approxRoots i)) uⱼ`. -/
+theorem sigma_bounds (i : Fin 5) :
+    ∃ x, (polyToZeroFinder myPoly x = 0 ∧ ‖x - approxRoots i‖₊ ≤ 1e-57) ∧
+      ∀ j : Fin 4,
+        ‖aeval (toComplex x) (fundUnits j) - aeval (toComplex (approxRoots i)) (fundUnits j)‖
+          ≤ unitDelta j := by
+  obtain ⟨x, hx, -⟩ := exists_certified_root i
+  refine ⟨x, hx, fun j => embedding_bound ?_ j⟩
+  exact_mod_cast hx.2
+
+lemma unitDelta_le (j : Fin 4) : unitDelta j ≤ 1e-55 := by
+  fin_cases j <;> norm_num [unitDelta]
+
+/-- Uniform version: a single radius `c = 1e-55` certifies every `σᵢ(uⱼ)` simultaneously. -/
+theorem sigma_bounds_uniform (i : Fin 5) :
+    ∃ x, (polyToZeroFinder myPoly x = 0 ∧ ‖x - approxRoots i‖₊ ≤ 1e-57) ∧
+      ∀ j : Fin 4,
+        ‖aeval (toComplex x) (fundUnits j) - aeval (toComplex (approxRoots i)) (fundUnits j)‖
+          ≤ 1e-55 := by
+  obtain ⟨x, hx, hj⟩ := sigma_bounds i
+  exact ⟨x, hx, fun j => (hj j).trans (unitDelta_le j)⟩
 
 end DegSix
