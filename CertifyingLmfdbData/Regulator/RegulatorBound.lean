@@ -185,9 +185,11 @@ theorem regOfFamily_comp_eq_regOfFamily :
     (NumberField.Units.regOfFamily_eq_det (fun i ↦ v (finCongr hm.symm i)) w' eRank).symm
 
 include hm hα hα₂ hα₃ h_t hu in
-theorem regulator_le_regOfFamily_comp (h_nonzero : regOfFamily_comp α t u ≠ 0) :
+theorem regulator_le_regOfFamily_comp (bound : ℝ) (bound_nonz : bound ≠ 0)
+    (h_bound : bound = regOfFamily_comp α t u) :
     NumberField.Units.regulator (AdjoinRoot f) ≤ regOfFamily_comp α t u := by
+  subst h_bound
   rw [regOfFamily_comp_eq_regOfFamily hm hα hα₂ hα₃ h_t hu] at *
-  exact NumberField.Units.regulator_le_regOfFamily _ h_nonzero
+  exact NumberField.Units.regulator_le_regOfFamily _ bound_nonz
 
 end
