@@ -1,8 +1,10 @@
 import Mathlib
 
-variable {K : Type*} [Field K] [NumberField K]
-
 open NumberField Algebra IntermediateField Polynomial
+
+section
+
+variable {K : Type*} [Field K] [NumberField K]
 
 open Classical in
 lemma NumberField.Units.regulator_le_regOfFamily
@@ -17,32 +19,51 @@ lemma NumberField.Units.regulator_le_regOfFamily
     exact_mod_cast (Nat.one_le_iff_ne_zero.mpr (fun _ ↦ by simp_all))
   nlinarith
 
+end
+
+section
+
 variable {n m : ℕ} {f : ℚ[X]} [hf : Fact (Irreducible f)]
-         (hn : n = Module.finrank (AdjoinRoot f)) (hm : m = NumberField.Units.rank (AdjoinRoot f))
-         {α : Fin m → ℂ} {type : Fin m → ℕ}
+         (hn : n = Module.finrank (AdjoinRoot f))
+         (hm : m = NumberField.Units.rank (AdjoinRoot f))
+         {α : Fin m → ℂ} {t : Fin m → ℕ}
          (hα : ∀ i, f.aeval (α i) = 0)
          (hα₂ : ∀ i, 0 ≤ (α i).im)
          (hα₃ : ∀ i j, i ≠ j → α i ≠ α j)
-         (h_type : ∀ i, ((α i).im = 0 → type i = 1) ∧ ((α i).im ≠ 0 → type i = 2))
-         {u : Fin m → 𝓞 (AdjoinRoot f)}
-         {u_inv : Fin m → 𝓞 (AdjoinRoot f)}
-         (hu_inv : ∀ i, u i * u_inv i = 1)
+         (h_t : ∀ i, ((α i).im = 0 → t i = 1) ∧ ((α i).im ≠ 0 → t i = 2))
+         {u : Fin m → (Fin n → ℚ)}
+         (hu : ∀ i, ∃ h : IsIntegral ℤ
+                (∑ k : Fin n, (u i k : AdjoinRoot f) * (AdjoinRoot.root f) ^ (k : ℕ)),
+                    IsUnit (⟨_, h⟩ : 𝓞 (AdjoinRoot f)))
 
-variable (type u) in
+variable (α t u) in
 noncomputable def fake_regulator :=
-  |(Matrix.of fun i j ↦
-    type i * Real.log ‖(AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (u j))‖).det|
+  |(Matrix.of fun i j ↦ t i * Real.log ‖∑ k : Fin n, (u j k) * α i ^ (k : ℕ)‖).det|
 
-noncomputable def u_to_numberfield :
-    Fin (NumberField.Units.rank (AdjoinRoot f)) → (𝓞 (AdjoinRoot f))ˣ :=
-  (fun i ↦ ⟨u (finCongr hm.symm i), u_inv (finCongr hm.symm i), hu_inv (finCongr hm.symm i),
-              by rw [mul_comm]; exact hu_inv (finCongr hm.symm i)⟩)
-
--- AI generated and not edited
-include hα₂ hα₃ h_type in
+include hα hα₂ hα₃ h_t in
 theorem fake_regulator_eq_regOfFamily :
-    fake_regulator type hα u = NumberField.Units.regOfFamily (u_to_numberfield hm hu_inv) := by
+    fake_regulator α t u =
+    NumberField.Units.regOfFamily (fun i ↦ (hu (finCongr hm.symm i)).2.unit) := by
   classical
+  let v : Fin m → (𝓞 (AdjoinRoot f))ˣ := fun i ↦ (hu i).2.unit
+  have hv (j : Fin m) :
+      (v j : AdjoinRoot f) =
+        ∑ k : Fin n, (u j k : AdjoinRoot f) * (AdjoinRoot.root f) ^ (k : ℕ) := by
+    exact congrArg (fun x : 𝓞 (AdjoinRoot f) ↦ (x : AdjoinRoot f)) (hu j).2.unit_spec
+  have hlift (i j : Fin m) :
+      AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (v j) =
+        ∑ k : Fin n, (u j k : ℂ) * α i ^ (k : ℕ) := by
+    rw [hv j]
+    simp [map_sum, map_mul, AdjoinRoot.lift_root]
+  have hfake :
+      fake_regulator α t u =
+        |(Matrix.of fun i j ↦
+          t i * Real.log ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (v j)‖).det| := by
+    unfold fake_regulator
+    congr 1
+    apply congrArg Matrix.det
+    ext i j
+    simp [hlift i j]
   let placeOfRoot : Fin m → InfinitePlace (AdjoinRoot f) := fun i ↦
     InfinitePlace.mk (AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i))
   have hroot (i : Fin m) :
@@ -119,18 +140,18 @@ theorem fake_regulator_eq_regOfFamily :
     change placeOfRoot i =
       ((Equiv.setCongr hrange_eq) ⟨placeEmbedding i, Set.mem_range_self i⟩).1
     rfl
-  have h_type' : ∀ i, type i = (placeEquiv i).1.mult := by
+  have h_t' : ∀ i, t i = (placeEquiv i).1.mult := by
     intro i
     rw [← h_place i]
     unfold placeOfRoot
     rw [InfinitePlace.mult]
     by_cases hi : (α i).im = 0
     · rw [if_pos]
-      · exact (h_type i).1 hi
+      · exact (h_t i).1 hi
       · rw [InfinitePlace.isReal_mk_iff]
         exact (hreal_iff i).mpr hi
     · rw [if_neg]
-      · exact (h_type i).2 hi
+      · exact (h_t i).2 hi
       · rw [InfinitePlace.isReal_mk_iff]
         exact mt (hreal_iff i).mp hi
   let eRank : {w : InfinitePlace (AdjoinRoot f) // w ≠ w'} ≃
@@ -139,53 +160,34 @@ theorem fake_regulator_eq_regOfFamily :
   let M : Matrix {w : InfinitePlace (AdjoinRoot f) // w ≠ w'}
       {w : InfinitePlace (AdjoinRoot f) // w ≠ w'} ℝ :=
     Matrix.of fun i w ↦
-      (w.1.mult : ℝ) * Real.log (w.1 ((u_to_numberfield hm hu_inv (eRank i) :
+      (w.1.mult : ℝ) * Real.log (w.1 ((v (finCongr hm.symm (eRank i)) :
         (𝓞 (AdjoinRoot f))ˣ) : AdjoinRoot f))
   have hnorm (i j : Fin m) :
-      (placeEquiv i).1 (u j : AdjoinRoot f) =
-        ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (u j)‖ := by
+      (placeEquiv i).1 (v j : AdjoinRoot f) =
+        ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (v j)‖ := by
     simpa [placeOfRoot, InfinitePlace.apply] using congrArg
-      (fun w : InfinitePlace (AdjoinRoot f) ↦ w (u j : AdjoinRoot f)) (h_place i).symm
+      (fun w : InfinitePlace (AdjoinRoot f) ↦ w (v j : AdjoinRoot f)) (h_place i).symm
   have hM :
       M.reindex placeEquiv.symm placeEquiv.symm =
         Matrix.of (fun i j : Fin m ↦
-          type j * Real.log ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α j) (hα j) (u i)‖) := by
+          t j * Real.log ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α j) (hα j) (v i)‖) := by
     ext i j
-    simp [M, eRank, u_to_numberfield, h_type' j, hnorm j i]
-  have hdetM : |M.det| = fake_regulator type hα u := by
-    rw [← Matrix.det_reindex_self placeEquiv.symm M, hM]
+    simp [M, eRank, h_t' j, hnorm j i]
+  have hdetM : |M.det| = fake_regulator α t u := by
+    rw [← Matrix.det_reindex_self placeEquiv.symm M, hM, hfake]
     change |(Matrix.transpose (Matrix.of fun i j : Fin m ↦
-      type i * Real.log ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (u j)‖)).det| =
-        fake_regulator type hα u
+      t i * Real.log ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (v j)‖)).det| =
+        |(Matrix.of fun i j : Fin m ↦
+          t i * Real.log ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (v j)‖).det|
     rw [Matrix.det_transpose]
-    rfl
-  simpa [NumberField.Units.regOfFamily_eq_det (u_to_numberfield hm hu_inv) w' eRank] using
-    hdetM.symm
+  rw [← hdetM]
+  simpa [M, v] using
+    (NumberField.Units.regOfFamily_eq_det (fun i ↦ v (finCongr hm.symm i)) w' eRank).symm
 
-include hm hu_inv hα₂ hα₃ h_type in
-theorem regulator_le_fake_regulator
-    (h_nonzero : fake_regulator type hα u ≠ 0) :
-    NumberField.Units.regulator (AdjoinRoot f) ≤ fake_regulator type hα u := by
-  rw [fake_regulator_eq_regOfFamily (hm := hm) (hα := hα) (hα₂ := hα₂)
-    (hα₃ := hα₃) (h_type := h_type) (hu_inv := hu_inv)] at *
+include hm hα hα₂ hα₃ h_t hu in
+theorem regulator_le_fake_regulator (h_nonzero : fake_regulator α t u ≠ 0) :
+    NumberField.Units.regulator (AdjoinRoot f) ≤ fake_regulator α t u := by
+  rw [fake_regulator_eq_regOfFamily hm hα hα₂ hα₃ h_t hu] at *
   exact NumberField.Units.regulator_le_regOfFamily _ h_nonzero
 
-noncomputable def vec_to_poly (u : Fin n → ℚ) : ℚ[X] :=
-  { toFinsupp := Finsupp.mapDomain Fin.val u }
-
-variable {n m : ℕ} {f : ℚ[X]} [hf : Fact (Irreducible f)]
-         (hn : n = Module.finrank (AdjoinRoot f))
-         (hm : m = NumberField.Units.rank (AdjoinRoot f))
-         {α : Fin m → ℂ} {type : Fin m → ℕ}
-         (hα : ∀ i, f.aeval (α i) = 0)
-         (hα₂ : ∀ i, 0 ≤ (α i).im)
-         (hα₃ : ∀ i j, i ≠ j → α i ≠ α j)
-         (h_type : ∀ i, ((α i).im = 0 → type i = 1) ∧ ((α i).im ≠ 0 → type i = 2))
-         {u : Fin m → (Fin n → ℚ)}
-         (hu : ∀ i, ∃ h : IsIntegral ℤ (vec_to_poly (u i)).aeval (AdjoinRoot.root f),
-            IsUnit (⟨_, h⟩ : 𝓞 (AdjoinRoot f)))
-
-variable (type u) in
-noncomputable def fake_regulator' :=
-  |(Matrix.of fun i j ↦
-    type i * Real.log ‖(vec_to_poly (u j)).aeval α‖).det|
+end
