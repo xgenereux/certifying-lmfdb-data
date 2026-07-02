@@ -23,7 +23,47 @@ abbrev α_approx : Fin 4 → ℂ := ![toComplex (approxRoots 0),
                                  toComplex (approxRoots 1),
                                  toComplex (approxRoots 2),
                                  toComplex (approxRoots 4)]
-abbrev bound_matrix_approx := Matrix.of fun i j ↦ t j * Real.log ‖(u i).aeval (α_approx j)‖
+
+open Complex in
+abbrev complex_matrix : Matrix (Fin 4) (Fin 4) ℂ :=
+  Matrix.transpose
+    !![1.2469796037174670610500097680084796212645494617928042107311,
+      2.2469796037174670610500097680084796212645494617928042107311,
+      -7.2369110744810749202764784562430485133747976818110634233160,
+      -7.5448896028509790506486635592409793731775370824891693019609;
+      -1.8019377358048382524722046390148901023318383242637143001071,
+      -0.80193773580483825247220463901489010233183832426371430010713,
+      5.2918504230486113322236761863413204414485067408101945317954,
+      0.24293308352630601870146177931795071785211895475367602095721;
+      -1.8019377358048382524722046390148901023318383242637143001071,
+      -0.80193773580483825247220463901489010233183832426371430010713,
+      -0.084099479829258322334857630281760032121153443755337331366929,
+      -5.1330168193515636358570720373051297557175412298118558422052;
+      -0.44504186791262880857780512899358951893271113752908991062398,
+      0.55495813208737119142219487100641048106728886247091008937602,
+      -0.10991626417474238284438974201282096213457772494182017875205 - 1.1112596539906122701949371368842592933284122257078292519541*I,
+      -0.75302039628253293894999023199152037873545053820719578926890 - 1.1112596539906122701949371368842592933284122257078292519541*I]
+
+-- open Complex in
+-- abbrev complex_matrix : Matrix (Fin 4) (Fin 4) ℂ :=
+--   Matrix.transpose !![1.24697960371746706105000976800847962126454946179280421073109887819370730491297456915188501465317074333411618441834908601827145851077314552166879576913,
+--   2.24697960371746706105000976800847962126454946179280421073109887819370730491297456915188501465317074333411618441834908601827145851077314552166879576913,
+--   -7.23691107448107492027647845624304851337479768181106342331598004804758207318270186974716483803087250830439017746403890061074105576612909322430347095481,
+--   -7.54488960285097905064866355924097937317753708248916930196090713805903230421263266244611771816155585227277973736469093585378140450574307668854460475799;
+--   -1.80193773580483825247220463901489010233183832426371430010712484639886484085587993100272290943702483063662192873735020727958326576116027450757872534144,
+--   -0.801937735804838252472204639014890102331838324263714300107124846398864840855879931002722909437024830636621928737350207279583265761160274507578725341442,
+--   5.29185042304861133222367618634132044144850674081019453179542876141245457589707102224731092774904716073963397678627287250392732191207602996352028047393,
+--   0.242933083526306018701461779317950717852118954753676020957205036819882430128216522092703003658851586768895863630573579206072597640142609934272759363362;
+--   -1.80193773580483825247220463901489010233183832426371430010712484639886484085587993100272290943702483063662192873735020727958326576116027450757872534144,
+--   -0.801937735804838252472204639014890102331838324263714300107124846398864840855879931002722909437024830636621928737350207279583265761160274507578725341442,
+--   -0.0840994798292583223348576302817600321211534437553373313669293758169952124735512982364192900009478381931462618368720433855942588674349319332053791081638,
+--   -5.13301681935156363585707203730512975571754122981185584220515310040956735824240579839102721409114341216388437499257133668344898313936835196245290021873;
+--   -0.445041867912628808577805128993589518932711137529089910623974031794842464057094638149162105216145912697494255680998878738688192749612871014090070427686,
+--   0.554958132087371191422194871006410481067288862470910089376025968205157535942905361850837894783854087302505744319001121261311807250387128985909929572314,
+--   -0.109916264174742382844389742012820962134577724941820178752051936410315071885810723701675789567708174605011488638002242522623614500774257971819859144628 - 1.11125965399061227019493713688425929332841222570782925195411577478364402073486916579704326163360786475083493787567870098942925601085463604350900373616*I,
+--   -0.753020396282532938949990231991520378735450538207195789268901121806292695087025430848114985346829256665883815581650913981728541489226854478331204230872 - 1.11125965399061227019493713688425929332841222570782925195411577478364402073486916579704326163360786475083493787567870098942925601085463604350900373616*I]
+
+abbrev bound_matrix_approx := Matrix.of fun i j ↦ t j * Real.log ‖complex_matrix i j‖
 abbrev bound_approx := |bound_matrix_approx.det|
 
 instance : Fact (Irreducible f) := by sorry
@@ -98,50 +138,62 @@ theorem log_bound {x y : ℂ} {ε M : ℝ} (hεM : ε < M) (hMy : M ≤ ‖y‖)
 
 -- TODO : do this non-uniformly
 theorem matrix_entry_uniform_bound :
-    ∀ i j, 0.05 ≤ ‖Polynomial.aeval (α_approx j) (u i)‖ := fun i j ↦ by
-  rw [Complex.norm_eq_sqrt_sq_add_sq]
-  fin_cases j <;>
-  simp [fundUnits, fundU1, fundU2, fundU3, fundU4] <;>
-    fin_cases i <;>
-      simp [approxRoots, rroot1, rroot2, rroot3, croot1] <;>
-      ring_nf <;>
-      simp [Complex.I_pow_eq_pow_mod'] <;> ring_nf <;>
-      dyadic_interval [approx := 10]
+    ∀ i j, 0.05 ≤ ‖complex_matrix i j‖ := fun i j ↦ by
+  fin_cases i <;> fin_cases j <;>
+    simp [Complex.norm_eq_sqrt_sq_add_sq] <;>
+    dyadic_interval [approx := 10]
+
+theorem matrix_entry_diffs'' :
+    ∀ i j, ‖(u i).aeval (α_approx j) - complex_matrix i j‖ ≤
+              1e-55 := fun i j ↦ by
+  simp [approxRoots, α_approx, rroot1, rroot2, rroot3, croot1,
+      fundUnits, fundU1, fundU2, fundU3, fundU4,
+      Complex.norm_eq_sqrt_sq_add_sq] <;>
+  fin_cases i <;> simp <;> fin_cases j <;>
+    simp <;> ring_nf <;>
+    simp [Complex.I_pow_eq_pow_mod'] <;> ring_nf <;>
+    dyadic_interval [approx := 400]
+
+theorem matrix_entry_diffs' :
+    ∀ i j, ‖(u i).aeval (α j) - complex_matrix i j‖ ≤
+              2 * 1e-55 := fun i j ↦ by
+  grw [norm_sub_le_norm_sub_add_norm_sub, matrix_entry_diffs'']
+  rw [two_mul, add_le_add_iff_right]
+  fin_cases j <;> convert! sigma_bounds_uniform _ i <;> simp [uniqueRoots]
 
 theorem matrix_entry_diffs :
-    ∀ i j, |bound_matrix i j - bound_matrix_approx i j| ≤
+    ∀ i j, |bound_matrix i j - (t j * Real.log ‖complex_matrix i j‖)| ≤
               2 * 1e-53 := fun i j ↦ by
   calc
     _ = |(t j : ℝ)| * |Real.log ‖(u i).aeval (α j)‖ -
-          Real.log ‖(u i).aeval (α_approx j)‖| := by
+          Real.log ‖complex_matrix i j‖| := by
       rw [← abs_mul, mul_sub]
       simp
     _ ≤ 2 * |Real.log ‖(u i).aeval (α j)‖ -
-          Real.log ‖(u i).aeval (α_approx j)‖| := by
+          Real.log ‖complex_matrix i j‖| := by
       gcongr
       fin_cases j <;> simp
     _ ≤ 2 * 1e-53 := by
       gcongr
-      have ineq_1 : ‖(u i).aeval (α j) - (u i).aeval (α_approx j)‖ ≤ 1e-55 := by
-        fin_cases j
-        · convert sigma_bounds_uniform 0 i <;> simp [uniqueRoots]
-        · convert sigma_bounds_uniform 1 i <;> simp [uniqueRoots]
-        · convert sigma_bounds_uniform 2 i <;> simp [uniqueRoots]
-        · convert sigma_bounds_uniform 4 i <;> simp [uniqueRoots]
+      have ineq_1 : ‖(u i).aeval (α j) - complex_matrix i j‖ ≤ 2 * 1e-55 := by
+        apply matrix_entry_diffs'
       grw [log_bound (by norm_num) (matrix_entry_uniform_bound i j) ineq_1]
       dyadic_interval [approx := 1000]
 
-theorem bound_diff : |bound - bound_approx| ≤ 1e-20 := by
+theorem bound_diff : |bound - bound_approx| ≤ 1e-48 := by
   have := absolute_bound_frob' bound_matrix_approx bound_matrix
     (Matrix.of fun i j ↦ 2 * 1e-53) (by simpa using matrix_entry_diffs)
   grw [abs_abs_sub_abs_le, ← Real.norm_eq_abs, this]
   simp [Complex.norm_eq_sqrt_sq_add_sq,
-        Fin.sum_univ_castSucc, approxRoots, rroot1, rroot2, rroot3, croot1,
-        fundUnits, fundU1, fundU2, fundU3, fundU4]
+        Fin.sum_univ_castSucc]
   ring_nf
-  simp [Complex.I_pow_eq_pow_mod']
-  ring_nf
-  dyadic_interval [approx := 100]
+  simp [← one_div]
+  dyadic_interval [approx := 400]
+
+theorem bound_det : 1e-48 < bound_matrix_approx.det := by
+  simp_rw [det_fin_four_scratch, Matrix.det_fin_three]
+  simp [bound_matrix_approx, Fin.succAbove, Complex.norm_eq_sqrt_sq_add_sq]
+  dyadic_interval [approx := 50]
 
 theorem bound_regulator : ∃ k : ℕ, 1 ≤ k ∧ bound = k * NumberField.Units.regulator (AdjoinRoot f) := by
   refine regulator_le_regOfFamily_comp
@@ -165,21 +217,12 @@ theorem bound_regulator : ∃ k : ℕ, 1 ≤ k ∧ bound = k * NumberField.Units
       simp [rroot1_im_zero, rroot2_im_zero, rroot3_im_zero, zero_lt_croot4_im.ne.symm]
   · sorry
   · have := bound_diff
-    rw [hc] at this
+    rw [hc, zero_sub, abs_neg] at this
+    replace := le_of_abs_le this
     apply this.not_gt
-    simp
-    sorry
+    rw [bound_approx, lt_abs]
+    left
+    exact bound_det
   · rfl
-
-set_option maxHeartbeats 2000000 in
-lemma test_2 : 1e-20 < |bound_matrix_approx.det| := by
-  simp_rw [det_fin_four_scratch, Matrix.det_fin_three]
-  simp [Complex.norm_eq_sqrt_sq_add_sq,
-        Fin.sum_univ_castSucc, approxRoots, rroot1, rroot2, rroot3, croot1,
-        fundUnits, fundU1, fundU2, fundU3, fundU4]
-  ring_nf
-  simp [Complex.I_pow_eq_pow_mod']
-  ring_nf
-  dyadic_interval [approx := 100]
 
 end
