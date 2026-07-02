@@ -1,13 +1,13 @@
 import Mathlib
+import CertifyingLmfdbData.IntervalArithmetic.DyadicReal
 /-!
 
 # Importing the Residue Approximation
 
-The work can be found in
-- https://github.com/CBirkbeck/AINTLIB/blob/dev/dedekind-residue/projects/DedekindResidue/DedekindResidue/MainTheorem.lean
+This file tales `belabas_friedman_thm1` as an axiom. The proof will hopefully be in:
+https://github.com/CBirkbeck/AINTLIB/blob/dev/dedekind-residue/projects/DedekindResidue/DedekindResidue/MainTheorem.lean
 
 -/
-
 
 open NumberField
 
@@ -43,6 +43,17 @@ noncomputable def bSumRel (K : Type*) [Field K] [NumberField K] (X : ℝ) : ℝ 
 
 noncomputable def fK (K : Type*) [Field K] [NumberField K] (X : ℝ) : ℝ :=
   3 * (bSumRel K X - bSumRel K (X / 9)) / (2 * Real.sqrt X * Real.log (3 * X))
+
+axiom belabas_friedman_thm1 {K : Type*} [Field K] [NumberField K]
+    (hn : 1 < Module.finrank ℚ K)
+    (hGRH : GeneralizedRiemannHypothesis K) (hRH : RiemannHypothesis)
+    {X : ℝ} (hX : 69 ≤ X) :
+    |Real.log (dedekindZeta_residue K) - fK K X|
+      ≤ 2.324 * Real.log (|discr K| : ℝ) / (Real.sqrt X * Real.log (3 * X)) *
+          ((1 + 3.88 / Real.log (X / 9)) *
+              (1 + 2 / Real.sqrt (Real.log (|discr K| : ℝ))) ^ 2
+            + 4.26 * ((Module.finrank ℚ K : ℝ) - 1) /
+                (Real.sqrt X * Real.log (|discr K| : ℝ)))
 
 /-!
 ## A computable form of `bSum`
@@ -82,8 +93,7 @@ example : bSumFinTenPrimes ≤ 10 := by
   repeat rw [Finset.sum_Icc_succ_top (by decide)]
   simp only [Matrix.cons_val_zero, Matrix.cons_val_succ]
   norm_num
-  have h_log10_upper : Real.log 10 ≤ 2303 / 1000 := by norm_num
-  have h_log10_upper : Real.log 10 ≤ 2303 / 1000 := by norm_num
+  dyadic_interval [approx := 60]
 
 
 
@@ -122,15 +132,50 @@ theorem bSum_eq_bSumFin (K : Type*) [Field K] [NumberField K] {X : ℝ} {N M : �
     (hcover : ∀ p : Ideal (RingOfIntegers K), p.IsPrime → p ≠ ⊥ →
       (Ideal.absNorm p : ℝ) < X → ∃ i, P i = p) :
     bSum K X = bSumFin X (fun i => Ideal.absNorm (P i)) M := by
-  -- Proof plan:
-  -- 1. A nonzero term forces `(N p : ℝ) ≤ (N p : ℝ) ^ m < X`, so the support of the outer
-  --    `finsum` is contained in the image of `i ↦ ⟨P i, hprime i, hbot i⟩` (by `hcover`);
-  --    apply `finsum_eq_sum_of_support_subset`, then `Finset.sum_image` (via `hinj`).
-  -- 2. The inner `finsum` over `m` has support in `Finset.Icc 1 M`: from `2 ≤ N p` and
-  --    `hM`, `(N p : ℝ) ^ m ≥ 2 ^ m ≥ X` whenever `m > M`.
-  -- 3. Identify the summands via `bSum_term_eq` (with `2 ≤ Ideal.absNorm (P i)` coming
-  --    from `hprime`/`hbot`) and the definition of `bTerm`.
-  sorry
+  classical
+  have h2 : ∀ p : {p : Ideal (RingOfIntegers K) // p.IsPrime ∧ p ≠ ⊥},
+      2 ≤ Ideal.absNorm p.1 := fun p => by
+    have h0 : Ideal.absNorm p.1 ≠ 0 := fun h => p.2.2 (Ideal.absNorm_eq_zero_iff.mp h)
+    have h1 : Ideal.absNorm p.1 ≠ 1 := fun h => p.2.1.ne_top (Ideal.absNorm_eq_one_iff.mp h)
+    omega
+  -- The inner finsum lives on `[1, M]` (`m = 0` fails the condition and `m > M` forces
+  -- `(N p) ^ m ≥ 2 ^ (M + 1) ≥ X`), where the summand is `bTerm` by `bSum_term_eq`.
+  have key : bSum K X = ∑ᶠ p : {p : Ideal (RingOfIntegers K) // p.IsPrime ∧ p ≠ ⊥},
+      ∑ m ∈ Finset.Icc 1 M, bTerm X (Ideal.absNorm p.1) m := by
+    refine finsum_congr fun p => (finsum_eq_finsetSum_of_support_subset _ ?_).trans
+      (Finset.sum_congr rfl fun m hm => ?_)
+    · refine Function.support_subset_iff'.mpr fun m hm => if_neg ?_
+      rintro ⟨h0, hX⟩
+      refine hm <| Finset.mem_coe.mpr <| Finset.mem_Icc.mpr
+        ⟨h0, le_of_not_gt fun hMm => not_le.mpr hX ?_⟩
+      calc X ≤ 2 ^ (M + 1) := hM
+        _ ≤ (2 : ℝ) ^ m := pow_le_pow_right₀ one_le_two hMm
+        _ ≤ (Ideal.absNorm p.1 : ℝ) ^ m :=
+          pow_le_pow_left₀ zero_le_two (by exact_mod_cast h2 p) m
+    · have h0 : 0 < m := (Finset.mem_Icc.mp hm).1
+      simp only [bTerm, h0, true_and]
+      split_ifs with hX
+      · exact bSum_term_eq X (h2 p) h0
+      · rfl
+  -- A nonzero term forces `(N p : ℝ) ≤ (N p) ^ m < X`, so `hcover` puts the support of
+  -- the outer finsum inside the image of the (injective) enumeration `i ↦ ⟨P i, _⟩`.
+  have hsupp : (Function.support
+      fun p : {p : Ideal (RingOfIntegers K) // p.IsPrime ∧ p ≠ ⊥} =>
+        ∑ m ∈ Finset.Icc 1 M, bTerm X (Ideal.absNorm p.1) m) ⊆
+      ↑(Finset.univ.image fun i =>
+        (⟨P i, hprime i, hbot i⟩ : {p : Ideal (RingOfIntegers K) // p.IsPrime ∧ p ≠ ⊥})) := by
+    intro p hp
+    obtain ⟨m, hm, hne⟩ := Finset.exists_ne_zero_of_sum_ne_zero hp
+    have hX : (Ideal.absNorm p.1 : ℝ) ^ m < X := by
+      by_contra h
+      exact hne (by rw [bTerm, if_neg h])
+    obtain ⟨i, hi⟩ := hcover p.1 p.2.1 p.2.2 <|
+      (le_self_pow₀ (by exact_mod_cast one_le_two.trans (h2 p))
+        (Nat.one_le_iff_ne_zero.mp (Finset.mem_Icc.mp hm).1)).trans_lt hX
+    simpa using ⟨i, Subtype.ext hi⟩
+  rw [key, finsum_eq_finsetSum_of_support_subset _ hsupp,
+    Finset.sum_image fun i _ j _ h => hinj (congrArg Subtype.val h)]
+  rfl
 
 /-- `fK` in terms of the finite sums, given injective enumerations `P` of the nonzero
 prime ideals of `K` of norm `< X` and `Q` of those of `ℚ` (whose norms are just the
@@ -182,19 +227,6 @@ theorem fK_eq_bSumFin_thousand (K : Type*) [Field K] [NumberField K] {N N' : ℕ
   norm_num at this ⊢
   convert this using 3
 
-theorem belabas_friedman_thm1 {K : Type*} [Field K] [NumberField K]
-    (hn : 1 < Module.finrank ℚ K)
-    (hGRH : GeneralizedRiemannHypothesis K) (hRH : RiemannHypothesis)
-    {X : ℝ} (hX : 69 ≤ X) :
-    |Real.log (dedekindZeta_residue K) - fK K X|
-      ≤ 2.324 * Real.log (|discr K| : ℝ) / (Real.sqrt X * Real.log (3 * X)) *
-          ((1 + 3.88 / Real.log (X / 9)) *
-              (1 + 2 / Real.sqrt (Real.log (|discr K| : ℝ))) ^ 2
-            + 4.26 * ((Module.finrank ℚ K : ℝ) - 1) /
-                (Real.sqrt X * Real.log (|discr K| : ℝ))) := by
-  sorry
-
-
 theorem residue_lower_bound {K : Type*} [Field K] [NumberField K]
     (hn : 1 < Module.finrank ℚ K)
     (hGRH : GeneralizedRiemannHypothesis K) (hRH : RiemannHypothesis)
@@ -212,38 +244,3 @@ theorem residue_lower_bound {K : Type*} [Field K] [NumberField K]
   calc z ≤ Real.exp (c - b) := hz
     _ ≤ Real.exp (Real.log (dedekindZeta_residue K)) := Real.exp_le_exp.mpr hlog
     _ = dedekindZeta_residue K := Real.exp_log (dedekindZeta_residue_pos K)
-
-/-
-
-Look at ResidueApprox.lean. In this file, the goal is to use `belabas_friedman_thm1`
-to get a lower bound on the residue of the Dedekind zeta function. (see residue_lower_bound)
-but for the field `https://www.lmfdb.org/NumberField/6.4.19208000.1`. We want to prove the bound
-up to a couple of sorries. These sorries, together with the actual proof of `belabas_friedman_thm1`
-are described here:
-
-There are some things that we sorry for now because it is coming from other projects.
-
-- We can approximate `log`
-- We can approximate `sqrt`
-- We can approximate `exp`
-- We can certify that a list of candidate prime ideals is complete up to a certain bound.
-- We can certify that a list of candidate rational prime is complete up to a certain bound.
-- We can certify that a list of candidate prime ideals has a list of corresponding norms that is correct
-- We can certify the given discriminant as well as the rank of the field is correct.
-
-We now want to instanciate `residue_lower_bound` as much as possible for the given field -
-defering the sorries of what I just discribed. What I want is a precise `hc` and `hb` for `X = 1000`.
-For `hb` this should be pretty staightforward by adding lemmas of the sort `log 1000 ∈ Icc ....`
-
-For `hc` we need a bit more setup. I think it would make sense to define
-`ratPrimes1000 := ![....]`
-`nfPrimes1000 := ![....]`
-`nfPrimesNorms1000 := ![....]`
-`primeRatios1000 := ![....]` (approximates Real.log q / Real.sqrt q)
-
-and any other list you might need. I believe with such a set up  and the appriate sorries claiming
-that these lists are complete and correct, we should be able to get a precise `hc` and `hb` for `X = 1000`.
-
-
-
--/

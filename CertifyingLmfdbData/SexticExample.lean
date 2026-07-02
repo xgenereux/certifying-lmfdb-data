@@ -60,7 +60,7 @@ theorem regulator_aux : ∃ m : ℕ, 1 ≤ m ∧
 abbrev res : ℝ := 0.366086210051
 
 -- But we only need a weak lower bound on the residue
-theorem dedekindResidue_ge : 0.2 ≤ dedekindZeta_residue K := by
+theorem dedekindResidue_ge : 0.197 ≤ dedekindZeta_residue K := by
   sorry
 
 -- The final errors on the regulator and residue
@@ -79,7 +79,7 @@ theorem classNumberFormula :
     α β (by positivity)
     reg regulator_aux
     2 classNumber_aux (by positivity)
-    0.2 dedekindResidue_ge ?_
+    0.197 dedekindResidue_ge ?_
     ε_reg (by dyadic_interval [approx := 40]) (by dyadic_interval [approx := 40])
     res ε_res ?_ ?_ <;> norm_cast <;> push_cast <;> dyadic_interval [approx := 40]
 
