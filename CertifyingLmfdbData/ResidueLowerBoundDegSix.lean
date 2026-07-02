@@ -1,6 +1,6 @@
 import Mathlib
 import CertifyingLmfdbData.ResidueApprox
-import CertifyingLmfdbData.Polynomial.AllRoots
+import CertifyingLmfdbData.SexticExampleHyp
 import CertifyingLmfdbData.IntervalArithmetic.Interval
 import CertifyingLmfdbData.IntervalArithmetic.DyadicReal
 
@@ -14,12 +14,10 @@ assuming GRH for `K₆` and RH, the residue of `ζ_{K₆}` at `s = 1` is at leas
 factor `≈ e^{-0.63}`).
 
 All numeric facts are *proved*, via `dyadic_interval`, and the rational prime list is
-*proved* complete and correct (`ratPrimes1000_spec`).  The `sorry`s are exactly the
-externally-certified inputs, each coming from other parts of this project:
-* irreducibility of the defining polynomial,
-* the degree (`finrank_degSix`) and discriminant (`discr_degSix`) of `K₆`,
-* completeness of the list of prime ideals of `K₆` of norm `< 1000` together with the
-  correctness of their norms (`nfPrimes1000_spec`).
+*proved* complete and correct (`ratPrimes1000_spec`).  The field invariants
+(irreducibility, degree, discriminant) come from `CertifyingLmfdbData.SexticExampleHyp`;
+the only `sorry` of this file is the completeness of the list of prime ideals of `K₆`
+of norm `< 1000` together with the correctness of their norms (`nfPrimes1000_spec`).
 
 The data lists and the rational constants are generated and margin-checked by
 `sage_code/generate_residue_data.sage`.
@@ -31,15 +29,13 @@ namespace DegSix
 
 noncomputable section
 
-/-- Irreducibility of `myPoly = x⁶ - 5x⁴ - 50x² + 125`; certified externally. -/
-instance : Fact (Irreducible myPoly) := ⟨sorry⟩
+/-- The number field `ℚ[x]/(x⁶ - 5x⁴ - 50x² + 125)`, LMFDB label 6.4.19208000.1, from
+`CertifyingLmfdbData.SexticExampleHyp` (as are its degree and discriminant below). -/
+abbrev K₆ := SexticExample.K
 
-/-- The number field `ℚ[x]/(x⁶ - 5x⁴ - 50x² + 125)`, LMFDB label 6.4.19208000.1. -/
-abbrev K₆ := AdjoinRoot myPoly
+theorem finrank_degSix : Module.finrank ℚ K₆ = 6 := SexticExample.finrank_eq
 
-theorem finrank_degSix : Module.finrank ℚ K₆ = 6 := sorry
-
-theorem discr_degSix : discr K₆ = -19208000 := sorry
+theorem discr_degSix : discr K₆ = -19208000 := SexticExample.discr_eq
 
 /-! ## The prime data below `X = 1000` -/
 
@@ -207,7 +203,7 @@ set_option maxRecDepth 100000 in
 lemma bSumFin_nf_1000_lower :
     (2726476467 / 10 ^ 7 : ℝ) ≤ bSumFin 1000 nfPrimesNorms1000 9 := by
   norm_num [bSumFin, bTerm, Fin.sum_univ_succ, Finset.sum_Icc_succ_top, nfPrimesNorms1000]
-  dyadic_interval [approx := 60]
+  dyadic_interval [approx := 39]
 
 set_option maxHeartbeats 8000000 in
 -- `norm_num` unfolds a sum with ~170 `![...]`-entries and up to 9 exponents each
@@ -215,7 +211,7 @@ set_option maxRecDepth 100000 in
 lemma bSumFin_rat_1000_upper :
     bSumFin 1000 ratPrimes1000 9 ≤ (4876942414 / 10 ^ 7 : ℝ) := by
   norm_num [bSumFin, bTerm, Fin.sum_univ_succ, Finset.sum_Icc_succ_top, ratPrimes1000]
-  dyadic_interval [approx := 60]
+  dyadic_interval [approx := 40]
 
 set_option maxHeartbeats 8000000 in
 -- `norm_num` unfolds a sum with ~170 `![...]`-entries and up to 9 exponents each
@@ -223,7 +219,7 @@ set_option maxRecDepth 100000 in
 lemma bSumFin_nf_ninth_upper :
     bSumFin (1000 / 9) nfPrimesNorms1000 9 ≤ (394024845 / 10 ^ 7 : ℝ) := by
   norm_num [bSumFin, bTerm, Fin.sum_univ_succ, Finset.sum_Icc_succ_top, nfPrimesNorms1000]
-  dyadic_interval [approx := 60]
+  dyadic_interval [approx := 37]
 
 set_option maxHeartbeats 8000000 in
 -- `norm_num` unfolds a sum with ~170 `![...]`-entries and up to 9 exponents each
@@ -231,10 +227,10 @@ set_option maxRecDepth 100000 in
 lemma bSumFin_rat_ninth_lower :
     (872115488 / 10 ^ 7 : ℝ) ≤ bSumFin (1000 / 9) ratPrimes1000 9 := by
   norm_num [bSumFin, bTerm, Fin.sum_univ_succ, Finset.sum_Icc_succ_top, ratPrimes1000]
-  dyadic_interval [approx := 60]
+  dyadic_interval [approx := 38]
 
 lemma denom_lower : (5063671459 / 10 ^ 7 : ℝ) ≤ 2 * Real.sqrt 1000 * Real.log 3000 := by
-  dyadic_interval [approx := 60]
+  dyadic_interval [approx := 37]
 
 /-! ## `hc`, `hb`, `hz` and the final bound -/
 
@@ -263,11 +259,11 @@ theorem errBound_upper :
       ≤ (6281 / 10000 : ℝ) := by
   rw [discr_degSix, finrank_degSix]
   norm_num
-  dyadic_interval [approx := 60]
+  dyadic_interval [approx := 24]
 
 /-- The final constant: `0.198 ≤ exp (c - b)` (true value `≈ 0.1980988`). -/
 theorem z_le : (198 / 1000 : ℝ) ≤ Real.exp (-9909 / 10000 - 6281 / 10000) := by
-  dyadic_interval [approx := 60]
+  dyadic_interval [approx := 18]
 
 /-- **The residue lower bound for LMFDB field 6.4.19208000.1**: under GRH for `K₆`
 and RH, the residue of the Dedekind zeta function of `K₆` at `s = 1` is at least
