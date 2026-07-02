@@ -16,8 +16,8 @@ abbrev α : Fin 4 → ℂ := ![uniqueRootNear_rroot1.root,
                        uniqueRootNear_rroot3.root,
                        uniqueRootNear_croot1.root]
 abbrev t : Fin 4 → ℕ := ![1, 1, 1, 2]
-abbrev bound_matrix_exact := Matrix.of fun i j ↦ t j * Real.log ‖(u i).aeval (α j)‖
-abbrev bound := |bound_matrix_exact.det|
+abbrev bound_matrix := Matrix.of fun i j ↦ t j * Real.log ‖(u i).aeval (α j)‖
+abbrev bound := |bound_matrix.det|
 
 abbrev α_approx : Fin 4 → ℂ := ![toComplex (approxRoots 0),
                                  toComplex (approxRoots 1),
@@ -53,78 +53,78 @@ theorem bound_regulator : ∃ k : ℕ, k ≠ 0 ∧ bound = k * NumberField.Units
   · rfl
 
 -- AI generated, not reviewed
-theorem log_bound_norm (x y : ℂ) (ε : ℝ) (hεx : ε < ‖x‖) (hxy : ‖x - y‖ ≤ ε) :
-    |Real.log ‖x‖ - Real.log ‖y‖| ≤ Real.log (‖x‖ / (‖x‖ - ε)) := by
+theorem log_bound_norm {x y : ℂ} {ε : ℝ}
+    (hεx : ε < ‖y‖) (hxy : ‖x - y‖ ≤ ε) :
+    |Real.log ‖x‖ - Real.log ‖y‖| ≤ Real.log (‖y‖ / (‖y‖ - ε)) := by
   have hε_nonneg : 0 ≤ ε := (norm_nonneg (x - y)).trans hxy
-  have hx_pos : 0 < ‖x‖ := lt_of_le_of_lt hε_nonneg hεx
-  have hx_sub_pos : 0 < ‖x‖ - ε := sub_pos.mpr hεx
-  have hy_lower : ‖x‖ - ε ≤ ‖y‖ := by
-    have : ‖x‖ - ‖y‖ ≤ ε := (norm_sub_norm_le x y).trans hxy
-    linarith
-  have hy_pos : 0 < ‖y‖ := hx_sub_pos.trans_le hy_lower
-  have hy_upper : ‖y‖ ≤ ‖x‖ + ε := by
+  have hy_pos : 0 < ‖y‖ := lt_of_le_of_lt hε_nonneg hεx
+  have hy_sub_pos : 0 < ‖y‖ - ε := sub_pos.mpr hεx
+  have hx_lower : ‖y‖ - ε ≤ ‖x‖ := by
     have : ‖y‖ - ‖x‖ ≤ ε := by
       calc
         ‖y‖ - ‖x‖ ≤ ‖y - x‖ := norm_sub_norm_le y x
         _ = ‖x - y‖ := by rw [norm_sub_rev]
         _ ≤ ε := hxy
     linarith
-  have hx_add_pos : 0 < ‖x‖ + ε := by positivity
+  have hx_pos : 0 < ‖x‖ := hy_sub_pos.trans_le hx_lower
+  have hx_upper : ‖x‖ ≤ ‖y‖ + ε := by
+    have : ‖x‖ - ‖y‖ ≤ ε := (norm_sub_norm_le x y).trans hxy
+    linarith
+  have hy_add_pos : 0 < ‖y‖ + ε := by positivity
   have hright :
-      Real.log (‖x‖ / (‖x‖ - ε)) = Real.log ‖x‖ - Real.log (‖x‖ - ε) := by
-    rw [Real.log_div hx_pos.ne' hx_sub_pos.ne']
+      Real.log (‖y‖ / (‖y‖ - ε)) = Real.log ‖y‖ - Real.log (‖y‖ - ε) := by
+    rw [Real.log_div hy_pos.ne' hy_sub_pos.ne']
   have hupper :
-      Real.log ‖x‖ - Real.log ‖y‖ ≤ Real.log (‖x‖ / (‖x‖ - ε)) := by
-    rw [hright]
-    exact sub_le_sub_left (Real.log_le_log hx_sub_pos hy_lower) _
-  have hlower :
-      Real.log ‖y‖ - Real.log ‖x‖ ≤ Real.log (‖x‖ / (‖x‖ - ε)) := by
+      Real.log ‖x‖ - Real.log ‖y‖ ≤ Real.log (‖y‖ / (‖y‖ - ε)) := by
     have hleft :
-        Real.log (‖x‖ + ε) - Real.log ‖x‖ = Real.log ((‖x‖ + ε) / ‖x‖) := by
-      rw [Real.log_div hx_add_pos.ne' hx_pos.ne']
-    have hratio : (‖x‖ + ε) / ‖x‖ ≤ ‖x‖ / (‖x‖ - ε) := by
-      rw [div_le_div_iff₀ hx_pos hx_sub_pos]
+        Real.log (‖y‖ + ε) - Real.log ‖y‖ = Real.log ((‖y‖ + ε) / ‖y‖) := by
+      rw [Real.log_div hy_add_pos.ne' hy_pos.ne']
+    have hratio : (‖y‖ + ε) / ‖y‖ ≤ ‖y‖ / (‖y‖ - ε) := by
+      rw [div_le_div_iff₀ hy_pos hy_sub_pos]
       nlinarith [sq_nonneg ε]
     calc
-      Real.log ‖y‖ - Real.log ‖x‖ ≤ Real.log (‖x‖ + ε) - Real.log ‖x‖ :=
-        sub_le_sub_right (Real.log_le_log hy_pos hy_upper) _
-      _ = Real.log ((‖x‖ + ε) / ‖x‖) := hleft
-      _ ≤ Real.log (‖x‖ / (‖x‖ - ε)) :=
-        Real.log_le_log (div_pos hx_add_pos hx_pos) hratio
+      Real.log ‖x‖ - Real.log ‖y‖ ≤ Real.log (‖y‖ + ε) - Real.log ‖y‖ :=
+        sub_le_sub_right (Real.log_le_log hx_pos hx_upper) _
+      _ = Real.log ((‖y‖ + ε) / ‖y‖) := hleft
+      _ ≤ Real.log (‖y‖ / (‖y‖ - ε)) :=
+        Real.log_le_log (div_pos hy_add_pos hy_pos) hratio
+  have hlower :
+      Real.log ‖y‖ - Real.log ‖x‖ ≤ Real.log (‖y‖ / (‖y‖ - ε)) := by
+    rw [hright]
+    exact sub_le_sub_left (Real.log_le_log hy_sub_pos hx_lower) _
   exact abs_le.mpr ⟨by linarith, hupper⟩
 
 -- AI generated, not reviewed
-theorem log_bound (x y : ℂ) (ε M : ℝ) (hεM : ε < M) (hMx : M ≤ ‖x‖)
+theorem log_bound {x y : ℂ} {ε M : ℝ} (hεM : ε < M) (hMy : M ≤ ‖y‖)
     (hxy : ‖x - y‖ ≤ ε) :
     |Real.log ‖x‖ - Real.log ‖y‖| ≤ Real.log (M / (M - ε)) := by
   have hε_nonneg : 0 ≤ ε := (norm_nonneg (x - y)).trans hxy
-  have hεx : ε < ‖x‖ := hεM.trans_le hMx
-  have hx_pos : 0 < ‖x‖ := lt_of_le_of_lt hε_nonneg hεx
-  have hx_sub_pos : 0 < ‖x‖ - ε := sub_pos.mpr hεx
+  have hεy : ε < ‖y‖ := hεM.trans_le hMy
+  have hy_pos : 0 < ‖y‖ := lt_of_le_of_lt hε_nonneg hεy
+  have hy_sub_pos : 0 < ‖y‖ - ε := sub_pos.mpr hεy
   have hM_pos : 0 < M := lt_of_le_of_lt hε_nonneg hεM
   have hM_sub_pos : 0 < M - ε := sub_pos.mpr hεM
-  refine (log_bound_norm x y ε hεx hxy).trans ?_
-  apply Real.log_le_log (div_pos hx_pos hx_sub_pos)
-  rw [div_le_div_iff₀ hx_sub_pos hM_sub_pos]
-  nlinarith [mul_le_mul_of_nonneg_left hMx hε_nonneg]
+  refine (log_bound_norm hεy hxy).trans ?_
+  apply Real.log_le_log (div_pos hy_pos hy_sub_pos)
+  rw [div_le_div_iff₀ hy_sub_pos hM_sub_pos]
+  nlinarith [mul_le_mul_of_nonneg_left hMy hε_nonneg]
 
+-- TODO : do this non-uniformly
 theorem matrix_entry_uniform_bound :
     ∀ i j, 0.05 ≤ ‖Polynomial.aeval (α_approx j) (u i)‖ := fun i j ↦ by
   rw [Complex.norm_eq_sqrt_sq_add_sq, α_approx]
-  fin_cases j <;> fin_cases i <;>
-    simp [approxRoots, rroot1, rroot2, rroot3, croot1,
-          fundUnits, fundU1, fundU2, fundU3, fundU4] <;>
-    ring_nf <;>
-    simp [Complex.I_pow_eq_pow_mod'] <;> ring_nf <;>
-    dyadic_interval [approx := 10]
+    fin_cases i <;>
+    simp [fundUnits, fundU1, fundU2, fundU3, fundU4] <;>
+    fin_cases i <;>
+      simp [approxRoots, rroot1, rroot2, rroot3, croot1] <;>
+      ring_nf <;>
+      simp [Complex.I_pow_eq_pow_mod'] <;> ring_nf <;>
+      dyadic_interval [approx := 10]
 
-
-
-/-
 theorem matrix_entry_diffs :
-    ∀ i j, |bound_matrix_exact i j - bound_matrix_approx i j| ≤
-              2 * 1e-50 := fun i j ↦ by
-  rw [bound_matrix_exact, bound_matrix_approx]
+    ∀ i j, |bound_matrix i j - bound_matrix_approx i j| ≤
+              2 * 1e-53 := fun i j ↦ by
+  rw [bound_matrix, bound_matrix_approx]
   calc
     _ = |(t j : ℝ)| * |Real.log ‖(u i).aeval (α j)‖ -
           Real.log ‖(u i).aeval (α_approx j)‖| := by
@@ -134,22 +134,18 @@ theorem matrix_entry_diffs :
           Real.log ‖(u i).aeval (α_approx j)‖| := by
       gcongr
       fin_cases j <;> simp
-    _ ≤ 2 * 1e-50 := by
+    _ ≤ 2 * 1e-53 := by
       gcongr
-      have : ‖(u i).aeval (α j) - (u i).aeval (α_approx j)‖ ≤ 1e-55 := by
+      have ineq_1 : ‖(u i).aeval (α j) - (u i).aeval (α_approx j)‖ ≤ 1e-55 := by
         fin_cases j
         · convert sigma_bounds_uniform 0 i <;> simp [uniqueRoots]
         · convert sigma_bounds_uniform 1 i <;> simp [uniqueRoots]
         · convert sigma_bounds_uniform 2 i <;> simp [uniqueRoots]
         · convert sigma_bounds_uniform 4 i <;> simp [uniqueRoots]
-      -- TODO : do this non-uniformly
-      have : 0.05 ≤ ‖Polynomial.aeval (α_approx j) (u i)‖ := by
-        rw [Complex.norm_eq_sqrt_sq_add_sq, α_approx]
-        fin_cases j <;> fin_cases i <;>
-          simp [approxRoots, rroot1, rroot2, rroot3, croot1,
-                fundUnits, fundU1, fundU2, fundU3, fundU4]
-          --norm_num
-      sorry
--/
+      grw [log_bound (by norm_num) (matrix_entry_uniform_bound i j) ineq_1]
+      dyadic_interval [approx := 1000]
+
+theorem bound_diff : |bound - bound_approx| ≤ 1e-40 := by
+    have := absolute_bound_frob'' bound_matrix bound_matrix_approx
 
 end

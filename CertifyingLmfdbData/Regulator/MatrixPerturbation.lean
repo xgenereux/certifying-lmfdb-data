@@ -732,12 +732,12 @@ theorem absolute_bound_frob' (A B : Matrix n n K) (h_diff : ∀ i j, ‖B i j - 
   simpa using absolute_bound_frob A (B - A) (by simpa using h_diff)
 
 theorem absolute_bound_frob''
-  (A : Matrix n n ℚ) (B : Matrix n n K) {δ : Matrix n n ℚ}
+  (A : Matrix n n ℝ) (B : Matrix n n K) {δ : Matrix n n ℚ}
   (h_diff : ∀ (i j : n), ‖B i j - A i j‖ ≤ δ i j)
   {bound : ℝ} (h_bound : (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) = bound) :
     ‖B.det - A.det‖ ≤ bound := by
   subst h_bound
-  have h := absolute_bound_frob' ((algebraMap ℚ K).mapMatrix A) B
+  have h := absolute_bound_frob' ((algebraMap ℝ K).mapMatrix A) B
       (δ := (algebraMap ℚ ℝ).mapMatrix δ) <| by
         intro i j
         exact_mod_cast h_diff i j
