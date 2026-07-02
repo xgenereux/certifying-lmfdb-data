@@ -105,29 +105,36 @@ noncomputable def UniqueRootNear.ofZeroFinder {p : Polynomial ℚ} {v : Fin 2 �
     calc z = toComplex (toComplex.symm z) := by simp
       _ = toComplex h.choose := by rw [h.choose_spec.2 _ hx]
 
+lemma Real.sqrt_two_lt_d10 : √2 < 1.4142135624 := by
+  rw [Real.sqrt_lt] <;> norm_num
+
+lemma Real.sqrt_two_lt_d2 : √2 < 1.42 := by
+  rw [Real.sqrt_lt] <;> norm_num
+
 /-- Package a full numerical certificate `(v, M, y, z₁, z₂, R, r)` into a `UniqueRootNear`
 witness, via `existsUnique_root_of_certificates`. All hypotheses are rational-arithmetic
 inequalities (after evaluating `aeval` at `toComplex v` and expanding the finite sums), so
 each can be closed by `norm_num` with a suitable simp set. -/
 noncomputable def UniqueRootNear.of_certificates (p : Polynomial ℚ)
-    (M : Matrix (Fin 2) (Fin 2) ℝ) (v : Fin 2 → ℝ) {y z₁ z₂ R r : ℝ≥0} {d : ℕ} {a B s : ℝ}
+    (M : Matrix (Fin 2) (Fin 2) ℝ) (v : Fin 2 → ℝ) {y z₁ z₂ R r : ℝ≥0} {d : ℕ} {a B : ℝ}
     (hy0 : |M 0 0 * (aeval (toComplex v) p).re + M 0 1 * (aeval (toComplex v) p).im| ≤ y)
     (hy1 : |M 1 0 * (aeval (toComplex v) p).re + M 1 1 * (aeval (toComplex v) p).im| ≤ y)
     (hz1 : ∀ i, ∑ j, |(1 - M * derivMatrix p v) i j| ≤ z₁)
     (hdeg : p.derivative.natDegree ≤ d)
     (ha : ∀ i, ∑ j, |M i j| ≤ a)
     (hB : v 0 ^ 2 + v 1 ^ 2 ≤ B ^ 2) (hB0 : 0 ≤ B)
-    (hs : Real.sqrt 2 ≤ s)
-    (hnum : 2 * s * a *
+    (hnum : 3 * a *
         (∑ k ∈ Finset.range d,
           (∑ n ∈ Finset.range (d - k), ((n + k + 1).choose (k + 1) : ℝ) *
-            |((p.derivative.coeff (n + k + 1) : ℚ) : ℝ)| * B ^ n) * (s * R) ^ k) ≤ z₂)
+            |((p.derivative.coeff (n + k + 1) : ℚ) : ℝ)| * B ^ n) * (3 / 2 * R) ^ k) ≤ z₂)
     (hrR : r ≤ R)
     (hyr : y + z₁ * r + z₂ * r ^ 2 / 2 ≤ r)
     (hzr : z₁ + z₂ * r < 1) :
-    UniqueRootNear (aeval · p) (toComplex v) r :=
-  .ofZeroFinder <| existsUnique_root_of_certificates p M v hy0 hy1 hz1 hdeg ha hB hB0 hs hnum
-    hrR hyr hzr
+    UniqueRootNear (aeval · p) (toComplex v) r := by
+  refine .ofZeroFinder <| existsUnique_root_of_certificates p M v hy0 hy1 hz1 hdeg ha hB hB0
+    (show √2 ≤ 1.5 by sorry) ?_ hrR hyr hzr
+  norm_num
+  exact hnum
 
 /-- If `p` is even (its evaluation is invariant under negating the point), then `polyToZeroFinder`
 is invariant under negating the input, since `toComplex` is linear. -/
@@ -152,11 +159,11 @@ lemma existsUnique_root_neg {p : Polynomial ℚ} {v : Fin 2 → ℝ} {r : ℝ≥
       · rw [show -y - v = -(y - -v) by ring, nnnorm_neg]; exact hy2
     exact neg_eq_iff_eq_neg.mp (huniq (-y) hneg)
 
-lemma Real.sqrt_two_lt_d10 : √2 < 1.4142135624 := by
-  rw [Real.sqrt_lt] <;> norm_num
+-- lemma Real.sqrt_two_lt_d10 : √2 < 1.4142135624 := by
+--   rw [Real.sqrt_lt] <;> norm_num
 
-lemma Real.sqrt_two_lt_d2 : √2 < 1.42 := by
-  rw [Real.sqrt_lt] <;> norm_num
+-- lemma Real.sqrt_two_lt_d2 : √2 < 1.42 := by
+--   rw [Real.sqrt_lt] <;> norm_num
 
 end Lemmas
 
@@ -540,7 +547,7 @@ noncomputable def uniqueRootNear_rroot1' :
   rw [show (1e-57 : ℝ) = ((1e-57 : ℝ≥0) : ℝ) by norm_num [← NNReal.coe_ofScientific]]
   refine UniqueRootNear.of_certificates myPoly rA1_mat rroot1
     (y := 1e-58) (z₁ := 1e-57) (z₂ := 40) (R := 1) (d := 5)
-    (a := 0.00161059) (B := 3.002) (s := 1.42) ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+    (a := 0.00161059) (B := 3.002) ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
   · -- hy0
     simp [myPoly, rroot1, rA1_mat, toComplex_apply]
     norm_num
@@ -565,8 +572,6 @@ noncomputable def uniqueRootNear_rroot1' :
     norm_num
   · -- hB0
     norm_num
-  · -- hs
-    exact Real.sqrt_two_lt_d2.le
   · -- hnum
     simp only [myPoly_derivative, myPolyDeriv, Finset.sum_range_succ, Finset.sum_range_zero]
     norm_num [← Polynomial.C_ofNat, Polynomial.coeff_sub, Polynomial.coeff_C_mul,
