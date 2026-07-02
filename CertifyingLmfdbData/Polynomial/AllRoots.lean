@@ -12,36 +12,97 @@ lemma aeval_conj (z : ℂ) (p : Polynomial ℚ) :
   have hcomp : (starRingEnd ℂ).comp (algebraMap ℚ ℂ) = algebraMap ℚ ℂ := by ext q; simp
   rw [aeval_def, aeval_def, Polynomial.hom_eval₂, hcomp]
 
-/-- If a root of `p` is uniquely determined by being close to an approximation `v` with zero
-imaginary part, then that root is genuinely real: the complex conjugate of any root close to `v`
-is again a root the same distance from `v`, so by uniqueness the root equals its own conjugate. -/
-lemma im_zero_of_unique {p : Polynomial ℚ} {v : Fin 2 → ℝ} {r : ℝ≥0} (hv : v 1 = 0)
-    (huniq : ∃! x, polyToZeroFinder p x = 0 ∧ ‖x - v‖₊ ≤ r)
-    {x : Fin 2 → ℝ} (hx : polyToZeroFinder p x = 0 ∧ ‖x - v‖₊ ≤ r) : x 1 = 0 := by
-  obtain ⟨y, -, huniq⟩ := huniq
-  set x' : Fin 2 → ℝ := ![x 0, -(x 1)] with hx'
-  have hconj : toComplex x' = starRingEnd ℂ (toComplex x) := by
-    simp [hx']
-  -- `toComplex x` is a genuine root of `p`
-  have hroot : aeval (toComplex x) p = 0 := by
-    have h := hx.1
-    simp only [polyToZeroFinder, Function.comp_apply] at h
-    have := congrArg toComplex h
-    simpa using this
-  -- the conjugate `x'` also satisfies the defining property
-  have hx'P : polyToZeroFinder p x' = 0 ∧ ‖x' - v‖₊ ≤ r := by
-    refine ⟨?_, ?_⟩
-    · simp only [polyToZeroFinder, Function.comp_apply, hconj, aeval_conj, hroot, map_zero]
-    · simp only [← NNReal.coe_le_coe, coe_nnnorm, pi_norm_le_iff_of_nonempty] at hx ⊢
-      intro i
-      fin_cases i
-      · simpa [hx', Pi.sub_apply] using hx.2 0
-      · simpa [hx', Pi.sub_apply, hv, abs_neg] using hx.2 1
-  -- uniqueness forces `x = x'`, hence `x 1 = -(x 1)`
-  have hxx' : x = x' := (huniq x hx).trans (huniq x' hx'P).symm
-  have := congrFun hxx' 1
-  simp only [hx', Matrix.cons_val_one, Matrix.cons_val_zero] at this
-  linarith
+/-- `UniqueRootNear f v r` certifies a unique root of `f` near `v`: it stores the root itself,
+together with proofs that it is a root, that it lies within `r` of `v`, and that it is the only
+such root. Here distance is measured in the sup norm (viewing `ℂ` as `ℝ²`), not in the usual
+absolute value on `ℂ`: the certified region is a square of side `2 * r` centred at `v`, not a
+disc. -/
+structure UniqueRootNear (f : ℂ → ℂ) (v : ℂ) (r : ℝ) where
+  /-- The root of `f` certified to be unique near `v`. -/
+  root : ℂ
+  isRoot : f root = 0
+  near : max |(root - v).re| |(root - v).im| ≤ r
+  unique : ∀ ⦃z : ℂ⦄, f z = 0 → max |(z - v).re| |(z - v).im| ≤ r → z = root
+
+namespace UniqueRootNear
+
+variable {f : ℂ → ℂ} {v : ℂ} {r : ℝ}
+
+lemma re_near (h : UniqueRootNear f v r) : |(h.root - v).re| ≤ r :=
+  (le_max_left _ _).trans h.near
+
+lemma im_near (h : UniqueRootNear f v r) : |(h.root - v).im| ≤ r :=
+  (le_max_right _ _).trans h.near
+
+lemma existsUnique (h : UniqueRootNear f v r) :
+    ∃! z : ℂ, f z = 0 ∧ max |(z - v).re| |(z - v).im| ≤ r :=
+  ⟨h.root, ⟨h.isRoot, h.near⟩, fun _ hz ↦ h.unique hz.1 hz.2⟩
+
+/-- Conjugating a certified unique root: since conjugation commutes with evaluation of a
+rational polynomial and preserves sup-norm distances, a unique root near `v` gives a unique
+root near `conj v`, namely the conjugate of the original root. -/
+noncomputable def conj {p : Polynomial ℚ} (h : UniqueRootNear (aeval · p) v r) :
+    UniqueRootNear (aeval · p) (starRingEnd ℂ v) r where
+  root := starRingEnd ℂ h.root
+  isRoot := by
+    have hroot : aeval h.root p = 0 := h.isRoot
+    change aeval (starRingEnd ℂ h.root) p = 0
+    rw [_root_.aeval_conj, hroot, map_zero]
+  near := by
+    rw [← map_sub]
+    simpa only [Complex.conj_re, Complex.conj_im, abs_neg] using h.near
+  unique z hz hd := by
+    have hz0 : aeval z p = 0 := hz
+    have hz' : aeval (starRingEnd ℂ z) p = 0 := by rw [_root_.aeval_conj, hz0, map_zero]
+    have hd' : max |(starRingEnd ℂ z - v).re| |(starRingEnd ℂ z - v).im| ≤ r := by
+      rw [show starRingEnd ℂ z - v = starRingEnd ℂ (z - starRingEnd ℂ v) by
+        rw [map_sub, Complex.conj_conj]]
+      simpa only [Complex.conj_re, Complex.conj_im, abs_neg] using hd
+    rw [← Complex.conj_conj z, h.unique hz' hd']
+
+@[simp] lemma conj_root {p : Polynomial ℚ} (h : UniqueRootNear (aeval · p) v r) :
+    h.conj.root = starRingEnd ℂ h.root := rfl
+
+/-- The unique root near a point `v` with zero imaginary part is genuinely real: its complex
+conjugate is again a root the same distance from `v`, so by uniqueness the root equals its own
+conjugate. -/
+lemma im_eq_zero {p : Polynomial ℚ} (h : UniqueRootNear (aeval · p) v r) (hv : v.im = 0) :
+    h.root.im = 0 := by
+  have hroot : aeval h.root p = 0 := h.isRoot
+  have hd' : max |(starRingEnd ℂ h.root - v).re| |(starRingEnd ℂ h.root - v).im| ≤ r := by
+    simpa [Complex.sub_re, Complex.sub_im, hv, abs_neg] using h.near
+  have hconj : starRingEnd ℂ h.root = h.root :=
+    h.unique (show aeval (starRingEnd ℂ h.root) p = 0 by rw [aeval_conj, hroot, map_zero]) hd'
+  exact Complex.conj_eq_iff_im.mp hconj
+
+end UniqueRootNear
+
+/-- Translation between the defining property of the induced zero finder on `ℝ²` (with its sup
+norm) and the corresponding property of the polynomial itself. -/
+lemma polyToZeroFinder_root_near_iff {p : Polynomial ℚ} {v : Fin 2 → ℝ} {r : ℝ≥0}
+    {x : Fin 2 → ℝ} :
+    (polyToZeroFinder p x = 0 ∧ ‖x - v‖₊ ≤ r) ↔
+      aeval (toComplex x) p = 0 ∧
+        max |(toComplex x - toComplex v).re| |(toComplex x - toComplex v).im| ≤ r := by
+  refine and_congr ?_ ?_
+  · simp [polyToZeroFinder, Complex.ext_iff]
+  · rw [← NNReal.coe_le_coe, coe_nnnorm, pi_norm_le_iff_of_nonneg r.coe_nonneg]
+    simp [Fin.forall_fin_two]
+
+/-- Package a Newton–Kantorovich uniqueness result for the zero finder on `ℝ²` into a
+`UniqueRootNear` certificate for the polynomial itself. -/
+noncomputable def UniqueRootNear.ofZeroFinder {p : Polynomial ℚ} {v : Fin 2 → ℝ} {r : ℝ≥0}
+    (h : ∃! x, polyToZeroFinder p x = 0 ∧ ‖x - v‖₊ ≤ r) :
+    UniqueRootNear (aeval · p) (toComplex v) r where
+  root := toComplex h.choose
+  isRoot := (polyToZeroFinder_root_near_iff.mp h.choose_spec.1).1
+  near := (polyToZeroFinder_root_near_iff.mp h.choose_spec.1).2
+  unique z hz hd := by
+    have hx : polyToZeroFinder p (toComplex.symm z) = 0 ∧ ‖toComplex.symm z - v‖₊ ≤ r := by
+      rw [polyToZeroFinder_root_near_iff]
+      exact ⟨by simpa using hz, by simpa using hd⟩
+    calc z = toComplex (toComplex.symm z) := by simp
+      _ = toComplex h.choose := by rw [h.choose_spec.2 _ hx]
 
 /-- If `p` is even (its evaluation is invariant under negating the point), then `polyToZeroFinder`
 is invariant under negating the input, since `toComplex` is linear. -/
@@ -214,10 +275,15 @@ lemma rtest1 :
     (by norm_num)
   exact this
 
+/-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `rroot1`. -/
+noncomputable def uniqueRootNear_rroot1 :
+    UniqueRootNear (aeval · myPoly) (toComplex rroot1) 1e-57 := by
+  rw [show (1e-57 : ℝ) = ((1e-57 : ℝ≥0) : ℝ) by norm_num [← NNReal.coe_ofScientific]]
+  exact .ofZeroFinder rtest1
+
 /-- The root approximated by `rroot1` is real. -/
-lemma rroot1_im_zero {x : Fin 2 → ℝ}
-    (hx : polyToZeroFinder myPoly x = 0 ∧ ‖x - rroot1‖₊ ≤ 1e-57) : x 1 = 0 :=
-  im_zero_of_unique (by simp [rroot1]) rtest1 hx
+lemma rroot1_im_zero : uniqueRootNear_rroot1.root.im = 0 :=
+  uniqueRootNear_rroot1.im_eq_zero (by simp [rroot1])
 
 
 /-! ### Real root `rroot2` -/
@@ -296,10 +362,15 @@ lemma rtest2 :
     (by norm_num)
   exact this
 
-/-- The root approximated by `rroot1` is real. -/
-lemma rroot2_im_zero {x : Fin 2 → ℝ}
-    (hx : polyToZeroFinder myPoly x = 0 ∧ ‖x - rroot2‖₊ ≤ 1e-57) : x 1 = 0 :=
-  im_zero_of_unique (by simp [rroot2]) rtest2 hx
+/-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `rroot2`. -/
+noncomputable def uniqueRootNear_rroot2 :
+    UniqueRootNear (aeval · myPoly) (toComplex rroot2) 1e-57 := by
+  rw [show (1e-57 : ℝ) = ((1e-57 : ℝ≥0) : ℝ) by norm_num [← NNReal.coe_ofScientific]]
+  exact .ofZeroFinder rtest2
+
+/-- The root approximated by `rroot2` is real. -/
+lemma rroot2_im_zero : uniqueRootNear_rroot2.root.im = 0 :=
+  uniqueRootNear_rroot2.im_eq_zero (by simp [rroot2])
 
 
 /-! ### Real roots `rroot3`, `rroot4` by evenness
@@ -318,10 +389,15 @@ lemma rtest3 :
   rw [hrr]
   exact existsUnique_root_neg myPoly_even rtest2
 
+/-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `rroot3`. -/
+noncomputable def uniqueRootNear_rroot3 :
+    UniqueRootNear (aeval · myPoly) (toComplex rroot3) 1e-57 := by
+  rw [show (1e-57 : ℝ) = ((1e-57 : ℝ≥0) : ℝ) by norm_num [← NNReal.coe_ofScientific]]
+  exact .ofZeroFinder rtest3
+
 /-- The root approximated by `rroot3` is real. -/
-lemma rroot3_im_zero {x : Fin 2 → ℝ}
-    (hx : polyToZeroFinder myPoly x = 0 ∧ ‖x - rroot3‖₊ ≤ 1e-57) : x 1 = 0 :=
-  im_zero_of_unique (by simp [rroot3]) rtest3 hx
+lemma rroot3_im_zero : uniqueRootNear_rroot3.root.im = 0 :=
+  uniqueRootNear_rroot3.im_eq_zero (by simp [rroot3])
 
 lemma rtest4 :
     ∃! x, polyToZeroFinder myPoly x = 0 ∧ ‖x - rroot4‖₊ ≤ 1e-57 := by
@@ -330,10 +406,15 @@ lemma rtest4 :
   rw [hrr]
   exact existsUnique_root_neg myPoly_even rtest1
 
+/-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `rroot4`. -/
+noncomputable def uniqueRootNear_rroot4 :
+    UniqueRootNear (aeval · myPoly) (toComplex rroot4) 1e-57 := by
+  rw [show (1e-57 : ℝ) = ((1e-57 : ℝ≥0) : ℝ) by norm_num [← NNReal.coe_ofScientific]]
+  exact .ofZeroFinder rtest4
+
 /-- The root approximated by `rroot4` is real. -/
-lemma rroot4_im_zero {x : Fin 2 → ℝ}
-    (hx : polyToZeroFinder myPoly x = 0 ∧ ‖x - rroot4‖₊ ≤ 1e-57) : x 1 = 0 :=
-  im_zero_of_unique (by simp [rroot4]) rtest4 hx
+lemma rroot4_im_zero : uniqueRootNear_rroot4.root.im = 0 :=
+  uniqueRootNear_rroot4.im_eq_zero (by simp [rroot4])
 
 /-! ### Complex `croot1` -/
 
@@ -412,5 +493,16 @@ lemma ctest1 :
     (by norm_num)
   exact this
 
+/-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `croot1`. -/
+noncomputable def uniqueRootNear_croot1 :
+    UniqueRootNear (aeval · myPoly) (toComplex croot1) 1e-57 := by
+  rw [show (1e-57 : ℝ) = ((1e-57 : ℝ≥0) : ℝ) by norm_num [← NNReal.coe_ofScientific]]
+  exact .ofZeroFinder ctest1
+
+/-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `croot1'`, the conjugate
+of `croot1`. -/
+noncomputable def uniqueRootNear_croot1' :
+    UniqueRootNear (aeval · myPoly) (toComplex croot1') 1e-57 :=
+  uniqueRootNear_croot1.conj
 
 end DegSix
