@@ -185,6 +185,11 @@ noncomputable def uniqueRootNear_croot1' :
     UniqueRootNear myPoly (toComplex croot1') 1e-57 :=
   uniqueRootNear_croot1.conj
 
+lemma zero_lt_croot4_im : 0 < uniqueRootNear_croot1.root.im := by
+  have := le_of_max_le_right uniqueRootNear_croot1.near
+  simp [croot1, abs_le] at this
+  linarith
+
 open Polynomial
 
 def myPoly' : Polynomial ℚ := X^6 + 7 * X^5 + X^4 - 1
