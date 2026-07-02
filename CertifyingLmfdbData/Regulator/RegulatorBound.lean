@@ -36,13 +36,9 @@ variable {n m : ℕ} {f : ℚ[X]} [hf : Fact (Irreducible f)]
                 (∑ k : Fin n, (u i k : AdjoinRoot f) * (AdjoinRoot.root f) ^ (k : ℕ)),
                     IsUnit (⟨_, h⟩ : 𝓞 (AdjoinRoot f)))
 
-variable (α t u) in
-noncomputable def regOfFamily_comp :=
-  |(Matrix.of fun i j ↦ t i * Real.log ‖∑ k : Fin n, (u j k) * α i ^ (k : ℕ)‖).det|
-
 include hα hα₂ hα₃ h_t in
 theorem regOfFamily_comp_eq_regOfFamily :
-    regOfFamily_comp α t u =
+    |(Matrix.of fun i j ↦ t i * Real.log ‖∑ k : Fin n, (u j k) * α i ^ (k : ℕ)‖).det| =
     NumberField.Units.regOfFamily (fun i ↦ (hu (finCongr hm.symm i)).2.unit) := by
   classical
   let v : Fin m → (𝓞 (AdjoinRoot f))ˣ := fun i ↦ (hu i).2.unit
@@ -56,10 +52,9 @@ theorem regOfFamily_comp_eq_regOfFamily :
     rw [hv j]
     simp [map_sum, map_mul, AdjoinRoot.lift_root]
   have hfake :
-      regOfFamily_comp α t u =
+      |(Matrix.of fun i j ↦ t i * Real.log ‖∑ k : Fin n, (u j k) * α i ^ (k : ℕ)‖).det| =
         |(Matrix.of fun i j ↦
           t i * Real.log ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (v j)‖).det| := by
-    unfold regOfFamily_comp
     congr 1
     apply congrArg Matrix.det
     ext i j
@@ -173,7 +168,8 @@ theorem regOfFamily_comp_eq_regOfFamily :
           t j * Real.log ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α j) (hα j) (v i)‖) := by
     ext i j
     simp [M, eRank, h_t' j, hnorm j i]
-  have hdetM : |M.det| = regOfFamily_comp α t u := by
+  have hdetM : |M.det| =
+      |(Matrix.of fun i j ↦ t i * Real.log ‖∑ k : Fin n, (u j k) * α i ^ (k : ℕ)‖).det| := by
     rw [← Matrix.det_reindex_self placeEquiv.symm M, hM, hfake]
     change |(Matrix.transpose (Matrix.of fun i j : Fin m ↦
       t i * Real.log ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (v j)‖)).det| =
@@ -186,7 +182,8 @@ theorem regOfFamily_comp_eq_regOfFamily :
 
 include hm hα hα₂ hα₃ h_t hu in
 theorem regulator_le_regOfFamily_comp (bound : ℝ) (bound_nonz : bound ≠ 0)
-    (h_bound : bound = regOfFamily_comp α t u) :
+    (h_bound : bound =
+        |(Matrix.of fun i j ↦ t i * Real.log ‖∑ k : Fin n, (u j k) * α i ^ (k : ℕ)‖).det|) :
     NumberField.Units.regulator (AdjoinRoot f) ≤ bound := by
   subst h_bound
   rw [regOfFamily_comp_eq_regOfFamily hm hα hα₂ hα₃ h_t hu] at *
