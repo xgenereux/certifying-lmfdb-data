@@ -23,7 +23,7 @@ containment goals using interval arithmetic (with dyadic approximations).
 
 @[expose] public section
 
-set_option warn.sorry false
+-- set_option warn.sorry false
 -- set_option backward.do.legacy true
 
 open Nat
@@ -341,36 +341,28 @@ def Interval.dyadic_div (approxParam : ℕ) (x y : Interval Dyadic) : Interval D
   | .nonneg, .nonneg =>
       ⟨x.lb.dyadic_div approxParam y.ub y.lb,
        x.ub.dyadic_div approxParam y.lb y.ub⟩
-
   | .nonpos, .nonpos =>
       ⟨(x.ub.dyadic_div approxParam y.lb y.ub).toLowerBound,
        (x.lb.dyadic_div approxParam y.ub y.lb).toUpperBound⟩
-
   | .nonpos, .nonneg =>
       ⟨x.lb.dyadic_div approxParam y.lb.toUpperBound y.ub.toLowerBound,
        x.ub.dyadic_div approxParam y.ub.toLowerBound y.lb.toUpperBound⟩
-
   | .nonneg, .nonpos =>
       ⟨x.ub.toLowerBound.dyadic_div approxParam y.ub y.lb,
        x.lb.toUpperBound.dyadic_div approxParam y.lb y.ub⟩
-
   | .mixed, .nonneg =>
       ⟨x.lb.dyadic_div approxParam y.lb.toUpperBound y.ub.toLowerBound,
        x.ub.dyadic_div approxParam y.lb y.ub⟩
-
   | .mixed, .nonpos =>
       ⟨x.ub.toLowerBound.dyadic_div approxParam y.ub y.lb,
        (x.lb.dyadic_div approxParam y.ub y.lb).toUpperBound⟩
-
   | .nonneg, .mixed =>
       if x = ⟨some ⟨true, 0⟩, some ⟨true, 0⟩⟩ then
         x
       else
         ⟨⊥, ⊤⟩
-
   | .nonpos, .mixed =>
       ⟨⊥, ⊤⟩
-
   | .mixed, .mixed =>
       ⟨⊥, ⊤⟩
 
@@ -649,19 +641,16 @@ end Dyadic
 
 def Interval.dyadicPi (approxParam : ℕ) : Interval Dyadic :=
   let terms := Dyadic.atanTerms approxParam
-
   -- Lower/upper dyadic enclosures of the rational constants.
   let q₁Lo := Dyadic.divDown approxParam 1 (5 : Dyadic)
   let q₁Hi := Dyadic.divUp approxParam 1 (5 : Dyadic)
   let q₂Lo := Dyadic.divDown approxParam 1 (239 : Dyadic)
   let q₂Hi := Dyadic.divUp approxParam 1 (239 : Dyadic)
-
   -- π = 16 atan(1/5) - 4 atan(1/239)
   let lb := 16 * Dyadic.atanLower approxParam q₁Lo terms
       - 4 * Dyadic.atanUpper approxParam q₂Hi terms
   let ub := 16 * Dyadic.atanUpper approxParam q₁Hi terms
       - 4 * Dyadic.atanLower approxParam q₂Lo terms
-
   { lb := some ⟨false, lb⟩
     ub := some ⟨false, ub⟩ }
 
@@ -730,10 +719,8 @@ i.e.
 def logUnitBounds (approxParam terms : ℕ) (x : Dyadic) : Dyadic × Dyadic :=
   let zLower := Dyadic.divDown approxParam (x - 1) (x + 1)
   let zUpper := Dyadic.divUp approxParam (x - 1) (x + 1)
-
   let lower := (2 : Dyadic) * logSeriesLower approxParam terms zLower
   let upperSeries := (2 : Dyadic) * logSeriesUpper approxParam terms zUpper
-
   /-
   Crude positive tail bound.
 
