@@ -5,6 +5,8 @@ https://github.com/CBirkbeck/LeanBridge/blob/matrix-computation/LeanBridge/Compu
 
 import Mathlib
 
+set_option linter.style.header false
+
 section
 
 open Matrix
