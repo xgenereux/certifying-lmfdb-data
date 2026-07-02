@@ -93,6 +93,7 @@ theorem log_bound_norm (x y : ℂ) (ε : ℝ) (hεx : ε < ‖x‖) (hxy : ‖x 
         Real.log_le_log (div_pos hx_add_pos hx_pos) hratio
   exact abs_le.mpr ⟨by linarith, hupper⟩
 
+-- AI generated, not reviewed
 theorem log_bound (x y : ℂ) (ε M : ℝ) (hεM : ε < M) (hMx : M ≤ ‖x‖)
     (hxy : ‖x - y‖ ≤ ε) :
     |Real.log ‖x‖ - Real.log ‖y‖| ≤ Real.log (M / (M - ε)) := by
@@ -113,7 +114,9 @@ theorem matrix_entry_uniform_bound :
   fin_cases j <;> fin_cases i <;>
     simp [approxRoots, rroot1, rroot2, rroot3, croot1,
           fundUnits, fundU1, fundU2, fundU3, fundU4] <;>
-    ring_nf-- <;> simp [Complex.I_pow_eq_pow_mod']
+    ring_nf <;>
+    simp [Complex.I_pow_eq_pow_mod'] <;> ring_nf <;>
+    dyadic_interval [approx := 10]
 
 
 
