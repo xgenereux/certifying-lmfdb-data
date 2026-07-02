@@ -54,14 +54,18 @@ theorem regulator_aux : ∃ m : ℕ, 1 ≤ m ∧
     reg ∈ Set.Icc (α * m • regulator K) (β * m • regulator K) := by
   sorry
 
--- W only need a weak lower bound on the residue
-theorem dedekindResidue_ge : 0.3 ≤ dedekindZeta_residue K := by
+-- We will certify that the residue of `K` is roughly `0.366086210051...`
+abbrev res : ℝ := 0.366086210051
+
+-- But we only need a weak lower bound on the residue
+theorem dedekindResidue_ge : 0.2 ≤ dedekindZeta_residue K := by
   sorry
 
 -- The class number formula certifies the torsion order, the regulator, and the class number
 theorem classNumberFormula :
-    torsionOrder K = 2 ∧ regulator K ∈ Set.Icc (reg / β) (reg / α) ∧ classNumber K = 2 := by
-  apply NumberField.classNumberFormula K
+    torsionOrder K = 2 ∧ |regulator K - reg| < 0.1 ∧
+      classNumber K = 2 ∧ |dedekindZeta_residue K - res| < 0.1 := by
+  refine NumberField.classNumberFormula K
     4 nrRealPlaces_eq
     1 nrComplexPlaces_eq
     19208000 discr_eq
@@ -69,10 +73,9 @@ theorem classNumberFormula :
     α β (by positivity)
     reg regulator_aux
     2 classNumber_aux (by positivity)
-    0.3 dedekindResidue_ge
-  norm_cast
-  push_cast
-  dyadic_interval [approx := 10]
+    0.2 dedekindResidue_ge ?_
+    0.1 (by norm_num) (by norm_num)
+    res 0.1 ?_ ?_ <;> norm_cast <;> push_cast <;> dyadic_interval [approx := 100]
 
 -- The number field `K` has exactly two roots of unity
 theorem torsionOrder_eq : torsionOrder K = 2 := by
@@ -80,18 +83,15 @@ theorem torsionOrder_eq : torsionOrder K = 2 := by
 
 -- The number field `K` has class number `2`
 theorem classNumber_eq : classNumber K = 2 := by
-  exact classNumberFormula.2.2
+  exact classNumberFormula.2.2.1
 
--- The regulator of `K` is within `0.01` of `15.9596951835`
+-- The regulator of `K` is within `0.1` of `15.9596951835`
 theorem regulator_mem : |regulator K - 15.9596951835| < 0.1 := by
-  rw [abs_lt]
-  apply classNumberFormula.2.1.imp
-  · intro h
-    grw [← h]
-    dyadic_interval [approx := 10]
-  · intro h
-    grw [h]
-    dyadic_interval [approx := 10]
+  exact classNumberFormula.2.1
+
+-- The residue of `K` is within `0.1` of `0.366086210051`
+theorem residue_mem : |dedekindZeta_residue K - 0.366086210051| < 0.1 := by
+  exact classNumberFormula.2.2.2
 
 end
 

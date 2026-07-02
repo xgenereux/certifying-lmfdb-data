@@ -22,8 +22,6 @@ containment goals using interval arithmetic (with dyadic approximations).
 
 @[expose] public section
 
-set_option warn.sorry false
-
 open Nat
 
 namespace IntervalArithmetic
