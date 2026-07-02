@@ -195,24 +195,23 @@ lemma norm_aeval_sub_aeval_le_polyLipBound (U : Polynomial ℚ) {α v : ℂ} {ρ
         exact mul_le_mul_of_nonneg_left (norm_pow_sub_pow_le α v hα hv k) (abs_nonneg _)
     _ = |(U.coeff k : ℝ)| * k * ρ ^ (k - 1) * ‖α - v‖ := by ring
 
-/-- Root-ball to embedding-value-ball bridge: if `x` is within `r` of the approximation `v`
-(in `ℝ²`) and the ball of radius `ρ` swallows both, then `σ(u) = aeval (toComplex x) U` is
-within `polyLipBound U ρ · √2·r` of the computable center `aeval (toComplex v) U`. -/
-lemma embedding_bound_of_close {v x : Fin 2 → ℝ} {r ρ : ℝ}
-    (hxv : ‖x - v‖ ≤ r) (hρ : ‖toComplex v‖ + Real.sqrt 2 * r ≤ ρ) (U : Polynomial ℚ) :
-    ‖aeval (toComplex x) U - aeval (toComplex v) U‖
-      ≤ polyLipBound U ρ * (Real.sqrt 2 * r) := by
-  have hr0 : 0 ≤ r := (norm_nonneg _).trans hxv
+/-- Push a `UniqueRootNear` certificate through a polynomial `U`: the value of `U` at the
+certified root lies within `polyLipBound U ρ · √2·r` of the computable center `aeval v U`,
+whenever the ball of radius `ρ` swallows the certified box. The `√2` converts the sup-norm
+box of `near` into a disc. -/
+lemma UniqueRootNear.aeval_near {f : ℂ → ℂ} {v : ℂ} {r ρ : ℝ} (h : UniqueRootNear f v r)
+    (hρ : ‖v‖ + Real.sqrt 2 * r ≤ ρ) (U : Polynomial ℚ) :
+    ‖aeval h.root U - aeval v U‖ ≤ polyLipBound U ρ * (Real.sqrt 2 * r) := by
+  have hr0 : 0 ≤ r := le_trans (abs_nonneg _) ((le_max_left _ _).trans h.near)
   have hsr0 : 0 ≤ Real.sqrt 2 * r := mul_nonneg (Real.sqrt_nonneg 2) hr0
   have hρ0 : 0 ≤ ρ := le_trans (add_nonneg (norm_nonneg _) hsr0) hρ
-  have hαv : ‖toComplex x - toComplex v‖ ≤ Real.sqrt 2 * r := by
-    rw [← map_sub]
-    exact (norm_toComplex_le _).trans (by gcongr)
-  have hv' : ‖toComplex v‖ ≤ ρ := le_trans (le_add_of_nonneg_right hsr0) hρ
-  have hα : ‖toComplex x‖ ≤ ρ := by
-    calc ‖toComplex x‖ = ‖toComplex v + (toComplex x - toComplex v)‖ := by ring_nf
-      _ ≤ ‖toComplex v‖ + ‖toComplex x - toComplex v‖ := norm_add_le _ _
-      _ ≤ ‖toComplex v‖ + Real.sqrt 2 * r := by gcongr
+  have hαv : ‖h.root - v‖ ≤ Real.sqrt 2 * r :=
+    (Complex.norm_le_sqrt_two_mul_max _).trans (by gcongr; exact h.near)
+  have hv' : ‖v‖ ≤ ρ := le_trans (le_add_of_nonneg_right hsr0) hρ
+  have hα : ‖h.root‖ ≤ ρ := by
+    calc ‖h.root‖ = ‖v + (h.root - v)‖ := by ring_nf
+      _ ≤ ‖v‖ + ‖h.root - v‖ := norm_add_le _ _
+      _ ≤ ‖v‖ + Real.sqrt 2 * r := by gcongr
       _ ≤ ρ := hρ
   refine (norm_aeval_sub_aeval_le_polyLipBound U hα hv').trans ?_
   exact mul_le_mul_of_nonneg_left hαv (polyLipBound_nonneg U hρ0)
@@ -663,49 +662,32 @@ lemma polyLipBound_mul_le (j : Fin 4) :
   · change polyLipBound fundU4 3.1 * (Real.sqrt 2 * 1e-57) ≤ (3.1e-56 : ℝ)
     grw [polyLipBound_fundU4, Real.sqrt_two_lt_d2]; norm_num
 
-/-- Any point in the certified root ball at embedding `i` has all its unit-embedding values
-within `unitDelta j` of the computable centers. -/
-lemma embedding_bound {i : Fin 5} {x : Fin 2 → ℝ}
-    (hxv : ‖x - approxRoots i‖ ≤ 1e-57) (j : Fin 4) :
-    ‖aeval (toComplex x) (fundUnits j) - aeval (toComplex (approxRoots i)) (fundUnits j)‖
-      ≤ unitDelta j := by
+/-- The five `UniqueRootNear` certificates, uniformly indexed by embedding. -/
+noncomputable def uniqueRoots :
+    (i : Fin 5) → UniqueRootNear (aeval · myPoly) (toComplex (approxRoots i)) 1e-57
+  | 0 => uniqueRootNear_rroot1
+  | 1 => uniqueRootNear_rroot2
+  | 2 => uniqueRootNear_rroot3
+  | 3 => uniqueRootNear_rroot4
+  | 4 => uniqueRootNear_croot1
+
+/-- **Certified embedding values.** For each embedding `i` and fundamental unit `uⱼ`, the
+embedding value `σᵢ(uⱼ) = aeval (uniqueRoots i).root uⱼ` lies within `unitDelta j` of the
+computable center `aeval (toComplex (approxRoots i)) uⱼ`. -/
+theorem sigma_bounds (i : Fin 5) (j : Fin 4) :
+    ‖aeval (uniqueRoots i).root (fundUnits j)
+      - aeval (toComplex (approxRoots i)) (fundUnits j)‖ ≤ unitDelta j := by
   have hρ : ‖toComplex (approxRoots i)‖ + Real.sqrt 2 * 1e-57 ≤ 3.1 := by
     grw [norm_toComplex_approxRoots i, Real.sqrt_two_lt_d2]; norm_num
-  exact (embedding_bound_of_close hxv hρ _).trans (polyLipBound_mul_le j)
-
-/-- The five Newton–Kantorovich certificates, uniformly indexed. -/
-lemma exists_certified_root (i : Fin 5) :
-    ∃! x, polyToZeroFinder myPoly x = 0 ∧ ‖x - approxRoots i‖₊ ≤ 1e-57 := by
-  fin_cases i
-  · exact rtest1
-  · exact rtest2
-  · exact rtest3
-  · exact rtest4
-  · exact ctest1
-
-/-- **Certified embedding values.** At each embedding `i` there is a (unique) genuine root `x` of
-`myPoly` within `1e-57` of `approxRoots i`, and for every fundamental unit `uⱼ` the embedding
-value `σᵢ(uⱼ) = aeval (toComplex x) uⱼ` lies within `unitDelta j` of the computable center
-`aeval (toComplex (approxRoots i)) uⱼ`. -/
-theorem sigma_bounds (i : Fin 5) :
-    ∃ x, (polyToZeroFinder myPoly x = 0 ∧ ‖x - approxRoots i‖₊ ≤ 1e-57) ∧
-      ∀ j : Fin 4,
-        ‖aeval (toComplex x) (fundUnits j) - aeval (toComplex (approxRoots i)) (fundUnits j)‖
-          ≤ unitDelta j := by
-  obtain ⟨x, hx, -⟩ := exists_certified_root i
-  refine ⟨x, hx, fun j => embedding_bound ?_ j⟩
-  exact_mod_cast hx.2
+  exact ((uniqueRoots i).aeval_near hρ _).trans (polyLipBound_mul_le j)
 
 lemma unitDelta_le (j : Fin 4) : unitDelta j ≤ 1e-55 := by
   fin_cases j <;> norm_num [unitDelta]
 
 /-- Uniform version: a single radius `c = 1e-55` certifies every `σᵢ(uⱼ)` simultaneously. -/
-theorem sigma_bounds_uniform (i : Fin 5) :
-    ∃ x, (polyToZeroFinder myPoly x = 0 ∧ ‖x - approxRoots i‖₊ ≤ 1e-57) ∧
-      ∀ j : Fin 4,
-        ‖aeval (toComplex x) (fundUnits j) - aeval (toComplex (approxRoots i)) (fundUnits j)‖
-          ≤ 1e-55 := by
-  obtain ⟨x, hx, hj⟩ := sigma_bounds i
-  exact ⟨x, hx, fun j => (hj j).trans (unitDelta_le j)⟩
+theorem sigma_bounds_uniform (i : Fin 5) (j : Fin 4) :
+    ‖aeval (uniqueRoots i).root (fundUnits j)
+      - aeval (toComplex (approxRoots i)) (fundUnits j)‖ ≤ 1e-55 :=
+  (sigma_bounds i j).trans (unitDelta_le j)
 
 end DegSix
