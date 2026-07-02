@@ -42,8 +42,7 @@ variable {n m : ℕ} {f : ℚ[X]} [hf : Fact (Irreducible f)]
          (hα₃ : ∀ i j, i ≠ j → α i ≠ α j)
          (h_t : ∀ i, ((α i).im = 0 → t i = 1) ∧ ((α i).im ≠ 0 → t i = 2))
          {u : Fin m → ℚ[X]}
-         (hu : ∀ i, ∃ h : IsIntegral ℤ ((u i).aeval (AdjoinRoot.root f)),
-            IsUnit (⟨_, h⟩ : 𝓞 (AdjoinRoot f)))
+         (hu : ∀ i, ∃ h : IsIntegral ℤ (AdjoinRoot.mk f (u i)), IsUnit (⟨_, h⟩ : 𝓞 (AdjoinRoot f)))
 
 -- AI generated, not thought about
 include hα hα₂ hα₃ h_t in
@@ -51,29 +50,6 @@ theorem regOfFamily_comp_eq_regOfFamily :
     |(Matrix.of fun i j ↦ t j * Real.log ‖(u i).aeval (α j)‖).det| =
     NumberField.Units.regOfFamily (fun i ↦ (hu (finCongr hm.symm i)).2.unit) := by
   classical
-  let v : Fin m → (𝓞 (AdjoinRoot f))ˣ := fun i ↦ (hu i).2.unit
-  have hv (j : Fin m) :
-      (v j : AdjoinRoot f) =
-        (u j).aeval (AdjoinRoot.root f) := by
-    exact congrArg (fun x : 𝓞 (AdjoinRoot f) ↦ (x : AdjoinRoot f)) (hu j).2.unit_spec
-  have hroot (i : Fin m) :
-      AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (AdjoinRoot.root f) = α i := by
-    rw [AdjoinRoot.lift_root]
-  have hlift_aeval (i j : Fin m) :
-      AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i)
-          ((u j).aeval (AdjoinRoot.root f)) =
-        (u j).aeval (α i) := by
-    simpa [AdjoinRoot.coe_liftAlgHom] using
-      (Polynomial.aeval_algHom_apply
-        (AdjoinRoot.liftAlgHom f (Algebra.ofId ℚ ℂ) (α i) (hα i))
-        (AdjoinRoot.root f) (u j)).symm
-  have hfake :
-      |(Matrix.of fun i j ↦ t i * Real.log ‖(u j).aeval (α i)‖).det| =
-        |(Matrix.of fun i j ↦
-          t i * Real.log ‖AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i) (v j)‖).det| := by
-    congr
-    ext i j
-    simp [hv j, hlift_aeval i j]
   let placeOfRoot : Fin m → InfinitePlace (AdjoinRoot f) := fun i ↦
     InfinitePlace.mk (AdjoinRoot.lift (algebraMap ℚ ℂ) (α i) (hα i))
   have hreal_iff (i : Fin m) :
@@ -82,7 +58,7 @@ theorem regOfFamily_comp_eq_regOfFamily :
     constructor
     · intro hreal
       rw [← Complex.conj_eq_iff_im]
-      simpa [NumberField.ComplexEmbedding.conjugate_coe_eq, hroot i] using
+      simpa [NumberField.ComplexEmbedding.conjugate_coe_eq] using
         RingHom.congr_fun (ComplexEmbedding.isReal_iff.mp hreal) (AdjoinRoot.root f)
     · intro him
       rw [ComplexEmbedding.isReal_iff]
@@ -102,10 +78,9 @@ theorem regOfFamily_comp_eq_regOfFamily :
     by_contra hne
     have hsame : α i = α j := by
       rcases InfinitePlace.mk_eq_iff.mp hij with heq | hconj
-      · simpa [hroot i, hroot j] using
-          RingHom.congr_fun heq (AdjoinRoot.root f)
+      · simpa using RingHom.congr_fun heq (AdjoinRoot.root f)
       · have hc : (starRingEnd ℂ) (α i) = α j := by
-          simpa [NumberField.ComplexEmbedding.conjugate_coe_eq, hroot i, hroot j] using
+          simpa [NumberField.ComplexEmbedding.conjugate_coe_eq] using
             RingHom.congr_fun hconj (AdjoinRoot.root f)
         have him : (α i).im = 0 := by
           have him' : -(α i).im = (α j).im := by
@@ -164,6 +139,7 @@ theorem regOfFamily_comp_eq_regOfFamily :
   let eRank : {w : InfinitePlace (AdjoinRoot f) // w ≠ w'} ≃
       Fin (NumberField.Units.rank (AdjoinRoot f)) :=
     placeEquiv.symm.trans (finCongr hm)
+  let v : Fin m → (𝓞 (AdjoinRoot f))ˣ := fun i ↦ (hu i).2.unit
   let M : Matrix {w : InfinitePlace (AdjoinRoot f) // w ≠ w'}
       {w : InfinitePlace (AdjoinRoot f) // w ≠ w'} ℝ :=
     Matrix.of fun i w ↦
@@ -183,7 +159,7 @@ theorem regOfFamily_comp_eq_regOfFamily :
   have hdetM : |M.det| =
       |(Matrix.of fun i j ↦ t j * Real.log ‖(u i).aeval (α j)‖).det| := by
     rw [← Matrix.det_reindex_self placeEquiv.symm M, hM]
-    simp [hv, hlift_aeval]
+    simp [v, Polynomial.aeval_def]
   rw [← hdetM]
   simpa [M, v] using
     (NumberField.Units.regOfFamily_eq_det (fun i ↦ v (finCongr hm.symm i)) w' eRank).symm
