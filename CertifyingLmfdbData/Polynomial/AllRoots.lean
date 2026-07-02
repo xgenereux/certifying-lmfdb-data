@@ -80,7 +80,7 @@ lemma norm_aeval_sub_aeval_le_polyLipBound (U : Polynomial ℚ) {α v : ℂ} {ρ
 certified root lies within `polyLipBound U ρ · √2·r` of the computable center `aeval v U`,
 whenever the ball of radius `ρ` swallows the certified box. The `√2` converts the sup-norm
 box of `near` into a disc. -/
-lemma UniqueRootNear.aeval_near {f : ℂ → ℂ} {v : ℂ} {r ρ : ℝ} (h : UniqueRootNear f v r)
+lemma UniqueRootNear.aeval_near {f : Polynomial ℚ} {v : ℂ} {r ρ : ℝ} (h : UniqueRootNear f v r)
     (hρ : ‖v‖ + Real.sqrt 2 * r ≤ ρ) (U : Polynomial ℚ) :
     ‖aeval h.root U - aeval v U‖ ≤ polyLipBound U ρ * (Real.sqrt 2 * r) := by
   have hr0 : 0 ≤ r := le_trans (abs_nonneg _) ((le_max_left _ _).trans h.near)
@@ -138,7 +138,7 @@ def croot1' : Fin 2 → ℝ := ![0, -2.49697777695103552262164392502670290335505
 
 /-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `rroot1`. -/
 noncomputable def uniqueRootNear_rroot1 :
-    UniqueRootNear (aeval · myPoly) (toComplex rroot1) 1e-57 := by
+    UniqueRootNear myPoly (toComplex rroot1) 1e-57 := by
   unique_root_near rA1_mat
 
 /-- The root approximated by `rroot1` is real. -/
@@ -147,7 +147,7 @@ lemma rroot1_im_zero : uniqueRootNear_rroot1.root.im = 0 :=
 
 /-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `rroot2`. -/
 noncomputable def uniqueRootNear_rroot2 :
-    UniqueRootNear (aeval · myPoly) (toComplex rroot2) 1e-57 := by
+    UniqueRootNear myPoly (toComplex rroot2) 1e-57 := by
   unique_root_near rA2_mat
 
 /-- The root approximated by `rroot2` is real. -/
@@ -156,7 +156,7 @@ lemma rroot2_im_zero : uniqueRootNear_rroot2.root.im = 0 :=
 
 /-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `rroot3`. -/
 noncomputable def uniqueRootNear_rroot3 :
-    UniqueRootNear (aeval · myPoly) (toComplex rroot3) 1e-57 := by
+    UniqueRootNear myPoly (toComplex rroot3) 1e-57 := by
   unique_root_near rA3_mat
 
 /-- The root approximated by `rroot3` is real. -/
@@ -165,7 +165,7 @@ lemma rroot3_im_zero : uniqueRootNear_rroot3.root.im = 0 :=
 
 /-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `rroot4`. -/
 noncomputable def uniqueRootNear_rroot4 :
-    UniqueRootNear (aeval · myPoly) (toComplex rroot4) 1e-57 := by
+    UniqueRootNear myPoly (toComplex rroot4) 1e-57 := by
   unique_root_near rA4_mat
 
 /-- The root approximated by `rroot4` is real. -/
@@ -176,13 +176,13 @@ lemma rroot4_im_zero : uniqueRootNear_rroot4.root.im = 0 :=
 
 /-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `croot1`. -/
 noncomputable def uniqueRootNear_croot1 :
-    UniqueRootNear (aeval · myPoly) (toComplex croot1) 1e-57 := by
+    UniqueRootNear myPoly (toComplex croot1) 1e-57 := by
   unique_root_near cA1_mat
 
 /-- `myPoly` has a unique root within (sup-norm) distance `1e-57` of `croot1'`, the conjugate
 of `croot1`. -/
 noncomputable def uniqueRootNear_croot1' :
-    UniqueRootNear (aeval · myPoly) (toComplex croot1') 1e-57 :=
+    UniqueRootNear myPoly (toComplex croot1') 1e-57 :=
   uniqueRootNear_croot1.conj
 
 open Polynomial
@@ -191,10 +191,10 @@ def myPoly' : Polynomial ℚ := X^6 + 7 * X^5 + X^4 - 1
 
 def A_mat : Matrix (Fin 2) (Fin 2) ℝ := !![ 0.130923022789476, 0; 0, 0.130923022789476 ]
 
-example : UniqueRootNear (aeval · myPoly') (toComplex ![0.641564061943673, 0]) 1e-10 := by
+example : UniqueRootNear myPoly' (toComplex ![0.641564061943673, 0]) 1e-10 := by
   unique_root_near A_mat
 
-example : UniqueRootNear (aeval · (X^6 - 1 : Polynomial ℚ)) (toComplex ![1, 0]) 1e-30 := by
+example : UniqueRootNear (X^6 - 1 : Polynomial ℚ) (toComplex ![1, 0]) 1e-30 := by
   unique_root_near !![1/6, 0; 0, 1/6]
 
 /-! ### Fundamental units (LMFDB 6.4.19208000.1)
@@ -273,7 +273,7 @@ lemma polyLipBound_mul_le (j : Fin 4) :
 
 /-- The five `UniqueRootNear` certificates, uniformly indexed by embedding. -/
 noncomputable def uniqueRoots :
-    (i : Fin 5) → UniqueRootNear (aeval · myPoly) (toComplex (approxRoots i)) 1e-57
+    (i : Fin 5) → UniqueRootNear myPoly (toComplex (approxRoots i)) 1e-57
   | 0 => uniqueRootNear_rroot1
   | 1 => uniqueRootNear_rroot2
   | 2 => uniqueRootNear_rroot3
