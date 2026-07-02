@@ -66,6 +66,12 @@ lemma existsUnique_root_neg {p : Polynomial ℚ} {v : Fin 2 → ℝ} {r : ℝ≥
       · rw [show -y - v = -(y - -v) by ring, nnnorm_neg]; exact hy2
     exact neg_eq_iff_eq_neg.mp (huniq (-y) hneg)
 
+lemma Real.sqrt_two_lt_d10 : √2 < 1.4142135624 := by
+  rw [Real.sqrt_lt] <;> norm_num
+
+lemma Real.sqrt_two_lt_d2 : √2 < 1.42 := by
+  rw [Real.sqrt_lt] <;> norm_num
+
 end Lemmas
 
 
@@ -129,6 +135,7 @@ def cA1_mat : Matrix (Fin 2) (Fin 2) ℝ :=
   !![ 0, 0.0015526150743595132569328994275272689662500775889625889026909;
       -0.0015526150743595132569328994275272689662500775889625889026909, 0 ]
 
+def croot1' : Fin 2 → ℝ := ![0, -2.4969777769510355226216439250267029033550572578622404151129]
 
 /-! ### Real root `rroot1` -/
 
@@ -182,14 +189,11 @@ lemma rz2_1 (x) (hx : x ∈ Metric.closedEBall rroot1 1) :
     have hA : ‖rA1‖ ≤ 0.00161059 := by
       rw [rA1]; apply opNorm_mulVecLin_le _ (by norm_num)
       intro i; fin_cases i <;> simp [rA1_mat, Fin.sum_univ_two] <;> norm_num
-    have hs : Real.sqrt 2 ≤ 1.4143 := by
-      rw [show (1.4143 : ℝ) = Real.sqrt (1.4143 ^ 2) from (Real.sqrt_sq (by norm_num)).symm]
-      exact Real.sqrt_le_sqrt (by norm_num)
     repeat grw [norm_add_le]
     grw [norm_sub_le]
     simp only [norm_neg, norm_ofNat, Complex.norm_mul, norm_pow, NNReal.coe_one, mul_one,
       Nat.ofNat_nonneg, Real.sq_sqrt]
-    grw [hc, hA, hs, hs]
+    grw [hc, hA, Real.sqrt_two_lt_d2, Real.sqrt_two_lt_d2]
     norm_num
   · simpa using hx
 
@@ -267,14 +271,11 @@ lemma rz2_2 (x) (hx : x ∈ Metric.closedEBall rroot2 1) :
     have hA : ‖rA2‖ ≤ 0.01 := by
       rw [rA2]; apply opNorm_mulVecLin_le _ (by norm_num)
       intro i; fin_cases i <;> simp [rA2_mat, Fin.sum_univ_two] <;> norm_num
-    have hs : Real.sqrt 2 ≤ 1.4143 := by
-      rw [show (1.4143 : ℝ) = Real.sqrt (1.4143 ^ 2) from (Real.sqrt_sq (by norm_num)).symm]
-      exact Real.sqrt_le_sqrt (by norm_num)
     repeat grw [norm_add_le]
     grw [norm_sub_le]
     simp only [norm_neg, norm_ofNat, Complex.norm_mul, norm_pow, NNReal.coe_one, mul_one,
       Nat.ofNat_nonneg, Real.sq_sqrt]
-    grw [hc, hA, hs, hs]
+    grw [hc, hA, Real.sqrt_two_lt_d2, Real.sqrt_two_lt_d2]
     norm_num
   · simpa using hx
 
@@ -386,14 +387,11 @@ lemma cz2_1 (x) (hx : x ∈ Metric.closedEBall croot1 1) :
     have hA : ‖cA1‖ ≤ 0.002 := by
       rw [cA1]; apply opNorm_mulVecLin_le _ (by norm_num)
       intro i; fin_cases i <;> simp [cA1_mat, Fin.sum_univ_two] <;> norm_num
-    have hs : Real.sqrt 2 ≤ 1.4143 := by
-      rw [show (1.4143 : ℝ) = Real.sqrt (1.4143 ^ 2) from (Real.sqrt_sq (by norm_num)).symm]
-      exact Real.sqrt_le_sqrt (by norm_num)
     repeat grw [norm_add_le]
     grw [norm_sub_le]
     simp only [norm_neg, norm_ofNat, Complex.norm_mul, norm_pow, NNReal.coe_one, mul_one,
       Nat.ofNat_nonneg, Real.sq_sqrt]
-    grw [hc, hA, hs, hs]
+    grw [hc, hA, Real.sqrt_two_lt_d2, Real.sqrt_two_lt_d2]
     norm_num
   · simpa using hx
 
@@ -413,8 +411,6 @@ lemma ctest1 :
     cy1 cz1_1 cz2_1 (by apply le_of_lt; norm_cast; norm_num) (by apply le_of_lt; norm_num)
     (by norm_num)
   exact this
-
-
 
 
 end DegSix
