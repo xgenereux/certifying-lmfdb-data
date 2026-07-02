@@ -15,13 +15,15 @@ abbrev α : Fin 4 → ℂ := ![uniqueRootNear_rroot1.root,
                        uniqueRootNear_rroot3.root,
                        uniqueRootNear_croot1.root]
 abbrev t : Fin 4 → ℕ := ![1, 1, 1, 2]
-abbrev bound := |(Matrix.of fun i j ↦ t j * Real.log ‖(u i).aeval (α j)‖).det|
+abbrev bound_matrix_exact := Matrix.of fun i j ↦ t j * Real.log ‖(u i).aeval (α j)‖
+abbrev bound := |bound_matrix_exact.det|
 
 abbrev α_approx : Fin 4 → ℂ := ![toComplex (approxRoots 0),
                                  toComplex (approxRoots 1),
                                  toComplex (approxRoots 2),
                                  toComplex (approxRoots 4)]
-abbrev approx_bound := |(Matrix.of fun i j ↦ t j * Real.log ‖(u i).aeval (α_approx j)‖).det|
+abbrev bound_matrix_approx := Matrix.of fun i j ↦ t j * Real.log ‖(u i).aeval (α_approx j)‖
+abbrev bound_approx := |bound_matrix_approx.det|
 
 instance : Fact (Irreducible f) := by sorry
 
@@ -49,5 +51,25 @@ theorem bound_regulator : ∃ k : ℕ, k ≠ 0 ∧ bound = k * NumberField.Units
   · sorry
   · rfl
 
+def log_bound_fun : ℝ → ℝ := sorry
+theorem log_bound (x y : ℂ) (ε : ℝ) (hxy : ‖x - y‖ ≤ ε) :
+    |Real.log ‖x‖ - Real.log ‖y‖| ≤ log_bound_fun ε := sorry
+
+theorem matrix_entry_diffs :
+    ∀ i j, |bound_matrix_exact i j - bound_matrix_approx i j| ≤ 2 * log_bound_fun 1e-55 := fun i j ↦ by
+  rw [bound_matrix_exact, bound_matrix_approx]
+  calc
+    _ = |(t j : ℝ)| * |Real.log ‖(Polynomial.aeval (α j)) (u i)‖ - Real.log ‖(Polynomial.aeval (α_approx j)) (u i)‖| := by
+      rw [← abs_mul, mul_sub]
+      simp
+    _ ≤ 2 * |Real.log ‖(Polynomial.aeval (α j)) (u i)‖ - Real.log ‖(Polynomial.aeval (α_approx j)) (u i)‖| := by
+      gcongr
+      fin_cases j <;> simp
+    _ ≤ 2 * log_bound_fun 1e-55 := by
+      gcongr
+      apply log_bound
+      have := sigma_bounds_uniform
+      simp_rw [α, α_approx]
+      sorry
 
 end
