@@ -7,7 +7,6 @@ open DegSix NumberField
 
 noncomputable section
 
-noncomputable def f := map (algebraMap ℤ ℚ) T
 
 lemma B_apply' (i : Fin 6) : (B i : K) =
   (Adj.map) (Polynomial.C 25⁻¹ * map (Int.castRingHom ℚ)
@@ -121,6 +120,8 @@ lemma unit4_poly : (unit4 : K) = Adj.map  (C (1/25) * X^5 - C (1/5) * X^2 - C 2 
     norm_num
   linear_combination (-X^2) * hC5
 
+open SexticExample
+
 /- Units of SexticExample.K  -/
 
 def unit1' : (𝓞 SexticExample.K)ˣ :=
@@ -136,22 +137,22 @@ def unit4' : (𝓞 SexticExample.K)ˣ :=
   IsUnit.unit (IsUnit.map (Subalgebra.equivOfEq _ _ O_integral_closure) isUnit_unit4)
 
 lemma unit1_poly' : (unit1' : SexticExample.K) = (AdjoinRoot.mk f) fundU1 := by
-  change (↑unit1 : K) = (AdjoinRoot.mk f) fundU1
+  change (↑unit1 : _root_.K) = (AdjoinRoot.mk f) fundU1
   rw [unit1_poly]
   rfl
 
 lemma unit3_poly' : (unit3' : SexticExample.K) = (AdjoinRoot.mk f) fundU3 := by
-  change (↑unit3 : K) = (AdjoinRoot.mk f) fundU3
+  change (↑unit3 : _root_.K) = (AdjoinRoot.mk f) fundU3
   rw [unit3_poly]
   rfl
 
 lemma unit2_poly' : (unit2' : SexticExample.K) = (AdjoinRoot.mk f) fundU2 := by
-  change (↑unit2 : K) = (AdjoinRoot.mk f) fundU2
+  change (↑unit2 : _root_.K) = (AdjoinRoot.mk f) fundU2
   rw [unit2_poly]
   rfl
 
 lemma unit4_poly' : (unit4' : SexticExample.K) = (AdjoinRoot.mk f) fundU4 := by
-  change (↑unit4 : K) = (AdjoinRoot.mk f) fundU4
+  change (↑unit4 : _root_.K) = (AdjoinRoot.mk f) fundU4
   rw [unit4_poly]
   rfl
 
