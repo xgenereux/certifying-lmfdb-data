@@ -53,10 +53,6 @@ theorem nrRealPlaces_eq : nrRealPlaces K = 4 := by
 theorem discr_eq : discr K = -19208000 := by
   exact K_discr
 
--- We only need a lower bound on the number of roots of unity
-theorem torsionOrder_aux : 2 ∣ torsionOrder K := by
-  sorry
-
 -- We only need an upper bound on the class number
 theorem classNumber_aux : classNumber K ∣ 2 := by
   erw [class_number_K_eq_2]

@@ -1188,8 +1188,8 @@ def Interval.dyadic_div (approxParam : ℕ) (x y : Interval Dyadic) : Interval D
       ⟨x.lb.dyadic_div approxParam y.ub y.lb,
        x.ub.dyadic_div approxParam y.lb y.ub⟩
   | .nonpos, .nonpos =>
-      ⟨(x.ub.dyadic_div approxParam y.lb y.ub).toLowerBound,
-       (x.lb.dyadic_div approxParam y.ub y.lb).toUpperBound⟩
+      ⟨x.ub.toLowerBound.dyadic_div approxParam y.lb.toUpperBound y.ub.toLowerBound,
+       x.lb.toUpperBound.dyadic_div approxParam y.ub.toLowerBound y.lb.toUpperBound⟩
   | .nonpos, .nonneg =>
       ⟨x.lb.dyadic_div approxParam y.lb.toUpperBound y.ub.toLowerBound,
        x.ub.dyadic_div approxParam y.ub.toLowerBound y.lb.toUpperBound⟩
@@ -1201,7 +1201,7 @@ def Interval.dyadic_div (approxParam : ℕ) (x y : Interval Dyadic) : Interval D
        x.ub.dyadic_div approxParam y.lb y.ub⟩
   | .mixed, .nonpos =>
       ⟨x.ub.toLowerBound.dyadic_div approxParam y.ub y.lb,
-       (x.lb.dyadic_div approxParam y.ub y.lb).toUpperBound⟩
+       x.lb.toUpperBound.dyadic_div approxParam y.ub.toLowerBound y.lb.toUpperBound⟩
   | .nonneg, .mixed =>
       if x = ⟨some ⟨true, 0⟩, some ⟨true, 0⟩⟩ then
         x
