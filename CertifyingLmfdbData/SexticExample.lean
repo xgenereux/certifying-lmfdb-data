@@ -77,8 +77,12 @@ theorem residue_mem (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh : Riema
     |dedekindZeta_residue K - 0.366086210051| < 1e-10 := by
   exact (classNumberFormula grh rh).2.2.2
 
-#print_axioms regulator_mem
-#print_axioms residue_mem
+#printaxioms regulator_mem
+#printaxioms residue_mem
+
+#check newton_kantorovich_fd
+#check belabas_friedman_thm1
+#check DegSix.nfPrimes1000_spec
 
 end
 
