@@ -1,2 +1,6 @@
 /.lake
 **/.DS_Store
+
+# Sage / Python build artifacts
+*.sage.py
+**/__pycache__/

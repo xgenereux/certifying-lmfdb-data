@@ -9,13 +9,13 @@ variable {K : Type*} [Field K] [NumberField K]
 open Classical in
 lemma NumberField.Units.exists_regOfFamily_eq_mul
     {u : Fin (rank K) → (𝓞 K)ˣ} (hu : regOfFamily u ≠ 0) :
-    ∃ m : ℕ, m ≠ 0 ∧ regOfFamily u = m * regulator K := by
+    ∃ m : ℕ, 1 ≤ m ∧ regOfFamily u = m • regulator K := by
   have := regulator_pos K
-  have key : regOfFamily u = ↑(Subgroup.closure (Set.range u) ⊔ torsion K).index * regulator K := by
+  have key : regOfFamily u = (Subgroup.closure (Set.range u) ⊔ torsion K).index • regulator K := by
     have := regOfFamily_div_regulator u
-    field_simp at ⊢ this
-    exact this
-  exact ⟨(Subgroup.closure (Set.range u) ⊔ torsion K).index, fun _ ↦ by simp_all, key⟩
+    simpa [field, mul_comm] using this
+  have : (Subgroup.closure (Set.range u) ⊔ torsion K).index ≠ 0 := fun _ ↦ by simp_all
+  exact ⟨(Subgroup.closure (Set.range u) ⊔ torsion K).index, this.pos, key⟩
 
 end
 
@@ -156,7 +156,7 @@ include hm hα hα₂ hα₃ h_t hu in
 theorem regulator_le_regOfFamily_comp {bound : ℝ} (bound_nonz : bound ≠ 0)
     (h_bound : bound =
         |(Matrix.of fun i j ↦ t j * Real.log ‖(u i).aeval (α j)‖).det|) :
-    ∃ m : ℕ, m ≠ 0 ∧ bound = m * NumberField.Units.regulator (AdjoinRoot f) := by
+    ∃ m : ℕ, 1 ≤ m ∧ bound = m • NumberField.Units.regulator (AdjoinRoot f) := by
   subst h_bound
   rw [regOfFamily_comp_eq_regOfFamily hm hα hα₂ hα₃ h_t hu] at *
   exact NumberField.Units.exists_regOfFamily_eq_mul bound_nonz

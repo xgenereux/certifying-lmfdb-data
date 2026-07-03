@@ -1,5 +1,7 @@
 import Mathlib
 
+namespace NumberField
+
 open Real NumberField InfinitePlace Units
 
 theorem prod_lt_gap (K : Type*) [Field K] [NumberField K]
@@ -32,7 +34,7 @@ theorem prod_lt_gap (K : Type*) [Field K] [NumberField K]
     rwa [div_mul_div_comm, div_mul_div_comm, div_lt_iff₀ (by positivity)]
   norm_cast at key
 
-theorem classNumberFormulaAux {a : ℕ} {b : ℝ} {c : ℕ} {α : ℝ} {β : ℝ}
+theorem classNumberFormulaPrototype {a : ℕ} {b : ℝ} {c : ℕ} {α : ℝ} {β : ℝ}
     (ha : a ≠ 0) (hb : 0 ≤ b) (hc : c ≠ 0)
     (h : a * b * c < 2 * α) (h' : ∃ m : ℕ, 1 ≤ m ∧ b ∈ Set.Icc (m • α) (m • β)) :
     a = 1 ∧ b ∈ Set.Icc α β ∧ c = 1 := by
@@ -63,7 +65,7 @@ theorem classNumberFormulaAux {a : ℕ} {b : ℝ} {c : ℕ} {α : ℝ} {β : ℝ
     grw [← hm] at hm'
     grind
 
-theorem classNumberFormula (K : Type*) [Field K] [NumberField K]
+theorem classNumberFormulaAux (K : Type*) [Field K] [NumberField K]
     (r₁ : ℕ) (hr₁ : nrRealPlaces K = r₁)
     (r₂ : ℕ) (hr₂ : nrComplexPlaces K = r₂)
     (D : ℤ) (hD : discr K = D)
@@ -91,7 +93,7 @@ theorem classNumberFormula (K : Type*) [Field K] [NumberField K]
     refine ⟨m, hm, ?_⟩
     apply hR.imp <;> simp [field] <;> grind
   have h4 := prod_lt_gap K r₁ hr₁ r₂ hr₂ D hD w hw R h hh z hz (2 * α) (by positivity) key
-  have := classNumberFormulaAux h1 h2 h3 h4 hR
+  have := classNumberFormulaPrototype h1 h2 h3 h4 hR
   obtain ⟨x, y, z⟩ := this
   refine ⟨(Nat.eq_of_dvd_of_div_eq_one hw x).symm, ?_, Nat.eq_of_dvd_of_div_eq_one hh z⟩
   apply y.symm.imp
@@ -103,3 +105,28 @@ theorem classNumberFormula (K : Type*) [Field K] [NumberField K]
     grw [h]
     simpa [field] using div_self_le_one β
   · simp [field, mul_comm]
+
+theorem classNumberFormula (K : Type*) [Field K] [NumberField K]
+    (r₁ : ℕ) (hr₁ : nrRealPlaces K = r₁)
+    (r₂ : ℕ) (hr₂ : nrComplexPlaces K = r₂)
+    (D : ℤ) (hD : discr K = D)
+    (w : ℕ) (hw : w ∣ torsionOrder K)
+    (α : ℝ) (β : ℝ) (hα : 0 < α)
+    (R : ℝ) (hR : ∃ m : ℕ, 1 ≤ m ∧ R ∈ Set.Icc (α * m • regulator K) (β * m • regulator K))
+    (h : ℕ) (hh : classNumber K ∣ h) (hh0 : h ≠ 0)
+    (z₀ : ℝ) (hz₀ : z₀ ≤ dedekindZeta_residue K)
+    (key : 2 ^ r₁ * (2 * π) ^ r₂ * R * h < 2 * α * z₀ * w * √|D|)
+    (ε_reg : ℝ) (hε_reg₁ : R / α - R < ε_reg) (hε_reg₂ : R - R / β < ε_reg)
+    (z : ℝ) (ε_res : ℝ) (hε_res₁ : z - 2 ^ r₁ * (2 * π) ^ r₂ * (R / β) * h / (w * √|D|) < ε_res)
+    (hε_res₂ : 2 ^ r₁ * (2 * π) ^ r₂ * (R / α) * h / (w * √|D|) - z < ε_res) :
+    torsionOrder K = w ∧ (|regulator K - R| < ε_reg) ∧
+      classNumber K = h ∧ (|dedekindZeta_residue K - z| < ε_res) := by
+  obtain ⟨h₁, ⟨_, _⟩, h₃⟩ :=
+    classNumberFormulaAux K r₁ hr₁ r₂ hr₂ D hD w hw α β hα R hR h hh hh0 z₀ hz₀ key
+  have h₄ : dedekindZeta_residue K ∈ Set.Icc (2 ^ r₁ * (2 * π) ^ r₂ * (R / β) * h / (w * √|D|))
+      (2 ^ r₁ * (2 * π) ^ r₂ * (R / α) * h / (w * √|D|)) := by
+    rw [dedekindZeta_residue_def, hr₁, hr₂, h₃, h₁, hD]
+    constructor <;> gcongr
+  grind
+
+end NumberField

@@ -1,14 +1,15 @@
 name = "certifying-lmfdb-data"
 version = "0.1.0"
 keywords = ["math"]
-defaultTargets = ["CertifyingLmfdbData"]
+defaultTargets = ["CertifyingLmfdbData", "IdealArithmetic"]
 
 [leanOptions]
-pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+pp.unicode.fun = true                 # pretty-prints `fun a ↦ b`
 autoImplicit = false
 relaxedAutoImplicit = false
 weak.linter.mathlibStandardSet = true
 maxSynthPendingDepth = 3
+linter.style.header = false
 
 [[require]]
 name = "mathlib"
@@ -16,3 +17,21 @@ scope = "leanprover-community"
 
 [[lean_lib]]
 name = "CertifyingLmfdbData"
+
+# Vendored Galois-group certification library (from CBirkbeck/CertifyingInvariantsNF,
+# upstream alainchmt/CertifyingInvariantsNF), ported to this repo's toolchain.
+# The build root is `IdealArithmetic.lean`, whose imports pull in the base library
+# and the Galois showcase; the default `.one` glob builds that import closure. The
+# LMFDB number-field examples (`Examples/NF*`) and three upstream work-in-progress
+# modules with dangling imports (ExperimentsDiscr, ComputableAlgebras,
+# PrimeIdealsKummer) are vendored but, as in upstream's default build, left out of
+# the build root.
+# The library was authored under Lean defaults, so it keeps that profile here
+# (autoImplicit on, mathlib style-linter off) rather than the package-level strict options.
+[[lean_lib]]
+name = "IdealArithmetic"
+
+[lean_lib.leanOptions]
+autoImplicit = true
+relaxedAutoImplicit = true
+weak.linter.mathlibStandardSet = false
