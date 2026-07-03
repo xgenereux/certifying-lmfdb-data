@@ -1,7 +1,8 @@
 import CertifyingLmfdbData.ClassNumberFormula
 import CertifyingLmfdbData.IntervalArithmetic.DyadicReal
-import CertifyingLmfdbData.Regulator.RegulatorBound
+import CertifyingLmfdbData.Regulator_All
 import CertifyingLmfdbData.ResidueLowerBoundDegSix
+import CertifyingLmfdbData.Torsion_All
 
 namespace SexticExample
 
@@ -9,8 +10,12 @@ noncomputable section
 
 open Polynomial Module NumberField InfinitePlace Units
 
--- We will certify that the regulator of `K` is roughly `15.9596951835...`
-abbrev reg : ℝ := 15.9596951835
+-- We only need a lower bound on the number of roots of unity
+theorem torsionOrder_aux : 2 ∣ torsionOrder K := by
+  exact two_dvd_torsion
+
+-- We will certify that the regulator of `K` is roughly `15.959695183485...`
+abbrev reg : ℝ := 15.959695183485
 
 -- The error on our computation of the regulator of `K`
 abbrev α : ℝ := 1 - 1e-12
@@ -19,7 +24,7 @@ abbrev β : ℝ := 1 + 1e-12
 -- We only need an upper bound on the regulator
 theorem regulator_aux : ∃ m : ℕ, 1 ≤ m ∧
     reg ∈ Set.Icc (α * m • regulator K) (β * m • regulator K) := by
-  sorry
+  exact _root_.regulator_aux
 
 -- We will certify that the residue of `K` is roughly `0.366086210051...`
 abbrev res : ℝ := 0.366086210051
@@ -62,15 +67,17 @@ theorem classNumber_eq (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh : Ri
     classNumber K = 2 := by
   exact (classNumberFormula grh rh).2.2.1
 
--- The regulator of `K` is within `10^-10` of `15.9596951835`
+-- The regulator of `K` is within `10^-10` of `15.959695183485`
 theorem regulator_mem (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh : RiemannHypothesis) :
-    |regulator K - 15.9596951835| < 1e-10 := by
+    |regulator K - 15.959695183485| < 1e-10 := by
   exact (classNumberFormula grh rh).2.1
 
 -- The residue of `K` is within `10^-10` of `0.366086210051`
 theorem residue_mem (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh : RiemannHypothesis) :
     |dedekindZeta_residue K - 0.366086210051| < 1e-10 := by
   exact (classNumberFormula grh rh).2.2.2
+
+#print_axiom regulator_mem
 
 end
 

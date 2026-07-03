@@ -12,14 +12,14 @@ noncomputable section instance hp29 : Fact (Nat.Prime 29) := {out := by norm_num
 
 def I29N0 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![3, 0, 1, 0, 0, 0]] i)))
 
-def SI29N0: IdealEqSpanCertificate' Table ![![3, 0, 1, 0, 0, 0]] 
+def SI29N0: IdealEqSpanCertificate' Table ![![3, 0, 1, 0, 0, 0]]
  ![![29, 0, 0, 0, 0, 0], ![0, 29, 0, 0, 0, 0], ![3, 0, 1, 0, 0, 0], ![0, 3, 0, 1, 0, 0], ![20, 0, 0, 0, 1, 0], ![0, 20, 0, 0, 0, 1]] where
   M :=![![![3, 0, 1, 0, 0, 0], ![0, 3, 0, 1, 0, 0], ![0, 0, 3, 0, 1, 0], ![0, 0, 0, 3, 0, 1], ![-1, 0, 2, 0, 4, 0], ![0, -1, 0, 2, 0, 4]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![10, 0, -4, 0, 1, 0]], ![![0, 10, 0, -4, 0, 1]], ![![1, 0, 0, 0, 0, 0]], ![![0, 1, 0, 0, 0, 0]], ![![7, 0, -3, 0, 1, 0]], ![![0, 7, 0, -3, 0, 1]]]
   g := ![![![0, 0, 1, 0, 0, 0], ![0, 0, 0, 1, 0, 0], ![-1, 0, 3, 0, 1, 0], ![0, -1, 0, 3, 0, 1], ![-3, 0, 2, 0, 4, 0], ![0, -3, 0, 2, 0, 4]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
 
 def P29P0 : CertificateIrreducibleZModOfList' 29 2 2 4 [27, 0, 1] where
@@ -67,46 +67,46 @@ lemma NI29N0 : Nat.card (O ⧸ I29N0) = 841 := CertifiedPrimeIdeal'.idealNorm ti
 
 def I29N1 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![0, -1, 0, 0, 1, 0]] i)))
 
-def SI29N1: IdealEqSpanCertificate' Table ![![0, -1, 0, 0, 1, 0]] 
+def SI29N1: IdealEqSpanCertificate' Table ![![0, -1, 0, 0, 1, 0]]
  ![![29, 0, 0, 0, 0, 0], ![9, 1, 0, 0, 0, 0], ![7, 0, 1, 0, 0, 0], ![24, 0, 0, 1, 0, 0], ![9, 0, 0, 0, 1, 0], ![6, 0, 0, 0, 0, 1]] where
   M :=![![![0, -1, 0, 0, 1, 0], ![0, 0, -5, 0, 0, 1], ![-1, 0, 2, -1, 1, 0], ![0, -1, 0, 2, -5, 1], ![-1, 0, 1, 0, 3, -1], ![5, -1, -10, 1, -5, 3]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![-10, -15, 9, -1, 17, 11]], ![![-5, -5, 4, 0, 7, 4]], ![![-3, -4, 3, 0, 5, 3]], ![![-10, -13, 9, 0, 17, 10]], ![![-4, -5, 4, 0, 7, 4]], ![![-5, -4, 6, 1, 8, 4]]]
   g := ![![![0, -1, 0, 0, 1, 0], ![1, 0, -5, 0, 0, 1], ![0, 0, 2, -1, 1, 0], ![0, -1, 0, 2, -5, 1], ![-1, 0, 1, 0, 3, -1], ![3, -1, -10, 1, -5, 3]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
-lemma NI29N1 : Nat.card (O ⧸ I29N1) = 29 := 
+lemma NI29N1 : Nat.card (O ⧸ I29N1) = 29 :=
  ideal_norm_eq_prod' B _ _ (by decide) 0 0 (by decide) (ideal_eq_of_IdealEqSpanCertificate' timesTableT_eq_Table rfl SI29N1)
 
 lemma isPrimeI29N1 : Ideal.IsPrime I29N1 := prime_ideal_of_norm_prime hp29.out _ NI29N1
 
 def I29N2 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![0, -1, 0, 0, -1, 0]] i)))
 
-def SI29N2: IdealEqSpanCertificate' Table ![![0, -1, 0, 0, -1, 0]] 
+def SI29N2: IdealEqSpanCertificate' Table ![![0, -1, 0, 0, -1, 0]]
  ![![29, 0, 0, 0, 0, 0], ![20, 1, 0, 0, 0, 0], ![7, 0, 1, 0, 0, 0], ![5, 0, 0, 1, 0, 0], ![9, 0, 0, 0, 1, 0], ![23, 0, 0, 0, 0, 1]] where
   M :=![![![0, -1, 0, 0, -1, 0], ![0, 0, -5, 0, 0, -1], ![1, 0, -2, -1, -1, 0], ![0, 1, 0, -2, -5, -1], ![1, 0, -1, 0, -3, -1], ![5, 1, -10, -1, -5, -3]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![10, -15, -9, -1, -17, 11]], ![![5, -10, -5, -1, -10, 7]], ![![3, -4, -3, 0, -5, 3]], ![![0, -2, 0, -1, 0, 1]], ![![4, -5, -4, 0, -7, 4]], ![![5, -11, -3, -2, -9, 7]]]
   g := ![![![1, -1, 0, 0, -1, 0], ![2, 0, -5, 0, 0, -1], ![1, 0, -2, -1, -1, 0], ![2, 1, 0, -2, -5, -1], ![2, 0, -1, 0, -3, -1], ![6, 1, -10, -1, -5, -3]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
-lemma NI29N2 : Nat.card (O ⧸ I29N2) = 29 := 
+lemma NI29N2 : Nat.card (O ⧸ I29N2) = 29 :=
  ideal_norm_eq_prod' B _ _ (by decide) 0 0 (by decide) (ideal_eq_of_IdealEqSpanCertificate' timesTableT_eq_Table rfl SI29N2)
 
 lemma isPrimeI29N2 : Ideal.IsPrime I29N2 := prime_ideal_of_norm_prime hp29.out _ NI29N2
 
 def I29N3 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![4, 0, 1, 0, -3, 0]] i)))
 
-def SI29N3: IdealEqSpanCertificate' Table ![![4, 0, 1, 0, -3, 0]] 
+def SI29N3: IdealEqSpanCertificate' Table ![![4, 0, 1, 0, -3, 0]]
  ![![29, 0, 0, 0, 0, 0], ![0, 29, 0, 0, 0, 0], ![18, 0, 1, 0, 0, 0], ![0, 18, 0, 1, 0, 0], ![24, 0, 0, 0, 1, 0], ![0, 24, 0, 0, 0, 1]] where
   M :=![![![4, 0, 1, 0, -3, 0], ![0, 4, 0, 1, 0, -3], ![3, 0, -2, 0, -2, 0], ![0, 3, 0, -2, 0, -2], ![2, 0, -1, 0, -4, 0], ![0, 2, 0, -1, 0, -4]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![6, 0, 7, 0, -8, 0]], ![![0, 6, 0, 7, 0, -8]], ![![4, 0, 4, 0, -5, 0]], ![![0, 4, 0, 4, 0, -5]], ![![5, 0, 6, 0, -7, 0]], ![![0, 5, 0, 6, 0, -7]]]
   g := ![![![2, 0, 1, 0, -3, 0], ![0, 2, 0, 1, 0, -3], ![3, 0, -2, 0, -2, 0], ![0, 3, 0, -2, 0, -2], ![4, 0, -1, 0, -4, 0], ![0, 4, 0, -1, 0, -4]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
 
 def P29P3 : CertificateIrreducibleZModOfList' 29 2 2 4 [5, 14, 1] where
@@ -151,54 +151,54 @@ def PI29N3 : CertifiedPrimeIdeal' SI29N3 29 where
 
 lemma isPrimeI29N3 : Ideal.IsPrime I29N3 := CertifiedPrimeIdeal'.isPrime timesTableT_eq_Table rfl PI29N3 B_one_repr
 lemma NI29N3 : Nat.card (O ⧸ I29N3) = 841 := CertifiedPrimeIdeal'.idealNorm timesTableT_eq_Table PI29N3
-def MulI29N0 : IdealMulLeCertificate' Table 
+def MulI29N0 : IdealMulLeCertificate' Table
   ![![3, 0, 1, 0, 0, 0]] ![![0, -1, 0, 0, 1, 0]]
   ![![-1, -3, 2, -1, 4, 0]] where
  M := ![![![-1, -3, 2, -1, 4, 0]]]
- hmul := by decide  
+ hmul := by decide
  g := ![![![![1, 0, 0, 0, 0, 0]]]]
- hle2 := by decide  
+ hle2 := by decide
 
-def MulI29N1 : IdealMulLeCertificate' Table 
+def MulI29N1 : IdealMulLeCertificate' Table
   ![![-1, -3, 2, -1, 4, 0]] ![![0, -1, 0, 0, -1, 0]]
   ![![6, 0, 7, 0, -8, 0]] where
  M := ![![![6, 0, 7, 0, -8, 0]]]
- hmul := by decide  
+ hmul := by decide
  g := ![![![![1, 0, 0, 0, 0, 0]]]]
- hle2 := by decide  
+ hle2 := by decide
 
-def MulI29N2 : IdealMulLeCertificate' Table 
+def MulI29N2 : IdealMulLeCertificate' Table
   ![![6, 0, 7, 0, -8, 0]] ![![4, 0, 1, 0, -3, 0]]
   ![![29, 0, 0, 0, 0, 0]] where
  M := ![![![29, 0, 0, 0, 0, 0]]]
- hmul := by decide  
+ hmul := by decide
  g := ![![![![1, 0, 0, 0, 0, 0]]]]
- hle2 := by decide  
+ hle2 := by decide
 
 
-def PBC29 : ContainsPrimesAboveP 29 ![I29N0, I29N1, I29N2, I29N3] where 
-  Ip := by 
-    intro i 
-    fin_cases i 
+def PBC29 : ContainsPrimesAboveP 29 ![I29N0, I29N1, I29N2, I29N3] where
+  Ip := by
+    intro i
+    fin_cases i
     exact isPrimeI29N0
     exact isPrimeI29N1
     exact isPrimeI29N2
     exact isPrimeI29N3
-  hPprod := by 
+  hPprod := by
     simp only [← Fin.prod_ofFn]
     exact ideal_le_singleton_IdealMulLeChainCertificate timesTableT_eq_Table B_one_repr 29 (by decide) (𝕀 ⊙ MulI29N0 ⊙ MulI29N1 ⊙ MulI29N2)
 instance hp31 : Fact (Nat.Prime 31) := {out := by norm_num}
 
 def I31N0 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![31, 0, 0, 0, 0, 0]] i)))
 
-def SI31N0: IdealEqSpanCertificate' Table ![![31, 0, 0, 0, 0, 0]] 
+def SI31N0: IdealEqSpanCertificate' Table ![![31, 0, 0, 0, 0, 0]]
  ![![31, 0, 0, 0, 0, 0], ![0, 31, 0, 0, 0, 0], ![0, 0, 31, 0, 0, 0], ![0, 0, 0, 31, 0, 0], ![0, 0, 0, 0, 31, 0], ![0, 0, 0, 0, 0, 31]] where
   M :=![![![31, 0, 0, 0, 0, 0], ![0, 31, 0, 0, 0, 0], ![0, 0, 31, 0, 0, 0], ![0, 0, 0, 31, 0, 0], ![0, 0, 0, 0, 31, 0], ![0, 0, 0, 0, 0, 31]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![1, 0, 0, 0, 0, 0]], ![![0, 1, 0, 0, 0, 0]], ![![0, 0, 1, 0, 0, 0]], ![![0, 0, 0, 1, 0, 0]], ![![0, 0, 0, 0, 1, 0]], ![![0, 0, 0, 0, 0, 1]]]
   g := ![![![1, 0, 0, 0, 0, 0], ![0, 1, 0, 0, 0, 0], ![0, 0, 1, 0, 0, 0], ![0, 0, 0, 1, 0, 0], ![0, 0, 0, 0, 1, 0], ![0, 0, 0, 0, 0, 1]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
 
 def P31P0 : CertificateIrreducibleZModOfList' 31 6 2 4 [24, 10, 15, 15, 13, 6, 1] where
@@ -244,12 +244,12 @@ def PI31N0 : CertifiedPrimeIdeal' SI31N0 31 where
 lemma isPrimeI31N0 : Ideal.IsPrime I31N0 := CertifiedPrimeIdeal'.isPrime timesTableT_eq_Table rfl PI31N0 B_one_repr
 lemma NI31N0 : Nat.card (O ⧸ I31N0) = 887503681 := CertifiedPrimeIdeal'.idealNorm timesTableT_eq_Table PI31N0
 
-def PBC31 : ContainsPrimesAboveP 31 ![I31N0] where 
-  Ip := by 
-    intro i 
-    fin_cases i 
+def PBC31 : ContainsPrimesAboveP 31 ![I31N0] where
+  Ip := by
+    intro i
+    fin_cases i
     exact isPrimeI31N0
-  hPprod := by 
+  hPprod := by
     simp only [← Fin.prod_ofFn]
     exact ideal_le_singleton_IdealMulLeChainCertificate (u := ![![31, 0, 0, 0, 0, 0]]) timesTableT_eq_Table B_one_repr 31 (by decide) 𝕀
 
@@ -257,14 +257,14 @@ instance hp37 : Fact (Nat.Prime 37) := {out := by norm_num}
 
 def I37N0 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![37, 0, 0, 0, 0, 0]] i)))
 
-def SI37N0: IdealEqSpanCertificate' Table ![![37, 0, 0, 0, 0, 0]] 
+def SI37N0: IdealEqSpanCertificate' Table ![![37, 0, 0, 0, 0, 0]]
  ![![37, 0, 0, 0, 0, 0], ![0, 37, 0, 0, 0, 0], ![0, 0, 37, 0, 0, 0], ![0, 0, 0, 37, 0, 0], ![0, 0, 0, 0, 37, 0], ![0, 0, 0, 0, 0, 37]] where
   M :=![![![37, 0, 0, 0, 0, 0], ![0, 37, 0, 0, 0, 0], ![0, 0, 37, 0, 0, 0], ![0, 0, 0, 37, 0, 0], ![0, 0, 0, 0, 37, 0], ![0, 0, 0, 0, 0, 37]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![1, 0, 0, 0, 0, 0]], ![![0, 1, 0, 0, 0, 0]], ![![0, 0, 1, 0, 0, 0]], ![![0, 0, 0, 1, 0, 0]], ![![0, 0, 0, 0, 1, 0]], ![![0, 0, 0, 0, 0, 1]]]
   g := ![![![1, 0, 0, 0, 0, 0], ![0, 1, 0, 0, 0, 0], ![0, 0, 1, 0, 0, 0], ![0, 0, 0, 1, 0, 0], ![0, 0, 0, 0, 1, 0], ![0, 0, 0, 0, 0, 1]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
 
 def P37P0 : CertificateIrreducibleZModOfList' 37 6 2 5 [23, 2, 14, 28, 12, 34, 1] where
@@ -310,12 +310,12 @@ def PI37N0 : CertifiedPrimeIdeal' SI37N0 37 where
 lemma isPrimeI37N0 : Ideal.IsPrime I37N0 := CertifiedPrimeIdeal'.isPrime timesTableT_eq_Table rfl PI37N0 B_one_repr
 lemma NI37N0 : Nat.card (O ⧸ I37N0) = 2565726409 := CertifiedPrimeIdeal'.idealNorm timesTableT_eq_Table PI37N0
 
-def PBC37 : ContainsPrimesAboveP 37 ![I37N0] where 
-  Ip := by 
-    intro i 
-    fin_cases i 
+def PBC37 : ContainsPrimesAboveP 37 ![I37N0] where
+  Ip := by
+    intro i
+    fin_cases i
     exact isPrimeI37N0
-  hPprod := by 
+  hPprod := by
     simp only [← Fin.prod_ofFn]
     exact ideal_le_singleton_IdealMulLeChainCertificate (u := ![![37, 0, 0, 0, 0, 0]]) timesTableT_eq_Table B_one_repr 37 (by decide) 𝕀
 
@@ -323,14 +323,14 @@ instance hp41 : Fact (Nat.Prime 41) := {out := by norm_num}
 
 def I41N0 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![-4, 0, 2, 0, 1, 0]] i)))
 
-def SI41N0: IdealEqSpanCertificate' Table ![![-4, 0, 2, 0, 1, 0]] 
+def SI41N0: IdealEqSpanCertificate' Table ![![-4, 0, 2, 0, 1, 0]]
  ![![41, 0, 0, 0, 0, 0], ![0, 41, 0, 0, 0, 0], ![14, 0, 1, 0, 0, 0], ![0, 14, 0, 1, 0, 0], ![9, 0, 0, 0, 1, 0], ![0, 9, 0, 0, 0, 1]] where
   M :=![![![-4, 0, 2, 0, 1, 0], ![0, -4, 0, 2, 0, 1], ![-1, 0, -2, 0, 3, 0], ![0, -1, 0, -2, 0, 3], ![-3, 0, 5, 0, 1, 0], ![0, -3, 0, 5, 0, 1]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![-17, 0, 3, 0, 8, 0]], ![![0, -17, 0, 3, 0, 8]], ![![-6, 0, 1, 0, 3, 0]], ![![0, -6, 0, 1, 0, 3]], ![![-4, 0, 1, 0, 2, 0]], ![![0, -4, 0, 1, 0, 2]]]
   g := ![![![-1, 0, 2, 0, 1, 0], ![0, -1, 0, 2, 0, 1], ![0, 0, -2, 0, 3, 0], ![0, 0, 0, -2, 0, 3], ![-2, 0, 5, 0, 1, 0], ![0, -2, 0, 5, 0, 1]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
 
 def P41P0 : CertificateIrreducibleZModOfList' 41 2 2 5 [32, 32, 1] where
@@ -378,14 +378,14 @@ lemma NI41N0 : Nat.card (O ⧸ I41N0) = 1681 := CertifiedPrimeIdeal'.idealNorm t
 
 def I41N1 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![-4, 0, -3, 0, 2, 0]] i)))
 
-def SI41N1: IdealEqSpanCertificate' Table ![![-4, 0, -3, 0, 2, 0]] 
+def SI41N1: IdealEqSpanCertificate' Table ![![-4, 0, -3, 0, 2, 0]]
  ![![41, 0, 0, 0, 0, 0], ![0, 41, 0, 0, 0, 0], ![30, 0, 1, 0, 0, 0], ![0, 30, 0, 1, 0, 0], ![2, 0, 0, 0, 1, 0], ![0, 2, 0, 0, 0, 1]] where
   M :=![![![-4, 0, -3, 0, 2, 0], ![0, -4, 0, -3, 0, 2], ![-2, 0, 0, 0, -1, 0], ![0, -2, 0, 0, 0, -1], ![1, 0, -4, 0, -1, 0], ![0, 1, 0, -4, 0, -1]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![-4, 0, -11, 0, 3, 0]], ![![0, -4, 0, -11, 0, 3]], ![![-3, 0, -8, 0, 2, 0]], ![![0, -3, 0, -8, 0, 2]], ![![0, 0, -1, 0, 0, 0]], ![![0, 0, 0, -1, 0, 0]]]
   g := ![![![2, 0, -3, 0, 2, 0], ![0, 2, 0, -3, 0, 2], ![0, 0, 0, 0, -1, 0], ![0, 0, 0, 0, 0, -1], ![3, 0, -4, 0, -1, 0], ![0, 3, 0, -4, 0, -1]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
 
 def P41P1 : CertificateIrreducibleZModOfList' 41 2 2 5 [39, 31, 1] where
@@ -433,83 +433,83 @@ lemma NI41N1 : Nat.card (O ⧸ I41N1) = 1681 := CertifiedPrimeIdeal'.idealNorm t
 
 def I41N2 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![-1, 2, -1, 0, 0, -1]] i)))
 
-def SI41N2: IdealEqSpanCertificate' Table ![![-1, 2, -1, 0, 0, -1]] 
+def SI41N2: IdealEqSpanCertificate' Table ![![-1, 2, -1, 0, 0, -1]]
  ![![41, 0, 0, 0, 0, 0], ![15, 1, 0, 0, 0, 0], ![37, 0, 1, 0, 0, 0], ![19, 0, 0, 1, 0, 0], ![25, 0, 0, 0, 1, 0], ![35, 0, 0, 0, 0, 1]] where
   M :=![![![-1, 2, -1, 0, 0, -1], ![5, -1, 0, -1, -5, 0], ![0, 1, -1, 0, -1, -1], ![5, 0, -5, -1, -5, -1], ![1, 1, -2, -1, -2, -1], ![5, 1, -5, -2, -10, -2]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![10, 13, 3, 8, 1, -11]], ![![5, 5, 0, 3, 0, -4]], ![![9, 12, 3, 7, 1, -10]], ![![5, 6, 2, 4, -1, -5]], ![![6, 8, 2, 5, 1, -7]], ![![10, 11, 0, 7, 0, -9]]]
   g := ![![![1, 2, -1, 0, 0, -1], ![4, -1, 0, -1, -5, 0], ![2, 1, -1, 0, -1, -1], ![9, 0, -5, -1, -5, -1], ![4, 1, -2, -1, -2, -1], ![13, 1, -5, -2, -10, -2]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
-lemma NI41N2 : Nat.card (O ⧸ I41N2) = 41 := 
+lemma NI41N2 : Nat.card (O ⧸ I41N2) = 41 :=
  ideal_norm_eq_prod' B _ _ (by decide) 0 0 (by decide) (ideal_eq_of_IdealEqSpanCertificate' timesTableT_eq_Table rfl SI41N2)
 
 lemma isPrimeI41N2 : Ideal.IsPrime I41N2 := prime_ideal_of_norm_prime hp41.out _ NI41N2
 
 def I41N3 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![1, 2, 1, 0, 0, -1]] i)))
 
-def SI41N3: IdealEqSpanCertificate' Table ![![1, 2, 1, 0, 0, -1]] 
+def SI41N3: IdealEqSpanCertificate' Table ![![1, 2, 1, 0, 0, -1]]
  ![![41, 0, 0, 0, 0, 0], ![26, 1, 0, 0, 0, 0], ![37, 0, 1, 0, 0, 0], ![22, 0, 0, 1, 0, 0], ![25, 0, 0, 0, 1, 0], ![6, 0, 0, 0, 0, 1]] where
   M :=![![![1, 2, 1, 0, 0, -1], ![5, 1, 0, 1, -5, 0], ![0, 1, 1, 0, 1, -1], ![5, 0, -5, 1, -5, 1], ![-1, 1, 2, -1, 2, -1], ![5, -1, -5, 2, -10, 2]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![-10, 13, -3, 8, -1, -11]], ![![-5, 8, -3, 5, -1, -7]], ![![-9, 12, -3, 7, -1, -10]], ![![-5, 7, -1, 4, -2, -6]], ![![-6, 8, -2, 5, -1, -7]], ![![0, 2, -3, 1, -1, -2]]]
   g := ![![![-2, 2, 1, 0, 0, -1], ![2, 1, 0, 1, -5, 0], ![-2, 1, 1, 0, 1, -1], ![7, 0, -5, 1, -5, 1], ![-3, 1, 2, -1, 2, -1], ![10, -1, -5, 2, -10, 2]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
-lemma NI41N3 : Nat.card (O ⧸ I41N3) = 41 := 
+lemma NI41N3 : Nat.card (O ⧸ I41N3) = 41 :=
  ideal_norm_eq_prod' B _ _ (by decide) 0 0 (by decide) (ideal_eq_of_IdealEqSpanCertificate' timesTableT_eq_Table rfl SI41N3)
 
 lemma isPrimeI41N3 : Ideal.IsPrime I41N3 := prime_ideal_of_norm_prime hp41.out _ NI41N3
-def MulI41N0 : IdealMulLeCertificate' Table 
+def MulI41N0 : IdealMulLeCertificate' Table
   ![![-4, 0, 2, 0, 1, 0]] ![![-4, 0, -3, 0, 2, 0]]
   ![![13, 0, 8, 0, -11, 0]] where
  M := ![![![13, 0, 8, 0, -11, 0]]]
- hmul := by decide  
+ hmul := by decide
  g := ![![![![1, 0, 0, 0, 0, 0]]]]
- hle2 := by decide  
+ hle2 := by decide
 
-def MulI41N1 : IdealMulLeCertificate' Table 
+def MulI41N1 : IdealMulLeCertificate' Table
   ![![13, 0, 8, 0, -11, 0]] ![![-1, 2, -1, 0, 0, -1]]
   ![![-24, 23, 1, 11, 14, -10]] where
  M := ![![![-24, 23, 1, 11, 14, -10]]]
- hmul := by decide  
+ hmul := by decide
  g := ![![![![1, 0, 0, 0, 0, 0]]]]
- hle2 := by decide  
+ hle2 := by decide
 
-def MulI41N2 : IdealMulLeCertificate' Table 
+def MulI41N2 : IdealMulLeCertificate' Table
   ![![-24, 23, 1, 11, 14, -10]] ![![1, 2, 1, 0, 0, -1]]
   ![![41, 0, 0, 0, 0, 0]] where
  M := ![![![82, 0, 0, 0, -41, 0]]]
- hmul := by decide  
+ hmul := by decide
  g := ![![![![2, 0, 0, 0, -1, 0]]]]
- hle2 := by decide  
+ hle2 := by decide
 
 
-def PBC41 : ContainsPrimesAboveP 41 ![I41N0, I41N1, I41N2, I41N3] where 
-  Ip := by 
-    intro i 
-    fin_cases i 
+def PBC41 : ContainsPrimesAboveP 41 ![I41N0, I41N1, I41N2, I41N3] where
+  Ip := by
+    intro i
+    fin_cases i
     exact isPrimeI41N0
     exact isPrimeI41N1
     exact isPrimeI41N2
     exact isPrimeI41N3
-  hPprod := by 
+  hPprod := by
     simp only [← Fin.prod_ofFn]
     exact ideal_le_singleton_IdealMulLeChainCertificate timesTableT_eq_Table B_one_repr 41 (by decide) (𝕀 ⊙ MulI41N0 ⊙ MulI41N1 ⊙ MulI41N2)
 instance hp43 : Fact (Nat.Prime 43) := {out := by norm_num}
 
 def I43N0 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![-2, 0, -3, 0, 1, 0]] i)))
 
-def SI43N0: IdealEqSpanCertificate' Table ![![-2, 0, -3, 0, 1, 0]] 
+def SI43N0: IdealEqSpanCertificate' Table ![![-2, 0, -3, 0, 1, 0]]
  ![![43, 0, 0, 0, 0, 0], ![0, 43, 0, 0, 0, 0], ![8, 0, 1, 0, 0, 0], ![0, 8, 0, 1, 0, 0], ![22, 0, 0, 0, 1, 0], ![0, 22, 0, 0, 0, 1]] where
   M :=![![![-2, 0, -3, 0, 1, 0], ![0, -2, 0, -3, 0, 1], ![-1, 0, 0, 0, -2, 0], ![0, -1, 0, 0, 0, -2], ![2, 0, -5, 0, -2, 0], ![0, 2, 0, -5, 0, -2]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![-10, 0, -11, 0, 6, 0]], ![![0, -10, 0, -11, 0, 6]], ![![-2, 0, -2, 0, 1, 0]], ![![0, -2, 0, -2, 0, 1]], ![![-5, 0, -6, 0, 3, 0]], ![![0, -5, 0, -6, 0, 3]]]
   g := ![![![0, 0, -3, 0, 1, 0], ![0, 0, 0, -3, 0, 1], ![1, 0, 0, 0, -2, 0], ![0, 1, 0, 0, 0, -2], ![2, 0, -5, 0, -2, 0], ![0, 2, 0, -5, 0, -2]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
 
 def P43P0 : CertificateIrreducibleZModOfList' 43 2 2 5 [27, 22, 1] where
@@ -557,46 +557,46 @@ lemma NI43N0 : Nat.card (O ⧸ I43N0) = 1849 := CertifiedPrimeIdeal'.idealNorm t
 
 def I43N1 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![43, 0, 0, 0, 0, 0], ![21, 1, 0, 0, 0, 0]] i)))
 
-def SI43N1: IdealEqSpanCertificate' Table ![![43, 0, 0, 0, 0, 0], ![21, 1, 0, 0, 0, 0]] 
+def SI43N1: IdealEqSpanCertificate' Table ![![43, 0, 0, 0, 0, 0], ![21, 1, 0, 0, 0, 0]]
  ![![43, 0, 0, 0, 0, 0], ![21, 1, 0, 0, 0, 0], ![15, 0, 1, 0, 0, 0], ![29, 0, 0, 1, 0, 0], ![33, 0, 0, 0, 1, 0], ![38, 0, 0, 0, 0, 1]] where
   M :=![![![43, 0, 0, 0, 0, 0], ![0, 43, 0, 0, 0, 0], ![0, 0, 43, 0, 0, 0], ![0, 0, 0, 43, 0, 0], ![0, 0, 0, 0, 43, 0], ![0, 0, 0, 0, 0, 43]], ![![21, 1, 0, 0, 0, 0], ![0, 21, 5, 0, 0, 0], ![0, 0, 21, 1, 0, 0], ![0, 0, 0, 21, 5, 0], ![0, 0, 0, 0, 21, 1], ![-5, 0, 10, 0, 5, 21]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![190, -894, 19588, 3526, 26445, 1230], ![-387, 1849, -40549, -5289, -52890, 0]], ![![84, -479, 10217, 2214, 13325, 615], ![-171, 989, -21156, -3526, -26445, 0]], ![![36, -326, 6810, 2050, 9881, 451], ![-73, 671, -14104, -3526, -19393, 0]], ![![134, -609, 13209, 2358, 18491, 861], ![-273, 1260, -27347, -3526, -37023, 0]], ![![138, -685, 15033, 2706, 20275, 943], ![-281, 1416, -31119, -4059, -40549, 0]], ![![164, -800, 17308, 3116, 23370, 1087], ![-334, 1654, -35834, -4674, -46740, 0]]]
   g := ![![![1, 0, 0, 0, 0, 0], ![-21, 43, 0, 0, 0, 0], ![-15, 0, 43, 0, 0, 0], ![-29, 0, 0, 43, 0, 0], ![-33, 0, 0, 0, 43, 0], ![-38, 0, 0, 0, 0, 43]], ![![0, 1, 0, 0, 0, 0], ![-12, 21, 5, 0, 0, 0], ![-8, 0, 21, 1, 0, 0], ![-18, 0, 0, 21, 5, 0], ![-17, 0, 0, 0, 21, 1], ![-26, 0, 10, 0, 5, 21]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
-lemma NI43N1 : Nat.card (O ⧸ I43N1) = 43 := 
+lemma NI43N1 : Nat.card (O ⧸ I43N1) = 43 :=
  ideal_norm_eq_prod' B _ _ (by decide) 0 0 (by decide) (ideal_eq_of_IdealEqSpanCertificate' timesTableT_eq_Table rfl SI43N1)
 
 lemma isPrimeI43N1 : Ideal.IsPrime I43N1 := prime_ideal_of_norm_prime hp43.out _ NI43N1
 
 def I43N2 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![43, 0, 0, 0, 0, 0], ![-21, 1, 0, 0, 0, 0]] i)))
 
-def SI43N2: IdealEqSpanCertificate' Table ![![43, 0, 0, 0, 0, 0], ![-21, 1, 0, 0, 0, 0]] 
+def SI43N2: IdealEqSpanCertificate' Table ![![43, 0, 0, 0, 0, 0], ![-21, 1, 0, 0, 0, 0]]
  ![![43, 0, 0, 0, 0, 0], ![22, 1, 0, 0, 0, 0], ![15, 0, 1, 0, 0, 0], ![14, 0, 0, 1, 0, 0], ![33, 0, 0, 0, 1, 0], ![5, 0, 0, 0, 0, 1]] where
   M :=![![![43, 0, 0, 0, 0, 0], ![0, 43, 0, 0, 0, 0], ![0, 0, 43, 0, 0, 0], ![0, 0, 0, 43, 0, 0], ![0, 0, 0, 0, 43, 0], ![0, 0, 0, 0, 0, 43]], ![![-21, 1, 0, 0, 0, 0], ![0, -21, 5, 0, 0, 0], ![0, 0, -21, 1, 0, 0], ![0, 0, 0, -21, 5, 0], ![0, 0, 0, 0, -21, 1], ![-5, 0, 10, 0, 5, -21]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![2668, -862, -18830, 2270, 25505, -1230], ![5461, -1505, -38915, 2795, 52890, 0]], ![![1408, -340, -9847, 1207, 13601, -656], ![2882, -559, -20296, 1505, 28208, 0]], ![![960, -264, -6542, 818, 9351, -451], ![1965, -447, -13502, 1032, 19393, 0]], ![![896, -238, -6106, 755, 8500, -410], ![1834, -400, -12598, 946, 17630, 0]], ![![2112, -669, -14445, 1736, 19555, -943], ![4323, -1164, -29855, 2133, 40549, 0]], ![![320, -67, -2179, 266, 2965, -143], ![655, -106, -4487, 331, 6150, 0]]]
   g := ![![![1, 0, 0, 0, 0, 0], ![-22, 43, 0, 0, 0, 0], ![-15, 0, 43, 0, 0, 0], ![-14, 0, 0, 43, 0, 0], ![-33, 0, 0, 0, 43, 0], ![-5, 0, 0, 0, 0, 43]], ![![-1, 1, 0, 0, 0, 0], ![9, -21, 5, 0, 0, 0], ![7, 0, -21, 1, 0, 0], ![3, 0, 0, -21, 5, 0], ![16, 0, 0, 0, -21, 1], ![-5, 0, 10, 0, 5, -21]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
-lemma NI43N2 : Nat.card (O ⧸ I43N2) = 43 := 
+lemma NI43N2 : Nat.card (O ⧸ I43N2) = 43 :=
  ideal_norm_eq_prod' B _ _ (by decide) 0 0 (by decide) (ideal_eq_of_IdealEqSpanCertificate' timesTableT_eq_Table rfl SI43N2)
 
 lemma isPrimeI43N2 : Ideal.IsPrime I43N2 := prime_ideal_of_norm_prime hp43.out _ NI43N2
 
 def I43N3 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![3, 0, 2, 0, -3, 0]] i)))
 
-def SI43N3: IdealEqSpanCertificate' Table ![![3, 0, 2, 0, -3, 0]] 
+def SI43N3: IdealEqSpanCertificate' Table ![![3, 0, 2, 0, -3, 0]]
  ![![43, 0, 0, 0, 0, 0], ![0, 43, 0, 0, 0, 0], ![19, 0, 1, 0, 0, 0], ![0, 19, 0, 1, 0, 0], ![26, 0, 0, 0, 1, 0], ![0, 26, 0, 0, 0, 1]] where
   M :=![![![3, 0, 2, 0, -3, 0], ![0, 3, 0, 2, 0, -3], ![3, 0, -3, 0, -1, 0], ![0, 3, 0, -3, 0, -1], ![1, 0, 1, 0, -4, 0], ![0, 1, 0, 1, 0, -4]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![13, 0, 5, 0, -11, 0]], ![![0, 13, 0, 5, 0, -11]], ![![6, 0, 2, 0, -5, 0]], ![![0, 6, 0, 2, 0, -5]], ![![8, 0, 3, 0, -7, 0]], ![![0, 8, 0, 3, 0, -7]]]
   g := ![![![1, 0, 2, 0, -3, 0], ![0, 1, 0, 2, 0, -3], ![2, 0, -3, 0, -1, 0], ![0, 2, 0, -3, 0, -1], ![2, 0, 1, 0, -4, 0], ![0, 2, 0, 1, 0, -4]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
 
 def P43P3 : CertificateIrreducibleZModOfList' 43 2 2 5 [3, 33, 1] where
@@ -641,54 +641,54 @@ def PI43N3 : CertifiedPrimeIdeal' SI43N3 43 where
 
 lemma isPrimeI43N3 : Ideal.IsPrime I43N3 := CertifiedPrimeIdeal'.isPrime timesTableT_eq_Table rfl PI43N3 B_one_repr
 lemma NI43N3 : Nat.card (O ⧸ I43N3) = 1849 := CertifiedPrimeIdeal'.idealNorm timesTableT_eq_Table PI43N3
-def MulI43N0 : IdealMulLeCertificate' Table 
+def MulI43N0 : IdealMulLeCertificate' Table
   ![![-2, 0, -3, 0, 1, 0]] ![![43, 0, 0, 0, 0, 0], ![21, 1, 0, 0, 0, 0]]
   ![![43, 0, 0, 0, 0, 0], ![-20, -3, 19, 5, 0, 0]] where
  M := ![![![-86, 0, -129, 0, 43, 0], ![-42, -2, -63, -3, 21, 1]]]
- hmul := by decide  
+ hmul := by decide
  g := ![![![![-7442, 224, 1910, -337, 4178, 1540], ![-15996, 2881, -13244, 0, 0, 0]], ![![-3894, 256, 459, -405, 2625, 967], ![-8370, 1806, -8316, 0, 0, 0]]]]
- hle2 := by decide  
+ hle2 := by decide
 
-def MulI43N1 : IdealMulLeCertificate' Table 
+def MulI43N1 : IdealMulLeCertificate' Table
   ![![43, 0, 0, 0, 0, 0], ![-20, -3, 19, 5, 0, 0]] ![![43, 0, 0, 0, 0, 0], ![-21, 1, 0, 0, 0, 0]]
   ![![13, 0, 5, 0, -11, 0]] where
  M := ![![![1849, 0, 0, 0, 0, 0], ![-903, 43, 0, 0, 0, 0]], ![![-860, -129, 817, 215, 0, 0], ![420, 43, -414, -86, 25, 0]]]
- hmul := by decide  
+ hmul := by decide
  g := ![![![![129, 0, 86, 0, -129, 0]], ![![-63, 3, -42, 2, 63, -3]]], ![![![-3, 6, -97, -21, 41, 4]], ![![1, -3, 49, 8, -22, -1]]]]
- hle2 := by decide  
+ hle2 := by decide
 
-def MulI43N2 : IdealMulLeCertificate' Table 
+def MulI43N2 : IdealMulLeCertificate' Table
   ![![13, 0, 5, 0, -11, 0]] ![![3, 0, 2, 0, -3, 0]]
   ![![43, 0, 0, 0, 0, 0]] where
  M := ![![![43, 0, 0, 0, 0, 0]]]
- hmul := by decide  
+ hmul := by decide
  g := ![![![![1, 0, 0, 0, 0, 0]]]]
- hle2 := by decide  
+ hle2 := by decide
 
 
-def PBC43 : ContainsPrimesAboveP 43 ![I43N0, I43N1, I43N2, I43N3] where 
-  Ip := by 
-    intro i 
-    fin_cases i 
+def PBC43 : ContainsPrimesAboveP 43 ![I43N0, I43N1, I43N2, I43N3] where
+  Ip := by
+    intro i
+    fin_cases i
     exact isPrimeI43N0
     exact isPrimeI43N1
     exact isPrimeI43N2
     exact isPrimeI43N3
-  hPprod := by 
+  hPprod := by
     simp only [← Fin.prod_ofFn]
     exact ideal_le_singleton_IdealMulLeChainCertificate timesTableT_eq_Table B_one_repr 43 (by decide) (𝕀 ⊙ MulI43N0 ⊙ MulI43N1 ⊙ MulI43N2)
 instance hp47 : Fact (Nat.Prime 47) := {out := by norm_num}
 
 def I47N0 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![47, 0, 0, 0, 0, 0], ![4, -19, 16, 5, 0, 0]] i)))
 
-def SI47N0: IdealEqSpanCertificate' Table ![![47, 0, 0, 0, 0, 0], ![4, -19, 16, 5, 0, 0]] 
+def SI47N0: IdealEqSpanCertificate' Table ![![47, 0, 0, 0, 0, 0], ![4, -19, 16, 5, 0, 0]]
  ![![47, 0, 0, 0, 0, 0], ![0, 47, 0, 0, 0, 0], ![0, 0, 47, 0, 0, 0], ![29, 15, 22, 1, 0, 0], ![4, 15, 31, 0, 1, 0], ![41, 9, 4, 0, 0, 1]] where
   M :=![![![47, 0, 0, 0, 0, 0], ![0, 47, 0, 0, 0, 0], ![0, 0, 47, 0, 0, 0], ![0, 0, 0, 47, 0, 0], ![0, 0, 0, 0, 47, 0], ![0, 0, 0, 0, 0, 47]], ![![4, -19, 16, 5, 0, 0], ![0, 4, -95, 16, 25, 0], ![0, 0, 4, -19, 16, 5], ![-25, 0, 50, 4, -70, 16], ![-16, -5, 32, 10, 20, -14], ![70, -16, -165, 32, -20, 20]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![685, -3505, 8848, -321, -1472, 40], ![-8037, 3008, -376, 0, 0, 0]], ![![-24, 235, -2954, 488, 718, -10], ![282, -1410, 94, 0, 0, 0]], ![![-12, 49, 139, -28, -66, -5], ![141, 94, 47, 0, 0, 0]], ![![415, -2088, 4524, -38, -686, 20], ![-4869, 1410, -188, 0, 0, 0]], ![![44, -195, -139, 108, 83, 0], ![-516, -156, 0, 0, 0, 0]], ![![595, -3026, 7250, -199, -1170, 33], ![-6981, 2398, -310, 0, 0, 0]]]
   g := ![![![1, 0, 0, 0, 0, 0], ![0, 1, 0, 0, 0, 0], ![0, 0, 1, 0, 0, 0], ![-29, -15, -22, 47, 0, 0], ![-4, -15, -31, 0, 47, 0], ![-41, -9, -4, 0, 0, 47]], ![![-3, -2, -2, 5, 0, 0], ![-12, -13, -26, 16, 25, 0], ![6, 0, -2, -19, 16, 5], ![-11, 18, 44, 4, -70, 16], ![4, -7, -16, 10, 20, -14], ![-34, -8, -7, 32, -20, 20]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
 
 def P47P0 : CertificateIrreducibleZModOfList' 47 3 2 5 [21, 25, 35, 1] where
@@ -736,14 +736,14 @@ lemma NI47N0 : Nat.card (O ⧸ I47N0) = 103823 := CertifiedPrimeIdeal'.idealNorm
 
 def I47N1 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![47, 0, 0, 0, 0, 0], ![-4, -19, -16, 5, 0, 0]] i)))
 
-def SI47N1: IdealEqSpanCertificate' Table ![![47, 0, 0, 0, 0, 0], ![-4, -19, -16, 5, 0, 0]] 
+def SI47N1: IdealEqSpanCertificate' Table ![![47, 0, 0, 0, 0, 0], ![-4, -19, -16, 5, 0, 0]]
  ![![47, 0, 0, 0, 0, 0], ![0, 47, 0, 0, 0, 0], ![0, 0, 47, 0, 0, 0], ![18, 15, 25, 1, 0, 0], ![4, 32, 31, 0, 1, 0], ![6, 9, 43, 0, 0, 1]] where
   M :=![![![47, 0, 0, 0, 0, 0], ![0, 47, 0, 0, 0, 0], ![0, 0, 47, 0, 0, 0], ![0, 0, 0, 47, 0, 0], ![0, 0, 0, 0, 47, 0], ![0, 0, 0, 0, 0, 47]], ![![-4, -19, -16, 5, 0, 0], ![0, -4, -95, -16, 25, 0], ![0, 0, -4, -19, -16, 5], ![-25, 0, 50, -4, -70, -16], ![16, -5, -32, 10, -20, -14], ![70, 16, -165, -32, -20, -20]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![-1935, -9236, -6726, 11608, 8122, -2460], ![-22748, -470, 23124, 0, 0, 0]], ![![96, 481, 962, 14, -118, -10], ![1128, 282, 94, 0, 0, 0]], ![![0, 8, 191, 32, -50, 0], ![0, 94, 0, 0, 0, 0]], ![![-722, -3447, -2357, 5171, 3748, -1140], ![-8488, -188, 10716, 0, 0, 0]], ![![-172, -966, -4245, -439, 885, 15], ![-2022, -1754, -141, 0, 0, 0]], ![![-230, -1097, -699, 1780, 1296, -397], ![-2704, -48, 3732, 0, 0, 0]]]
   g := ![![![1, 0, 0, 0, 0, 0], ![0, 1, 0, 0, 0, 0], ![0, 0, 1, 0, 0, 0], ![-18, -15, -25, 47, 0, 0], ![-4, -32, -31, 0, 47, 0], ![-6, -9, -43, 0, 0, 47]], ![![-2, -2, -3, 5, 0, 0], ![4, -12, -10, -16, 25, 0], ![8, 16, 16, -19, -16, 5], ![9, 52, 64, -4, -70, -16], ![0, 13, 20, 10, -20, -14], ![18, 28, 45, -32, -20, -20]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
 
 def P47P1 : CertificateIrreducibleZModOfList' 47 3 2 5 [6, 14, 39, 1] where
@@ -788,36 +788,36 @@ def PI47N1 : CertifiedPrimeIdeal' SI47N1 47 where
 
 lemma isPrimeI47N1 : Ideal.IsPrime I47N1 := CertifiedPrimeIdeal'.isPrime timesTableT_eq_Table rfl PI47N1 B_one_repr
 lemma NI47N1 : Nat.card (O ⧸ I47N1) = 103823 := CertifiedPrimeIdeal'.idealNorm timesTableT_eq_Table PI47N1
-def MulI47N0 : IdealMulLeCertificate' Table 
+def MulI47N0 : IdealMulLeCertificate' Table
   ![![47, 0, 0, 0, 0, 0], ![4, -19, 16, 5, 0, 0]] ![![47, 0, 0, 0, 0, 0], ![-4, -19, -16, 5, 0, 0]]
   ![![47, 0, 0, 0, 0, 0]] where
  M := ![![![2209, 0, 0, 0, 0, 0], ![-188, -893, -752, 235, 0, 0]], ![![188, -893, 752, 235, 0, 0], ![-141, 0, 1927, 0, -1081, 0]]]
- hmul := by decide  
+ hmul := by decide
  g := ![![![![47, 0, 0, 0, 0, 0]], ![![-4, -19, -16, 5, 0, 0]]], ![![![4, -19, 16, 5, 0, 0]], ![![-3, 0, 41, 0, -23, 0]]]]
- hle2 := by decide  
+ hle2 := by decide
 
 
-def PBC47 : ContainsPrimesAboveP 47 ![I47N0, I47N1] where 
-  Ip := by 
-    intro i 
-    fin_cases i 
+def PBC47 : ContainsPrimesAboveP 47 ![I47N0, I47N1] where
+  Ip := by
+    intro i
+    fin_cases i
     exact isPrimeI47N0
     exact isPrimeI47N1
-  hPprod := by 
+  hPprod := by
     simp only [← Fin.prod_ofFn]
     exact ideal_le_singleton_IdealMulLeChainCertificate timesTableT_eq_Table B_one_repr 47 (by decide) (𝕀 ⊙ MulI47N0)
 instance hp53 : Fact (Nat.Prime 53) := {out := by norm_num}
 
 def I53N0 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![53, 0, 0, 0, 0, 0]] i)))
 
-def SI53N0: IdealEqSpanCertificate' Table ![![53, 0, 0, 0, 0, 0]] 
+def SI53N0: IdealEqSpanCertificate' Table ![![53, 0, 0, 0, 0, 0]]
  ![![53, 0, 0, 0, 0, 0], ![0, 53, 0, 0, 0, 0], ![0, 0, 53, 0, 0, 0], ![0, 0, 0, 53, 0, 0], ![0, 0, 0, 0, 53, 0], ![0, 0, 0, 0, 0, 53]] where
   M :=![![![53, 0, 0, 0, 0, 0], ![0, 53, 0, 0, 0, 0], ![0, 0, 53, 0, 0, 0], ![0, 0, 0, 53, 0, 0], ![0, 0, 0, 0, 53, 0], ![0, 0, 0, 0, 0, 53]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![1, 0, 0, 0, 0, 0]], ![![0, 1, 0, 0, 0, 0]], ![![0, 0, 1, 0, 0, 0]], ![![0, 0, 0, 1, 0, 0]], ![![0, 0, 0, 0, 1, 0]], ![![0, 0, 0, 0, 0, 1]]]
   g := ![![![1, 0, 0, 0, 0, 0], ![0, 1, 0, 0, 0, 0], ![0, 0, 1, 0, 0, 0], ![0, 0, 0, 1, 0, 0], ![0, 0, 0, 0, 1, 0], ![0, 0, 0, 0, 0, 1]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
 
 def P53P0 : CertificateIrreducibleZModOfList' 53 6 2 5 [21, 26, 34, 18, 12, 3, 1] where
@@ -863,12 +863,12 @@ def PI53N0 : CertifiedPrimeIdeal' SI53N0 53 where
 lemma isPrimeI53N0 : Ideal.IsPrime I53N0 := CertifiedPrimeIdeal'.isPrime timesTableT_eq_Table rfl PI53N0 B_one_repr
 lemma NI53N0 : Nat.card (O ⧸ I53N0) = 22164361129 := CertifiedPrimeIdeal'.idealNorm timesTableT_eq_Table PI53N0
 
-def PBC53 : ContainsPrimesAboveP 53 ![I53N0] where 
-  Ip := by 
-    intro i 
-    fin_cases i 
+def PBC53 : ContainsPrimesAboveP 53 ![I53N0] where
+  Ip := by
+    intro i
+    fin_cases i
     exact isPrimeI53N0
-  hPprod := by 
+  hPprod := by
     simp only [← Fin.prod_ofFn]
     exact ideal_le_singleton_IdealMulLeChainCertificate (u := ![![53, 0, 0, 0, 0, 0]]) timesTableT_eq_Table B_one_repr 53 (by decide) 𝕀
 
@@ -876,14 +876,14 @@ instance hp59 : Fact (Nat.Prime 59) := {out := by norm_num}
 
 def I59N0 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![59, 0, 0, 0, 0, 0]] i)))
 
-def SI59N0: IdealEqSpanCertificate' Table ![![59, 0, 0, 0, 0, 0]] 
+def SI59N0: IdealEqSpanCertificate' Table ![![59, 0, 0, 0, 0, 0]]
  ![![59, 0, 0, 0, 0, 0], ![0, 59, 0, 0, 0, 0], ![0, 0, 59, 0, 0, 0], ![0, 0, 0, 59, 0, 0], ![0, 0, 0, 0, 59, 0], ![0, 0, 0, 0, 0, 59]] where
   M :=![![![59, 0, 0, 0, 0, 0], ![0, 59, 0, 0, 0, 0], ![0, 0, 59, 0, 0, 0], ![0, 0, 0, 59, 0, 0], ![0, 0, 0, 0, 59, 0], ![0, 0, 0, 0, 0, 59]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![1, 0, 0, 0, 0, 0]], ![![0, 1, 0, 0, 0, 0]], ![![0, 0, 1, 0, 0, 0]], ![![0, 0, 0, 1, 0, 0]], ![![0, 0, 0, 0, 1, 0]], ![![0, 0, 0, 0, 0, 1]]]
   g := ![![![1, 0, 0, 0, 0, 0], ![0, 1, 0, 0, 0, 0], ![0, 0, 1, 0, 0, 0], ![0, 0, 0, 1, 0, 0], ![0, 0, 0, 0, 1, 0], ![0, 0, 0, 0, 0, 1]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
 
 def P59P0 : CertificateIrreducibleZModOfList' 59 6 2 5 [7, 41, 43, 4, 30, 5, 1] where
@@ -929,12 +929,12 @@ def PI59N0 : CertifiedPrimeIdeal' SI59N0 59 where
 lemma isPrimeI59N0 : Ideal.IsPrime I59N0 := CertifiedPrimeIdeal'.isPrime timesTableT_eq_Table rfl PI59N0 B_one_repr
 lemma NI59N0 : Nat.card (O ⧸ I59N0) = 42180533641 := CertifiedPrimeIdeal'.idealNorm timesTableT_eq_Table PI59N0
 
-def PBC59 : ContainsPrimesAboveP 59 ![I59N0] where 
-  Ip := by 
-    intro i 
-    fin_cases i 
+def PBC59 : ContainsPrimesAboveP 59 ![I59N0] where
+  Ip := by
+    intro i
+    fin_cases i
     exact isPrimeI59N0
-  hPprod := by 
+  hPprod := by
     simp only [← Fin.prod_ofFn]
     exact ideal_le_singleton_IdealMulLeChainCertificate (u := ![![59, 0, 0, 0, 0, 0]]) timesTableT_eq_Table B_one_repr 59 (by decide) 𝕀
 
@@ -942,14 +942,14 @@ instance hp61 : Fact (Nat.Prime 61) := {out := by norm_num}
 
 def I61N0 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![3, -6, -6, -1, 0, 3]] i)))
 
-def SI61N0: IdealEqSpanCertificate' Table ![![3, -6, -6, -1, 0, 3]] 
+def SI61N0: IdealEqSpanCertificate' Table ![![3, -6, -6, -1, 0, 3]]
  ![![61, 0, 0, 0, 0, 0], ![0, 61, 0, 0, 0, 0], ![0, 0, 61, 0, 0, 0], ![19, 24, 60, 1, 0, 0], ![16, 33, 36, 0, 1, 0], ![48, 6, 18, 0, 0, 1]] where
   M :=![![![3, -6, -6, -1, 0, 3], ![-15, 3, 0, -6, 10, 0], ![0, -3, 3, 0, -6, 2], ![-10, 0, 5, 3, 10, -6], ![6, -2, -12, 1, -3, 2], ![-10, 6, 10, -12, 15, -3]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![3, -4, -6, -2, -3, 1]], ![![-5, 3, -10, -6, -5, -3]], ![![3, -1, -3, -2, -9, -1]], ![![2, -1, -9, -5, -12, -2]], ![![0, 0, -9, -5, -9, -2]], ![![3, -3, -7, -3, -6, 0]]]
   g := ![![![-2, 0, 0, -1, 0, 3], ![-1, -3, 0, -6, 10, 0], ![0, 3, 3, 0, -6, 2], ![1, -6, -7, 3, 10, -6], ![-1, 1, 0, 1, -3, 2], ![2, -3, 4, -12, 15, -3]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
 
 def P61P0 : CertificateIrreducibleZModOfList' 61 3 2 5 [28, 5, 26, 1] where
@@ -997,14 +997,14 @@ lemma NI61N0 : Nat.card (O ⧸ I61N0) = 226981 := CertifiedPrimeIdeal'.idealNorm
 
 def I61N1 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![3, 6, -6, 1, 0, -3]] i)))
 
-def SI61N1: IdealEqSpanCertificate' Table ![![3, 6, -6, 1, 0, -3]] 
+def SI61N1: IdealEqSpanCertificate' Table ![![3, 6, -6, 1, 0, -3]]
  ![![61, 0, 0, 0, 0, 0], ![0, 61, 0, 0, 0, 0], ![0, 0, 61, 0, 0, 0], ![42, 24, 1, 1, 0, 0], ![16, 28, 36, 0, 1, 0], ![13, 6, 43, 0, 0, 1]] where
   M :=![![![3, 6, -6, 1, 0, -3], ![15, 3, 0, -6, -10, 0], ![0, 3, 3, 0, -6, -2], ![10, 0, -5, 3, -10, -6], ![6, 2, -12, -1, -3, -2], ![10, 6, -10, -12, -15, -3]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![3, 4, -6, 2, -3, -1]], ![![5, 3, 10, -6, 5, -3]], ![![3, 1, -3, 2, -9, 1]], ![![4, 4, 0, -1, 0, -2]], ![![5, 3, 1, -1, -4, -1]], ![![3, 2, -2, 1, -6, 0]]]
   g := ![![![0, 0, 2, 1, 0, -3], ![7, 7, 6, -6, -10, 0], ![2, 3, 5, 0, -6, -2], ![2, 4, 10, 3, -10, -6], ![2, 2, 3, -1, -3, -2], ![13, 12, 11, -12, -15, -3]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
 
 def P61P1 : CertificateIrreducibleZModOfList' 61 3 2 5 [44, 5, 30, 1] where
@@ -1049,22 +1049,22 @@ def PI61N1 : CertifiedPrimeIdeal' SI61N1 61 where
 
 lemma isPrimeI61N1 : Ideal.IsPrime I61N1 := CertifiedPrimeIdeal'.isPrime timesTableT_eq_Table rfl PI61N1 B_one_repr
 lemma NI61N1 : Nat.card (O ⧸ I61N1) = 226981 := CertifiedPrimeIdeal'.idealNorm timesTableT_eq_Table PI61N1
-def MulI61N0 : IdealMulLeCertificate' Table 
+def MulI61N0 : IdealMulLeCertificate' Table
   ![![3, -6, -6, -1, 0, 3]] ![![3, 6, -6, 1, 0, -3]]
   ![![61, 0, 0, 0, 0, 0]] where
  M := ![![![-61, 0, -61, 0, 61, 0]]]
- hmul := by decide  
+ hmul := by decide
  g := ![![![![-1, 0, -1, 0, 1, 0]]]]
- hle2 := by decide  
+ hle2 := by decide
 
 
-def PBC61 : ContainsPrimesAboveP 61 ![I61N0, I61N1] where 
-  Ip := by 
-    intro i 
-    fin_cases i 
+def PBC61 : ContainsPrimesAboveP 61 ![I61N0, I61N1] where
+  Ip := by
+    intro i
+    fin_cases i
     exact isPrimeI61N0
     exact isPrimeI61N1
-  hPprod := by 
+  hPprod := by
     simp only [← Fin.prod_ofFn]
     exact ideal_le_singleton_IdealMulLeChainCertificate timesTableT_eq_Table B_one_repr 61 (by decide) (𝕀 ⊙ MulI61N0)
 
@@ -1072,7 +1072,8 @@ def PBC61 : ContainsPrimesAboveP 61 ![I61N0, I61N1] where
 lemma PB87I1_primes (p : ℕ) :
   p ∈ Set.range ![29, 31, 37, 41, 43, 47, 53, 59, 61] ↔ Nat.Prime p ∧ 23 < p ∧ p ≤ 61 := by
   rw [← List.mem_ofFn']
-  convert primes_range 23 61 (by omega) <;> decide
+  convert primes_range 23 61 (by omega)
+  rfl
 
 def PB87I1 : PrimesBelowBoundCertificateInterval' O 23 61 87 where
   m := 9
@@ -1082,7 +1083,7 @@ def PB87I1 : PrimesBelowBoundCertificateInterval' O 23 61 87 where
   I := fun i => by
     cases i
     rename_i i h
-    interval_cases i 
+    interval_cases i
     · exact ![I29N0, I29N1, I29N2, I29N3]
     · exact ![I31N0]
     · exact ![I37N0]
@@ -1122,7 +1123,7 @@ def PB87I1 : PrimesBelowBoundCertificateInterval' O 23 61 87 where
   hN := fun i => by
     cases i
     rename_i i h
-    interval_cases i 
+    interval_cases i
     · dsimp ; intro j
       fin_cases j
       exact NI29N0
