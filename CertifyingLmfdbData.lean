@@ -3,14 +3,12 @@ import CertifyingLmfdbData.IntervalArithmetic.Certificate
 import CertifyingLmfdbData.IntervalArithmetic.Core
 import CertifyingLmfdbData.IntervalArithmetic.Dyadic
 import CertifyingLmfdbData.IntervalArithmetic.DyadicReal
-import CertifyingLmfdbData.IntervalArithmetic.DyadicReal'
 import CertifyingLmfdbData.IntervalArithmetic.Environment
 import CertifyingLmfdbData.IntervalArithmetic.ExactRatReal
 import CertifyingLmfdbData.IntervalArithmetic.Expr
 import CertifyingLmfdbData.IntervalArithmetic.Interval
 import CertifyingLmfdbData.IntervalArithmetic.IntervalHyps
 import CertifyingLmfdbData.IntervalArithmetic.IntervalOpHelpers
-import CertifyingLmfdbData.IntervalArithmetic.Tests
 import CertifyingLmfdbData.Polynomial.AllRoots
 import CertifyingLmfdbData.Polynomial.Certify
 import CertifyingLmfdbData.Polynomial.Example
