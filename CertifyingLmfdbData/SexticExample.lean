@@ -80,7 +80,6 @@ theorem residue_mem (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh : Riema
 #printaxioms regulator_mem
 #printaxioms residue_mem
 
-#check newton_kantorovich_fd
 #check belabas_friedman_thm1
 #check DegSix.nfPrimes1000_spec
 
