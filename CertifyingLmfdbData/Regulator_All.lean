@@ -3,6 +3,7 @@ import CertifyingLmfdbData.Regulator.RegulatorBound
 import CertifyingLmfdbData.Regulator.MatrixPerturbation
 import CertifyingLmfdbData.IntervalArithmetic.DyadicReal
 import CertifyingLmfdbData.SexticExampleHyp
+import CertifyingLmfdbData.SexticExampleUnits
 
 noncomputable section
 
@@ -173,7 +174,11 @@ theorem bound_regulator : ∃ k : ℕ, 1 ≤ k ∧ bound = k • NumberField.Uni
   refine regulator_le_regOfFamily_comp
     (m := m) (f := f) (u := u) (α := α) (t := t) (bound := bound)
     ?_ (fun i ↦ ?_) (fun i ↦ ?_) (fun i j ↦ ?_) (fun i ↦ ?_) (fun i ↦ ?_) (fun hc ↦ ?_) ?_
-  · sorry
+  · unfold NumberField.Units.rank
+    rw [NumberField.InfinitePlace.card_eq_nrRealPlaces_add_nrComplexPlaces]
+    change m = (NumberField.InfinitePlace.nrRealPlaces SexticExample.K ) +
+    (NumberField.InfinitePlace.nrComplexPlaces SexticExample.K)  -1
+    rw [SexticExample.nrComplexPlaces_eq, SexticExample.nrRealPlaces_eq]
   · fin_cases i <;>
       simp [uniqueRootNear_rroot1.isRoot,
             uniqueRootNear_rroot2.isRoot,
@@ -189,7 +194,15 @@ theorem bound_regulator : ∃ k : ℕ, 1 ≤ k ∧ bound = k • NumberField.Uni
         norm_num
   · fin_cases i <;>
       simp [rroot1_im_zero, rroot2_im_zero, rroot3_im_zero, zero_lt_croot4_im.ne.symm]
-  · sorry
+  · fin_cases i
+    · use unit1_isIntegral
+      exact unit1_isUnit''
+    · use unit2_isIntegral
+      exact unit2_isUnit''
+    · use unit3_isIntegral
+      exact unit3_isUnit''
+    · use unit4_isIntegral
+      exact unit4_isUnit''
   · have := bound_diff
     rw [hc, zero_sub, abs_neg] at this
     replace := le_of_abs_le this
