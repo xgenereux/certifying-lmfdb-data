@@ -205,15 +205,8 @@ theorem regulator_aux : ∃ m : ℕ, 1 ≤ m ∧
   rw [← hb]
   have key := bound_estimate
   rw [abs_le] at key
-  apply key.symm.imp
-  · intro h
-    rw [sub_le_iff_le_add] at h
-    grw [h]
-    norm_num
-  · intro h
-    rw [le_sub_iff_add_le] at h
-    grw [← h]
-    norm_num
+  rw [Set.mem_Icc]
+  exact ⟨by linarith, by linarith⟩
 
 end
 
