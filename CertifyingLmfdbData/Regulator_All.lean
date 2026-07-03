@@ -185,8 +185,7 @@ theorem bound_diff : |bound - bound_approx| ≤ 1e-48 := by
   have := absolute_bound_frob' bound_matrix_approx bound_matrix
     (Matrix.of fun i j ↦ 2 * 1e-53) (by simpa using matrix_entry_diffs)
   grw [abs_abs_sub_abs_le, ← Real.norm_eq_abs, this]
-  simp [Complex.norm_eq_sqrt_sq_add_sq,
-        Fin.sum_univ_castSucc]
+  simp [Complex.norm_eq_sqrt_sq_add_sq, Fin.sum_univ_castSucc]
   ring_nf
   simp [← one_div]
   dyadic_interval [approx := 400]
@@ -196,7 +195,20 @@ theorem bound_det : 1e-48 < bound_matrix_approx.det := by
   simp [bound_matrix_approx, Fin.succAbove, Complex.norm_eq_sqrt_sq_add_sq]
   dyadic_interval [approx := 50]
 
-theorem bound_regulator : ∃ k : ℕ, 1 ≤ k ∧ bound = k * NumberField.Units.regulator (AdjoinRoot f) := by
+theorem bound_approx_estimate : |bound_approx - 15.959695183485| ≤ 1e-12 := by
+  have hpos : 0 < bound_matrix_approx.det := by
+    grw [← bound_det]
+    positivity
+  rw [bound_approx, abs_of_pos hpos]
+  simp_rw [det_fin_four_scratch, Matrix.det_fin_three]
+  simp [bound_matrix_approx, Fin.succAbove, Complex.norm_eq_sqrt_sq_add_sq, abs_le]
+  constructor <;> dyadic_interval [approx := 100]
+
+theorem bound_estimate : |bound - 15.959695183485| ≤ 2 * 1e-12 := by
+  grw [abs_sub_le, bound_diff, bound_approx_estimate]
+  dyadic_interval [approx := 50]
+
+theorem bound_regulator : ∃ k : ℕ, 1 ≤ k ∧ bound = k • NumberField.Units.regulator (AdjoinRoot f) := by
   refine regulator_le_regOfFamily_comp
     (m := m) (f := f) (u := u) (α := α) (t := t) (bound := bound)
     ?_ (fun i ↦ ?_) (fun i ↦ ?_) (fun i j ↦ ?_) (fun i ↦ ?_) (fun i ↦ ?_) (fun hc ↦ ?_) ?_
@@ -225,5 +237,23 @@ theorem bound_regulator : ∃ k : ℕ, 1 ≤ k ∧ bound = k * NumberField.Units
     left
     exact bound_det
   · rfl
+
+theorem regulator_aux : ∃ m : ℕ, 1 ≤ m ∧
+    15.959695183485 ∈ Set.Icc ((1 - 1e-12) * m • NumberField.Units.regulator (AdjoinRoot f))
+      ((1 + 1e-12) * m • NumberField.Units.regulator (AdjoinRoot f)) := by
+  obtain ⟨m, hm, hb⟩ := bound_regulator
+  refine ⟨m, hm, ?_⟩
+  rw [← hb]
+  have key := bound_estimate
+  rw [abs_le] at key
+  apply key.symm.imp
+  · intro h
+    rw [sub_le_iff_le_add] at h
+    grw [h]
+    norm_num
+  · intro h
+    rw [le_sub_iff_add_le] at h
+    grw [← h]
+    norm_num
 
 end
