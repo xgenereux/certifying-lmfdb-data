@@ -1,2 +1,3 @@
 import CertifyingLmfdbData.ClassNumberFormula
 import CertifyingLmfdbData.Regulator.MatrixPerturbation
+import CertifyingLmfdbData.SexticExample
