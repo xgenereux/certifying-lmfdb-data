@@ -6,10 +6,10 @@ The main result obtained during the week can be found in `CertifyingLmfdbData.Se
 for the specific number field `K` associated to `x^6 - 5*x^4 - 50*x^2 + 125` ([LMFDB page](https://www.lmfdb.org/NumberField/6.4.19208000.1)).
 
 ```lean
--- The regulator of `K` is within `10^-10` of `15.959695183485`
+-- The regulator of `K` is within `10^-10` of `15.9596951835`
 theorem regulator_mem (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh : RiemannHypothesis) :
-    |regulator K - 15.959695183485| < 1e-10 := by
-  exact (classNumberFormula grh rh).2.1
+    |regulator K - 15.9596951835| < 1e-10 := by
+  grind [(classNumberFormula grh rh).2.1]
 ```
 
 It is conditional on GRH, the fact that a given list of norms corresponds to

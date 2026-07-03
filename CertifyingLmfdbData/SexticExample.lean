@@ -37,7 +37,7 @@ theorem dedekindResidue_ge (grh : GeneralizedRiemannHypothesis DegSix.K₆)
   apply DegSix.residue_lower_bound_degSix <;> assumption
 
 -- The final errors on the regulator and residue
-abbrev ε_reg : ℝ := 1e-10
+abbrev ε_reg : ℝ := 5*1e-11
 abbrev ε_res : ℝ := 1e-10
 
 -- The class number formula certifies the torsion order, the regulator, and the class number
@@ -67,10 +67,10 @@ theorem classNumber_eq (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh : Ri
     classNumber K = 2 := by
   exact (classNumberFormula grh rh).2.2.1
 
--- The regulator of `K` is within `10^-10` of `15.959695183485`
+-- The regulator of `K` is within `10^-10` of `15.9596951835`
 theorem regulator_mem (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh : RiemannHypothesis) :
-    |regulator K - 15.959695183485| < 1e-10 := by
-  exact (classNumberFormula grh rh).2.1
+    |regulator K - 15.9596951835| < 1e-10 := by
+  grind [(classNumberFormula grh rh).2.1]
 
 -- The residue of `K` is within `10^-10` of `0.366086210051`
 theorem residue_mem (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh : RiemannHypothesis) :
