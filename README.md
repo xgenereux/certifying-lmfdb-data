@@ -14,4 +14,4 @@ theorem regulator_mem (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh : Rie
 
 It is conditional on GRH, the fact that a given list of norms corresponds to
 the norms of all the prime ideals of `K` with norm `< 1000`, a theorem of Belabas and Friedman
-on approximations of the residue of the Dedekind zeta function and the Newton–Kantorovich theorem (TODO cite Lean proof). GRH and RH appear as explicit hypotheses; the remaining assumptions are stated as axioms. A key element of the proof is the Class Number Formula, which allows one to upgrade approximations of the quantities appearing in it to exact values when they are integers, and to refine precision when they are real.
+on approximations of the residue of the Dedekind zeta function. GRH and RH appear as explicit hypotheses; the remaining assumptions are stated as axioms. A key element of the proof is the Class Number Formula, which allows one to upgrade approximations of the quantities appearing in it to exact values when they are integers, and to refine precision when they are real.
