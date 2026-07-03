@@ -111,8 +111,9 @@ theorem log_bound {x y : ℂ} {ε : ℝ}
     exact sub_le_sub_left (Real.log_le_log hy_sub_pos hx_lower) _
   exact abs_le.mpr ⟨by linarith, hupper⟩
 
-theorem matrix_entry_diffs'' (i j) :
+theorem embedding_matrix_entry_diffs (i j) :
     ‖(u i).aeval (α_approx j) - embedding_matrix_complex i j‖ ≤ 1e-55 := by
+  -- TODO : why do we need to unfold the abbrev `α_approx`?
   simp [approxRoots, α_approx, rroot1, rroot2, rroot3, croot1,
         fundUnits, fundU1, fundU2, fundU3, fundU4,
         Complex.norm_eq_sqrt_sq_add_sq]
@@ -121,7 +122,7 @@ theorem matrix_entry_diffs'' (i j) :
     simp [Complex.I_pow_eq_pow_mod'] <;> ring_nf <;>
     dyadic_interval [approx := 400]
 
-theorem matrix_entry_diffs (i j) :
+theorem bound_matrix_entry_diffs (i j) :
     |bound_matrix i j - bound_matrix_approx i j| ≤ 2 * 1e-53 := by
   calc
     _ = |(t j : ℝ)| * |Real.log ‖(u i).aeval (α j)‖ - Real.log ‖embedding_matrix_complex i j‖| := by
@@ -133,7 +134,7 @@ theorem matrix_entry_diffs (i j) :
     _ ≤ 2 * 1e-53 := by
       gcongr
       have : ‖(Polynomial.aeval (α j)) (u i) - embedding_matrix_complex i j‖ ≤ 2 * 1e-55 := by
-        grw [norm_sub_le_norm_sub_add_norm_sub, matrix_entry_diffs'', two_mul]
+        grw [norm_sub_le_norm_sub_add_norm_sub, embedding_matrix_entry_diffs, two_mul]
         gcongr
         fin_cases j <;> convert! sigma_bounds_uniform _ i <;> simp [uniqueRoots]
       grw [log_bound _ this] <;>
@@ -144,11 +145,11 @@ theorem matrix_entry_diffs (i j) :
 
 theorem bound_diff : |bound - bound_approx| ≤ 1e-48 := by
   grw [abs_abs_sub_abs_le, ← Real.norm_eq_abs,
-      absolute_bound_frob' bound_matrix_approx bound_matrix
-        (Matrix.of fun i j ↦ 2 * 1e-53) matrix_entry_diffs]
+      absolute_bound_frob_uniform bound_matrix_approx bound_matrix
+        (2 * 1e-53) bound_matrix_entry_diffs]
   simp [Fin.sum_univ_castSucc]
   ring_nf
-  simp [← one_div]
+  simp only [sq_abs]
   dyadic_interval [approx := 400]
 
 theorem bound_det : 1e-48 < bound_matrix_approx.det := by

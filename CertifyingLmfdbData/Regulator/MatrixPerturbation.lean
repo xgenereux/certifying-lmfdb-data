@@ -732,6 +732,21 @@ theorem absolute_bound_frob' (A B : Matrix n n K) (δ : Matrix n n ℝ)
     ‖B.det - A.det‖ ≤ (card n : ℝ) * ‖δ‖f * (‖A‖f + ‖δ‖f) ^ (card n - 1) := by
   simpa using absolute_bound_frob A (B - A) δ (by simpa using h_diff)
 
+theorem absolute_bound_frob_uniform (A B : Matrix n n K) (δ : ℝ)
+    (h_diff : ∀ i j, ‖B i j - A i j‖ ≤ δ) :
+    ‖B.det - A.det‖ ≤ (card n : ℝ) ^ 2 * δ * (‖A‖f + (card n) * δ) ^ (card n - 1) := by
+  obtain hn | hn := isEmpty_or_nonempty n
+  · simp
+  have hδ : 0 ≤ δ := by
+    let i₀ : n := Classical.ofNonempty
+    grw [norm_nonneg (B i₀ i₀ - A i₀ i₀), h_diff i₀ i₀]
+  grw [absolute_bound_frob' A B (Matrix.of fun _ _ ↦ δ) h_diff]
+  simp [hδ]
+  ring_nf
+  simp
+  ring_nf
+  rfl
+
 end
 
 def myMat : Matrix (Fin 2) (Fin 2) ℚ :=
