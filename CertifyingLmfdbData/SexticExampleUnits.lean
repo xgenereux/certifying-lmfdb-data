@@ -3,7 +3,7 @@ import CertifyingLmfdbData.Polynomial.AllRoots
 
 open Polynomial
 
-open DegSix
+open DegSix NumberField
 
 noncomputable section
 
@@ -122,29 +122,17 @@ lemma unit4_poly : (unit4 : K) = Adj.map  (C (1/25) * X^5 - C (1/5) * X^2 - C 2 
   linear_combination (-X^2) * hC5
 
 
-def unit1' : NumberField.RingOfIntegers K :=  (Subalgebra.equivOfEq _ _ O_integral_closure) unit1
+def unit1' : (𝓞 K)ˣ :=
+  IsUnit.unit (IsUnit.map (Subalgebra.equivOfEq _ _ O_integral_closure) isUnit_unit1)
 
-def unit2' : NumberField.RingOfIntegers K := (Subalgebra.equivOfEq _ _ O_integral_closure) unit2
+def unit2' : (𝓞 K)ˣ :=
+  IsUnit.unit (IsUnit.map (Subalgebra.equivOfEq _ _ O_integral_closure) isUnit_unit2)
 
-def unit3' : NumberField.RingOfIntegers K := (Subalgebra.equivOfEq _ _ O_integral_closure) unit3
+def unit3' : (𝓞 K)ˣ :=
+  IsUnit.unit (IsUnit.map (Subalgebra.equivOfEq _ _ O_integral_closure) isUnit_unit3)
 
-def unit4' : NumberField.RingOfIntegers K := (Subalgebra.equivOfEq _ _ O_integral_closure) unit4
-
-lemma isUnit_unit1' : IsUnit unit1' := by
-  unfold unit1'
-  refine IsUnit.map _ isUnit_unit1
-
-lemma isUnit_unit2' : IsUnit unit2' := by
-  unfold unit2'
-  refine IsUnit.map _ isUnit_unit2
-
-lemma isUnit_unit3' : IsUnit unit3' := by
-  unfold unit3'
-  refine IsUnit.map _ isUnit_unit3
-
-lemma isUnit_unit4' : IsUnit unit4' := by
-  unfold unit4'
-  refine IsUnit.map _ isUnit_unit4
+def unit4' : (𝓞 K)ˣ :=
+  IsUnit.unit (IsUnit.map (Subalgebra.equivOfEq _ _ O_integral_closure) isUnit_unit4)
 
 lemma unit1_poly' : (unit1' : K) = (AdjoinRoot.mk f) fundU1 := by
   change (↑unit1 : K) = (AdjoinRoot.mk f) fundU1
@@ -168,16 +156,16 @@ lemma unit4_poly' : (unit4' : K) = (AdjoinRoot.mk f) fundU4 := by
 
 lemma unit1_isIntegral : IsIntegral ℤ ((AdjoinRoot.mk f) fundU1) := by
   rw [← unit1_poly']
-  exact NumberField.RingOfIntegers.isIntegral_coe unit1'
+  exact NumberField.RingOfIntegers.isIntegral_coe (unit1' : 𝓞 K)
 
 lemma unit2_isIntegral : IsIntegral ℤ ((AdjoinRoot.mk f) fundU2) := by
   rw [← unit2_poly']
-  exact NumberField.RingOfIntegers.isIntegral_coe unit2'
+  exact NumberField.RingOfIntegers.isIntegral_coe (unit2' :𝓞 K)
 
 lemma unit3_isIntegral : IsIntegral ℤ ((AdjoinRoot.mk f) fundU3) := by
   rw [← unit3_poly']
-  exact NumberField.RingOfIntegers.isIntegral_coe unit3'
+  exact NumberField.RingOfIntegers.isIntegral_coe (unit3' : 𝓞 K)
 
 lemma unit4_isIntegral : IsIntegral ℤ ((AdjoinRoot.mk f) fundU4) := by
   rw [← unit4_poly']
-  exact NumberField.RingOfIntegers.isIntegral_coe unit4'
+  exact NumberField.RingOfIntegers.isIntegral_coe (unit4' : 𝓞 K)
