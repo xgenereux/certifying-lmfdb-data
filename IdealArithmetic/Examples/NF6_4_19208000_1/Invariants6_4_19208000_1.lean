@@ -117,31 +117,31 @@ def RC : RankUnitsCertificate O where
   k := 4
   r := 5
   hr := by decide
-  hreq := by decide 
+  hreq := by decide
 
-def NPCU2 : pMaximalUnitsCertificateDvdT O 2 where 
+def NPCU2 : pMaximalUnitsCertificateDvdT O 2 where
  hp := by decide
  r := 4
- huc := by 
+ huc := by
   erw [units_finrank_of_RankUnitsCertificate RC]
   decide
  u := ![zeta1, zeta2, zeta3, zeta4]
- hu := fun i => 
-  match i with 
+ hu := fun i =>
+  match i with
   | 0 => isUnit_zeta1
   | 1 => isUnit_zeta2
   | 2 => isUnit_zeta3
   | 3 => isUnit_zeta4
- v := v
+ v := v'
  m := 2
  hm := by norm_num
  hmv := v_pow_one
  t := 6
  hrle := by decide
  q := ![7, 13, 13, 13, 13, 29]
- hqP := by 
-  intro i 
-  match i with 
+ hqP := by
+  intro i
+  match i with
   | 0 => exact Sat2.hq7
   | 1 => exact Sat2.hq13
   | 2 => exact Sat2.hq13
@@ -150,7 +150,7 @@ def NPCU2 : pMaximalUnitsCertificateDvdT O 2 where
   | 5 => exact Sat2.hq29
  I := ![Sat2.I0, Sat2.I1, Sat2.I2, Sat2.I3, Sat2.I4, Sat2.I5]
  hcard := fun i =>
-  match i with  
+  match i with
   | 0 => Sat2.N0
   | 1 => Sat2.N1
   | 2 => Sat2.N2
@@ -159,7 +159,7 @@ def NPCU2 : pMaximalUnitsCertificateDvdT O 2 where
   | 5 => Sat2.N5
  ζ := ![3, 2, 2, 2, 2, 2]
  hr := fun i =>
-  match i with 
+  match i with
   | 0 => ((orderOf_of_IsOrderOf Sat2.R7) ▸ IsPrimitiveRoot.orderOf _)
   | 1 => ((orderOf_of_IsOrderOf Sat2.R13) ▸ IsPrimitiveRoot.orderOf _)
   | 2 => ((orderOf_of_IsOrderOf Sat2.R13) ▸ IsPrimitiveRoot.orderOf _)
@@ -168,9 +168,9 @@ def NPCU2 : pMaximalUnitsCertificateDvdT O 2 where
   | 5 => ((orderOf_of_IsOrderOf Sat2.R29) ▸ IsPrimitiveRoot.orderOf _)
  hdvd := by decide
  M := ![![0, 1, 1, 0, 1], ![1, 0, 0, 1, 0], ![1, 0, 1, 1, 0], ![0, 1, 0, 1, 0], ![0, 1, 1, 0, 0], ![1, 1, 0, 1, 0]]
- hM1 := by 
+ hM1 := by
   intro i j hj
-  fin_cases i <;> interval_cases j 
+  fin_cases i <;> interval_cases j
   · erw [eq_of_DiscreteLogCertificate Sat2.Log00] ; decide
   · erw [eq_of_DiscreteLogCertificate Sat2.Log01] ; decide
   · erw [eq_of_DiscreteLogCertificate Sat2.Log02] ; decide
@@ -195,9 +195,9 @@ def NPCU2 : pMaximalUnitsCertificateDvdT O 2 where
   · erw [eq_of_DiscreteLogCertificate Sat2.Log51] ; decide
   · erw [eq_of_DiscreteLogCertificate Sat2.Log52] ; decide
   · erw [eq_of_DiscreteLogCertificate Sat2.Log53] ; decide
- hM2 := by 
-  intro i 
-  fin_cases i 
+ hM2 := by
+  intro i
+  fin_cases i
   · erw [eq_of_DiscreteLogCertificate Sat2.Log04] ; decide
   · erw [eq_of_DiscreteLogCertificate Sat2.Log14] ; decide
   · erw [eq_of_DiscreteLogCertificate Sat2.Log24] ; decide
@@ -207,38 +207,40 @@ def NPCU2 : pMaximalUnitsCertificateDvdT O 2 where
  Minv := ![![0, 0, 1, 1, 1], ![0, 1, 1, 0, 1], ![0, 1, 1, 0, 0], ![0, 1, 1, 1, 1], ![1, 0, 0, 0, 1]]
  hInv := by decide
 
-def NPSU2 : pSaturatedClassGroupCertificateDvdT 2 ![J0] ![2] where 
+def NPSU2 : pSaturatedClassGroupCertificateDvdT 2 ![J0] ![2] where
  topMaximalUnitsCertificateDvdT := NPCU2
  a := ![alpha0]
  γ := 1
  hc := by decide
  ψ := ![0]
- iψ := ![0] 
- hψ := by decide 
- hψn := by 
-  intro i 
-  fin_cases i 
+ iψ := ![0]
+ hψ := by decide
+ hψn := by
+  intro i
+  fin_cases i
   · decide
  h := fun i =>
-  match i with 
-  | 0 => by convert J0_pow2
+  match i with
+  | 0 => J0_pow2
  N := ![![0], ![0], ![1], ![0], ![0], ![0]]
- hM3 := by 
+ hM3 := by
   intro (i : Fin 6) j
-  match i , j with 
+  match i , j with
   | 0, 0 => exact Sat2.Log05
   | 1, 0 => exact Sat2.Log15
   | 2, 0 => exact Sat2.Log25
   | 3, 0 => exact Sat2.Log35
   | 4, 0 => exact Sat2.Log45
   | 5, 0 => exact Sat2.Log55
- hDl := by decide 
+ hDl := by decide
  NInv := ![![0, 0, 0, 1, 0, 1], ![0, 1, 0, 0, 0, 1], ![0, 1, 0, 0, 1, 1], ![0, 1, 0, 1, 0, 1], ![1, 0, 0, 0, 1, 0], ![0, 0, 1, 0, 1, 1]]
- hN := by decide 
+ hN := by decide
 
 lemma T_discr : T.discr = -4689453125000000 :=  by
   convert discriminant_eq_DiscriminantOfPRemainder_of_SturmBuilderOfList SturmRC
-  rw [T_ofList]
+  · rw [T_ofList]
+  · decide
+
 
 theorem K_discr : NumberField.discr K = -19208000 := by
   rw [discr_numberField_eq_discrSubalgebraBuilder T_irreducible BQ O_integral_closure]
@@ -264,16 +266,16 @@ theorem K_minowski : MinkowskiBound K ≤ (86.12448056158439 : ℝ) := by
 def e := ![9, 6, 6]
 def s := ![9, 9, 5]
 
-def g : (i : Fin 3) → Fin (e i) → Ideal O := by 
-  rintro ⟨i, hi⟩ 
-  interval_cases i 
+def g : (i : Fin 3) → Fin (e i) → Ideal O := by
+  rintro ⟨i, hi⟩
+  interval_cases i
   exact ![I2N0, I3N0, I3N1, I7N0, I7N1, I13N0, I13N1, I13N2, I13N3]
   exact ![I29N1, I29N2, I41N2, I41N3, I43N1, I43N2]
   exact ![I71N1, I71N2, I71N3, I71N4, I83N0, I83N1]
 
-def BM : (i : Fin 3) → Fin (e i) → (Fin 1 → ℕ) := by 
-  rintro ⟨i, hi⟩ 
-  interval_cases i 
+def BM : (i : Fin 3) → Fin (e i) → (Fin 1 → ℕ) := by
+  rintro ⟨i, hi⟩
+  interval_cases i
   exact ![![1], ![1], ![1], ![1], ![1], ![1], ![1], ![1], ![1]]
   exact ![![0], ![0], ![0], ![0], ![1], ![1]]
   exact ![![0], ![0], ![0], ![0], ![1], ![1]]
@@ -299,7 +301,8 @@ lemma primesGenerationAux2  {y} :
 lemma primesGenerationAux {x} : x ∈ (List.ofFn PB87.Il).flatten ↔ x ∈ List.ofFn (Fin.addCasesIter e g) := by
   refine (list_flatten_eq_list_addCasesIter g (s := s) PB87.Il ?_ x)
   rintro ⟨i, hi⟩ x
-  interval_cases i 
+  interval_cases i
+
   · exact primesGenerationAux0
   · exact primesGenerationAux1
   · exact primesGenerationAux2
@@ -319,10 +322,8 @@ def x : Fin 1 → Ideal O := ![J0]
 def x' :  Fin 1 → nonZeroDivisors (Ideal O) := by
   refine fun i => Ideal.toNonZeroDivisorOfNeZero (x i) (?_ )
   unfold x
-  rw [← Submodule.zero_eq_bot, ← pow_ne_zero_iff (n := ![2] i) (by fin_cases i <;> decide) , NPSU2.h]
-  simp only [ Submodule.zero_eq_bot, ne_eq, Ideal.span_singleton_eq_bot, NPSU2]
   fin_cases i
-  · dsimp [alpha0] ; rw [(LinearEquiv.map_eq_zero_iff B.equivFun.symm)] ; decide 
+  · exact ideal_span_ne_bot 0 0 (by decide)
 
 lemma g'_apply : ∀ (i : Fin 21), ↑(g' i) = (Fin.addCasesIter e g) i := by
   intro i
@@ -336,90 +337,98 @@ lemma relations_proof0 (i : Fin 9) : IsInClass O x (g 0 i) (BM 0 i) := by
   show IsInClass O x (g 0 i) (![![1], ![1], ![1], ![1], ![1], ![1], ![1], ![1], ![1]] i)
   unfold IsInClass
   simp only [Fin.isValue, Fin.prod_univ_castSucc, Finset.univ_eq_empty, Finset.prod_empty, Fin.succ_zero_eq_one, one_mul]
+  dsimp
   fin_cases i
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R2N0))))
-    refine Nat.cast_ne_zero.2 (by decide)
-    exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R3N0))))
-    refine Nat.cast_ne_zero.2 (by decide)
-    exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R3N1))))
-    refine Nat.cast_ne_zero.2 (by decide)
-    exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R7N0))))
-    refine Nat.cast_ne_zero.2 (by decide)
-    exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R7N1))))
-    refine Nat.cast_ne_zero.2 (by decide)
-    exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R13N0))))
-    refine Nat.cast_ne_zero.2 (by decide)
-    exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R13N1))))
-    refine Nat.cast_ne_zero.2 (by decide)
-    exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R13N2))))
-    refine Nat.cast_ne_zero.2 (by decide)
-    exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R13N3))))
-    refine Nat.cast_ne_zero.2 (by decide)
-    exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+  · erw [one_mul]
+    use 7 , B.equivFun.symm ![-11, 9, -4, 2, 6, -3] ,
+    (by refine Nat.cast_ne_zero.2 (by decide)) , (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+    exact R2N0
+  · erw [one_mul]
+    use 7, B.equivFun.symm ![11, -2, -3, -2, -6, 3],
+    (by refine Nat.cast_ne_zero.2 (by decide)) , (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+    exact R3N0
+  · erw [one_mul]
+    use 7, B.equivFun.symm ![-5, 6, 2, -1, 4, -2],
+    (by refine Nat.cast_ne_zero.2 (by decide)) , (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+    exact R3N1
+  · erw [one_mul]
+    use 1, B.equivFun.symm ![1, 0, 0, 0, 0, 0],
+    (by refine Nat.cast_ne_zero.2 (by decide)) , (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+    exact R7N0
+  · erw [one_mul]
+    use 7, B.equivFun.symm ![-17, -9, -3, -2, 8, 3],
+    (by refine Nat.cast_ne_zero.2 (by decide)) , (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+    exact R7N1
+  · erw [one_mul]
+    use 7, B.equivFun.symm ![-1, -3, -1, -3, 5, 1],
+    (by refine Nat.cast_ne_zero.2 (by decide)) , (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+    exact R13N0
+  · erw [one_mul]
+    use 7, B.equivFun.symm ![-12, 6, 2, -1, 4, -2],
+    (by refine Nat.cast_ne_zero.2 (by decide)) , (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+    exact R13N1
+  · erw [one_mul]
+    use 7, B.equivFun.symm ![-2, -6, -2, 1, 3, 2],
+    (by refine Nat.cast_ne_zero.2 (by decide)) , (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+    exact R13N2
+  · erw [one_mul]
+    use 7, B.equivFun.symm ![13, -3, -1, -3, -9, 1],
+    (by refine Nat.cast_ne_zero.2 (by decide)) , (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+    exact R13N3
 
 lemma relations_proof1 (i : Fin 6) : IsInClass O x (g 1 i) (BM 1 i) := by
   show IsInClass O x (g 1 i) (![![0], ![0], ![0], ![0], ![1], ![1]] i)
   unfold IsInClass
   simp only [Fin.isValue, Fin.prod_univ_castSucc, Finset.univ_eq_empty, Finset.prod_empty, Fin.succ_zero_eq_one, one_mul]
+  dsimp
   fin_cases i
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
-    exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
-    exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
-    exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
-    exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R43N1))))
-    refine Nat.cast_ne_zero.2 (by decide)
-    exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R43N2))))
-    refine Nat.cast_ne_zero.2 (by decide)
-    exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+  · erw [one_mul]
+    convert ideal_mem_principal_class'' B _ _ ?_ rfl
+    rfl ; erw [mul_one] ; decide
+  · erw [one_mul]
+    convert ideal_mem_principal_class'' B _ _ ?_ rfl
+    rfl ; erw [mul_one] ; decide
+  · erw [one_mul]
+    convert ideal_mem_principal_class'' B _ _ ?_ rfl
+    rfl ; erw [mul_one] ; decide
+  · erw [one_mul]
+    convert ideal_mem_principal_class'' B _ _ ?_ rfl
+    rfl ; erw [mul_one] ; decide
+  · erw [one_mul]
+    use 7, B.equivFun.symm ![-11, 9, 3, 2, 6, -3],
+    (by refine Nat.cast_ne_zero.2 (by decide)) , (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+    exact R43N1
+  · erw [one_mul]
+    use 7, B.equivFun.symm ![-10, -2, -3, -2, 8, 3],
+    (by refine Nat.cast_ne_zero.2 (by decide)) , (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+    exact R43N2
 
 lemma relations_proof2 (i : Fin 6) : IsInClass O x (g 2 i) (BM 2 i) := by
   show IsInClass O x (g 2 i) (![![0], ![0], ![0], ![0], ![1], ![1]] i)
   unfold IsInClass
   simp only [Fin.isValue, Fin.prod_univ_castSucc, Finset.univ_eq_empty, Finset.prod_empty, Fin.succ_zero_eq_one, one_mul]
+  dsimp
   fin_cases i
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
-    exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
-    exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
-    exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · dsimp
-    simp only [Fin.isValue, Fin.reduceFinMk, Nat.succ_eq_add_one, Nat.reduceAdd, cons_val',
-    cons_val_zero, cons_val_fin_one, cons_val, cons_val_one, pow_zero, mul_one]
-    exact ideal_mem_principal_class'' B _ _ (by decide) rfl
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R83N0))))
-    refine Nat.cast_ne_zero.2 (by decide)
-    exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R83N1))))
-    refine Nat.cast_ne_zero.2 (by decide)
-    exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+  · erw [one_mul]
+    convert ideal_mem_principal_class'' B _ _ ?_ rfl
+    rfl ; erw [mul_one] ; decide
+  · erw [one_mul]
+    convert ideal_mem_principal_class'' B _ _ ?_ rfl
+    rfl ; erw [mul_one] ; decide
+  · erw [one_mul]
+    convert ideal_mem_principal_class'' B _ _ ?_ rfl
+    rfl ; erw [mul_one] ; decide
+  · erw [one_mul]
+    convert ideal_mem_principal_class'' B _ _ ?_ rfl
+    rfl ; erw [mul_one] ; decide
+  · erw [one_mul]
+    use 7, B.equivFun.symm ![19, 15, 5, 1, -11, -5],
+    (by refine Nat.cast_ne_zero.2 (by decide)) , (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+    exact R83N0
+  · erw [one_mul]
+    use 7, B.equivFun.symm ![4, -9, -3, -2, 1, 3],
+    (by refine Nat.cast_ne_zero.2 (by decide)) , (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
+    exact R83N1
 
 theorem class_group_generator : Subgroup.closure (Set.range (fun i => ClassGroup.mk0 (x' i))) = ⊤ := by
   refine subgroup_closure_eq_classGroup'' (Subalgebra.equivOfEq _ _ O_integral_closure).toRingEquiv

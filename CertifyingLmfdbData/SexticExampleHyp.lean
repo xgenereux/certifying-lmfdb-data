@@ -1,5 +1,6 @@
 import Mathlib
 import CertifyingLmfdbData.Polynomial.AllRoots
+import IdealArithmetic.Examples.NF6_4_19208000_1.Results6_4_19208000_1
 
 /-!
 # Externally-certified hypotheses for LMFDB field 6.4.19208000.1
@@ -27,29 +28,30 @@ def f₀ : Polynomial ℤ := X^6 - 5*X^4 - 50 * X^2 + 125
 def f : Polynomial ℚ := f₀.map (algebraMap ℤ ℚ)
 
 -- The polynomial `f` is irreducible
-instance : Fact (Irreducible f) := by
-  sorry
+instance : Fact (Irreducible f) where
+  out :=  (Polynomial.Monic.irreducible_iff_irreducible_map_fraction_map (T_monic)).1 T_irreducible
 
 -- Let `K = ℚ[x]/f(x)` be the number field given by adjoining the root of `f`
 noncomputable def K : Type := AdjoinRoot f
 deriving Field, NumberField
 
 -- The number field `K` has degree `6`
-theorem finrank_eq : finrank ℚ K = 6 := by
-  sorry
-
--- The number field `K` has `4` real places
-theorem nrRealPlaces_eq : nrRealPlaces K = 4 := by
-  sorry
+theorem finrank_eq : finrank ℚ K = 6 := K_finrank
 
 -- The number field `K` has `1` complex place
 theorem nrComplexPlaces_eq : nrComplexPlaces K = 1 := by
-  sorry
+  exact K_nrComplexPlaces
+
+-- The number field `K` has `4` real places
+theorem nrRealPlaces_eq : nrRealPlaces K = 4 := by
+  have := nrComplexPlaces_eq ▸ finrank_eq ▸
+    (NumberField.InfinitePlace.card_add_two_mul_card_eq_rank K)
+  grind
 
 -- The number field `K` has discriminant `-19208000` (the signature is `(4, 1)`, so the
 -- discriminant has sign `(-1)^1`; the LMFDB label records `|discr| = 19208000`)
 theorem discr_eq : discr K = -19208000 := by
-  sorry
+  exact K_discr
 
 -- We only need a lower bound on the number of roots of unity
 theorem torsionOrder_aux : 2 ∣ torsionOrder K := by
@@ -57,7 +59,7 @@ theorem torsionOrder_aux : 2 ∣ torsionOrder K := by
 
 -- We only need an upper bound on the class number
 theorem classNumber_aux : classNumber K ∣ 2 := by
-  sorry
+  erw [class_number_K_eq_2]
 
 /-! ### Bridge to `DegSix.myPoly`
 

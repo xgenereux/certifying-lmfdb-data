@@ -12,7 +12,7 @@ open BigOperators Classical Matrix Polynomial
 
 noncomputable section
 
-namespace Sat2 
+namespace Sat2
 instance hq29 : Fact $ Nat.Prime 29 := {out := by norm_num}
 instance hq13 : Fact $ Nat.Prime 13 := {out := by norm_num}
 instance hq7 : Fact $ Nat.Prime 7 := {out := by norm_num}
@@ -51,76 +51,76 @@ def I3 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![13, 0,
 def I4 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![13, 0, 0, 0, 0, 0], ![-5, 1, 0, 0, 0, 0]] i)))
 def I5 : Ideal O := Ideal.span (Set.range (fun i ↦ B.equivFun.symm (![![29, 0, 0, 0, 0, 0], ![9, 1, 0, 0, 0, 0]] i)))
 
-def A0: IdealEqSpanCertificate' Table ![![7, 0, 0, 0, 0, 0], ![-2, 1, 0, 0, 0, 0]] 
+def A0: IdealEqSpanCertificate' Table ![![7, 0, 0, 0, 0, 0], ![-2, 1, 0, 0, 0, 0]]
  ![![7, 0, 0, 0, 0, 0], ![5, 1, 0, 0, 0, 0], ![2, 0, 1, 0, 0, 0], ![4, 0, 0, 1, 0, 0], ![3, 0, 0, 0, 1, 0], ![6, 0, 0, 0, 0, 1]] where
   M :=![![![7, 0, 0, 0, 0, 0], ![0, 7, 0, 0, 0, 0], ![0, 0, 7, 0, 0, 0], ![0, 0, 0, 7, 0, 0], ![0, 0, 0, 0, 7, 0], ![0, 0, 0, 0, 0, 7]], ![![-2, 1, 0, 0, 0, 0], ![0, -2, 5, 0, 0, 0], ![0, 0, -2, 1, 0, 0], ![0, 0, 0, -2, 5, 0], ![0, 0, 0, 0, -2, 1], ![-5, 0, 10, 0, 5, -2]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![23, -27, 46, 13, 0, -20], ![77, -56, 21, 56, 140, 0]], ![![19, -17, 24, 14, -8, -16], ![64, -28, 14, 56, 112, 0]], ![![6, 0, 1, 4, -4, -8], ![20, 10, 28, 28, 56, 0]], ![![14, -13, 20, 6, 4, -12], ![47, -22, 15, 28, 84, 0]], ![![9, -10, 18, 5, -1, -8], ![30, -20, 13, 24, 56, 0]], ![![18, -20, 34, 11, 0, -17], ![60, -40, 19, 48, 120, 0]]]
   g := ![![![1, 0, 0, 0, 0, 0], ![-5, 7, 0, 0, 0, 0], ![-2, 0, 7, 0, 0, 0], ![-4, 0, 0, 7, 0, 0], ![-3, 0, 0, 0, 7, 0], ![-6, 0, 0, 0, 0, 7]], ![![-1, 1, 0, 0, 0, 0], ![0, -2, 5, 0, 0, 0], ![0, 0, -2, 1, 0, 0], ![-1, 0, 0, -2, 5, 0], ![0, 0, 0, 0, -2, 1], ![-4, 0, 10, 0, 5, -2]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
-lemma N0 : Nat.card (O ⧸ I0) = 7 := 
+lemma N0 : Nat.card (O ⧸ I0) = 7 :=
 ideal_norm_eq_prod' B _ _ (by decide) 0 0 (by decide) (ideal_eq_of_IdealEqSpanCertificate' timesTableT_eq_Table rfl A0)
 
-def A1: IdealEqSpanCertificate' Table ![![13, 0, 0, 0, 0, 0], ![2, 1, 0, 0, 0, 0]] 
+def A1: IdealEqSpanCertificate' Table ![![13, 0, 0, 0, 0, 0], ![2, 1, 0, 0, 0, 0]]
  ![![13, 0, 0, 0, 0, 0], ![2, 1, 0, 0, 0, 0], ![7, 0, 1, 0, 0, 0], ![12, 0, 0, 1, 0, 0], ![3, 0, 0, 0, 1, 0], ![7, 0, 0, 0, 0, 1]] where
   M :=![![![13, 0, 0, 0, 0, 0], ![0, 13, 0, 0, 0, 0], ![0, 0, 13, 0, 0, 0], ![0, 0, 0, 13, 0, 0], ![0, 0, 0, 0, 13, 0], ![0, 0, 0, 0, 0, 13]], ![![2, 1, 0, 0, 0, 0], ![0, 2, 5, 0, 0, 0], ![0, 0, 2, 1, 0, 0], ![0, 0, 0, 2, 5, 0], ![0, 0, 0, 0, 2, 1], ![-5, 0, 10, 0, 5, 2]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![11, 3, 23, 182, 546, 63], ![-65, 13, -182, -1092, -819, 0]], ![![-2, -3, 9, 35, 98, 14], ![14, 13, -91, -182, -182, 0]], ![![5, 1, 11, 105, 315, 35], ![-29, 8, -91, -637, -455, 0]], ![![8, 2, 22, 167, 511, 63], ![-46, 10, -168, -1001, -819, 0]], ![![1, -1, 3, 42, 125, 14], ![-5, 9, -42, -252, -182, 0]], ![![5, 1, 12, 98, 294, 34], ![-29, 8, -98, -588, -441, 0]]]
   g := ![![![1, 0, 0, 0, 0, 0], ![-2, 13, 0, 0, 0, 0], ![-7, 0, 13, 0, 0, 0], ![-12, 0, 0, 13, 0, 0], ![-3, 0, 0, 0, 13, 0], ![-7, 0, 0, 0, 0, 13]], ![![0, 1, 0, 0, 0, 0], ![-3, 2, 5, 0, 0, 0], ![-2, 0, 2, 1, 0, 0], ![-3, 0, 0, 2, 5, 0], ![-1, 0, 0, 0, 2, 1], ![-8, 0, 10, 0, 5, 2]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
-lemma N1 : Nat.card (O ⧸ I1) = 13 := 
+lemma N1 : Nat.card (O ⧸ I1) = 13 :=
 ideal_norm_eq_prod' B _ _ (by decide) 0 0 (by decide) (ideal_eq_of_IdealEqSpanCertificate' timesTableT_eq_Table rfl A1)
 
-def A2: IdealEqSpanCertificate' Table ![![13, 0, 0, 0, 0, 0], ![-2, 1, 0, 0, 0, 0]] 
+def A2: IdealEqSpanCertificate' Table ![![13, 0, 0, 0, 0, 0], ![-2, 1, 0, 0, 0, 0]]
  ![![13, 0, 0, 0, 0, 0], ![11, 1, 0, 0, 0, 0], ![7, 0, 1, 0, 0, 0], ![1, 0, 0, 1, 0, 0], ![3, 0, 0, 0, 1, 0], ![6, 0, 0, 0, 0, 1]] where
   M :=![![![13, 0, 0, 0, 0, 0], ![0, 13, 0, 0, 0, 0], ![0, 0, 13, 0, 0, 0], ![0, 0, 0, 13, 0, 0], ![0, 0, 0, 0, 13, 0], ![0, 0, 0, 0, 0, 13]], ![![-2, 1, 0, 0, 0, 0], ![0, -2, 5, 0, 0, 0], ![0, 0, -2, 1, 0, 0], ![0, 0, 0, -2, 5, 0], ![0, 0, 0, 0, -2, 1], ![-5, 0, 10, 0, 5, -2]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![19, -7, 23, 0, 91, -63], ![117, 13, 182, 91, 819, 0]], ![![17, -6, 23, 0, 77, -56], ![105, 13, 182, 91, 728, 0]], ![![13, -5, 11, 7, 35, -35], ![81, 8, 91, 91, 455, 0]], ![![3, -1, 1, -1, 14, -7], ![19, 3, 14, 0, 91, 0]], ![![5, -1, 3, 0, 20, -14], ![31, 9, 42, 21, 182, 0]], ![![10, -4, 11, 0, 42, -29], ![62, 5, 84, 42, 378, 0]]]
   g := ![![![1, 0, 0, 0, 0, 0], ![-11, 13, 0, 0, 0, 0], ![-7, 0, 13, 0, 0, 0], ![-1, 0, 0, 13, 0, 0], ![-3, 0, 0, 0, 13, 0], ![-6, 0, 0, 0, 0, 13]], ![![-1, 1, 0, 0, 0, 0], ![-1, -2, 5, 0, 0, 0], ![1, 0, -2, 1, 0, 0], ![-1, 0, 0, -2, 5, 0], ![0, 0, 0, 0, -2, 1], ![-6, 0, 10, 0, 5, -2]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
-lemma N2 : Nat.card (O ⧸ I2) = 13 := 
+lemma N2 : Nat.card (O ⧸ I2) = 13 :=
 ideal_norm_eq_prod' B _ _ (by decide) 0 0 (by decide) (ideal_eq_of_IdealEqSpanCertificate' timesTableT_eq_Table rfl A2)
 
-def A3: IdealEqSpanCertificate' Table ![![13, 0, 0, 0, 0, 0], ![5, 1, 0, 0, 0, 0]] 
+def A3: IdealEqSpanCertificate' Table ![![13, 0, 0, 0, 0, 0], ![5, 1, 0, 0, 0, 0]]
  ![![13, 0, 0, 0, 0, 0], ![5, 1, 0, 0, 0, 0], ![8, 0, 1, 0, 0, 0], ![12, 0, 0, 1, 0, 0], ![1, 0, 0, 0, 1, 0], ![8, 0, 0, 0, 0, 1]] where
   M :=![![![13, 0, 0, 0, 0, 0], ![0, 13, 0, 0, 0, 0], ![0, 0, 13, 0, 0, 0], ![0, 0, 0, 13, 0, 0], ![0, 0, 0, 0, 13, 0], ![0, 0, 0, 0, 0, 13]], ![![5, 1, 0, 0, 0, 0], ![0, 5, 5, 0, 0, 0], ![0, 0, 5, 1, 0, 0], ![0, 0, 0, 5, 5, 0], ![0, 0, 0, 0, 5, 1], ![-5, 0, 10, 0, 5, 5]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![21, -21, 175, 520, 520, 8], ![-52, 65, -520, -1248, -104, 0]], ![![5, -9, 70, 216, 240, 8], ![-12, 26, -208, -520, -104, 0]], ![![6, -17, 102, 344, 360, 8], ![-14, 47, -312, -832, -104, 0]], ![![14, -22, 160, 477, 480, 8], ![-34, 64, -480, -1144, -104, 0]], ![![-3, -6, 10, 40, 37, 0], ![8, 14, -40, -96, 0, 0]], ![![6, -17, 105, 320, 320, 5], ![-14, 47, -320, -768, -64, 0]]]
   g := ![![![1, 0, 0, 0, 0, 0], ![-5, 13, 0, 0, 0, 0], ![-8, 0, 13, 0, 0, 0], ![-12, 0, 0, 13, 0, 0], ![-1, 0, 0, 0, 13, 0], ![-8, 0, 0, 0, 0, 13]], ![![0, 1, 0, 0, 0, 0], ![-5, 5, 5, 0, 0, 0], ![-4, 0, 5, 1, 0, 0], ![-5, 0, 0, 5, 5, 0], ![-1, 0, 0, 0, 5, 1], ![-10, 0, 10, 0, 5, 5]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
-lemma N3 : Nat.card (O ⧸ I3) = 13 := 
+lemma N3 : Nat.card (O ⧸ I3) = 13 :=
 ideal_norm_eq_prod' B _ _ (by decide) 0 0 (by decide) (ideal_eq_of_IdealEqSpanCertificate' timesTableT_eq_Table rfl A3)
 
-def A4: IdealEqSpanCertificate' Table ![![13, 0, 0, 0, 0, 0], ![-5, 1, 0, 0, 0, 0]] 
+def A4: IdealEqSpanCertificate' Table ![![13, 0, 0, 0, 0, 0], ![-5, 1, 0, 0, 0, 0]]
  ![![13, 0, 0, 0, 0, 0], ![8, 1, 0, 0, 0, 0], ![8, 0, 1, 0, 0, 0], ![1, 0, 0, 1, 0, 0], ![1, 0, 0, 0, 1, 0], ![5, 0, 0, 0, 0, 1]] where
   M :=![![![13, 0, 0, 0, 0, 0], ![0, 13, 0, 0, 0, 0], ![0, 0, 13, 0, 0, 0], ![0, 0, 0, 13, 0, 0], ![0, 0, 0, 0, 13, 0], ![0, 0, 0, 0, 0, 13]], ![![-5, 1, 0, 0, 0, 0], ![0, -5, 5, 0, 0, 0], ![0, 0, -5, 1, 0, 0], ![0, 0, 0, -5, 5, 0], ![0, 0, 0, 0, -5, 1], ![-5, 0, 10, 0, 5, -5]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![96, -169, 180, 34, 0, -8], ![247, -390, 78, 104, 104, 0]], ![![66, -93, 100, 36, 0, -8], ![170, -208, 52, 104, 104, 0]], ![![66, -100, 107, 36, 0, -8], ![170, -226, 52, 104, 104, 0]], ![![22, -29, 10, 13, -10, 0], ![57, -64, -38, 26, 0, 0]], ![![12, -7, 10, 2, -3, 0], ![31, -12, 14, 8, 0, 0]], ![![45, -62, 65, 13, 0, -3], ![116, -138, 31, 40, 40, 0]]]
   g := ![![![1, 0, 0, 0, 0, 0], ![-8, 13, 0, 0, 0, 0], ![-8, 0, 13, 0, 0, 0], ![-1, 0, 0, 13, 0, 0], ![-1, 0, 0, 0, 13, 0], ![-5, 0, 0, 0, 0, 13]], ![![-1, 1, 0, 0, 0, 0], ![0, -5, 5, 0, 0, 0], ![3, 0, -5, 1, 0, 0], ![0, 0, 0, -5, 5, 0], ![0, 0, 0, 0, -5, 1], ![-5, 0, 10, 0, 5, -5]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
-lemma N4 : Nat.card (O ⧸ I4) = 13 := 
+lemma N4 : Nat.card (O ⧸ I4) = 13 :=
 ideal_norm_eq_prod' B _ _ (by decide) 0 0 (by decide) (ideal_eq_of_IdealEqSpanCertificate' timesTableT_eq_Table rfl A4)
 
-def A5: IdealEqSpanCertificate' Table ![![29, 0, 0, 0, 0, 0], ![9, 1, 0, 0, 0, 0]] 
+def A5: IdealEqSpanCertificate' Table ![![29, 0, 0, 0, 0, 0], ![9, 1, 0, 0, 0, 0]]
  ![![29, 0, 0, 0, 0, 0], ![9, 1, 0, 0, 0, 0], ![7, 0, 1, 0, 0, 0], ![24, 0, 0, 1, 0, 0], ![9, 0, 0, 0, 1, 0], ![6, 0, 0, 0, 0, 1]] where
   M :=![![![29, 0, 0, 0, 0, 0], ![0, 29, 0, 0, 0, 0], ![0, 0, 29, 0, 0, 0], ![0, 0, 0, 29, 0, 0], ![0, 0, 0, 0, 29, 0], ![0, 0, 0, 0, 0, 29]], ![![9, 1, 0, 0, 0, 0], ![0, 9, 5, 0, 0, 0], ![0, 0, 9, 1, 0, 0], ![0, 0, 0, 9, 5, 0], ![0, 0, 0, 0, 9, 1], ![-5, 0, 10, 0, 5, 9]]]
-  hmulB := by decide  
+  hmulB := by decide
   f := ![![![181, -1789, -1113, 2679, 3016, 169], ![-580, 5829, 348, -8671, -4901, 0]], ![![45, -553, -346, 932, 1105, 65], ![-144, 1798, 116, -3016, -1885, 0]], ![![26, -440, -273, 699, 858, 52], ![-83, 1427, 87, -2262, -1508, 0]], ![![147, -1479, -921, 2213, 2522, 143], ![-471, 4818, 291, -7163, -4147, 0]], ![![45, -567, -355, 831, 932, 52], ![-144, 1843, 120, -2691, -1508, 0]], ![![30, -384, -240, 554, 624, 35], ![-96, 1248, 80, -1794, -1014, 0]]]
   g := ![![![1, 0, 0, 0, 0, 0], ![-9, 29, 0, 0, 0, 0], ![-7, 0, 29, 0, 0, 0], ![-24, 0, 0, 29, 0, 0], ![-9, 0, 0, 0, 29, 0], ![-6, 0, 0, 0, 0, 29]], ![![0, 1, 0, 0, 0, 0], ![-4, 9, 5, 0, 0, 0], ![-3, 0, 9, 1, 0, 0], ![-9, 0, 0, 9, 5, 0], ![-3, 0, 0, 0, 9, 1], ![-6, 0, 10, 0, 5, 9]]]
-  hle1 := by decide   
-  hle2 := by decide  
+  hle1 := by decide
+  hle2 := by decide
 
-lemma N5 : Nat.card (O ⧸ I5) = 29 := 
+lemma N5 : Nat.card (O ⧸ I5) = 29 :=
 ideal_norm_eq_prod' B _ _ (by decide) 0 0 (by decide) (ideal_eq_of_IdealEqSpanCertificate' timesTableT_eq_Table rfl A5)
 
 def Log00Mem : IdealMemCertificate B I0
@@ -217,7 +217,7 @@ def Log04Mem : IdealMemCertificate B I0
  g := ![-1, 0, 0, 0, 0, 0]
  hmem := by decide
 
-def Log04: DiscreteLogCertificate N0 ((orderOf_of_IsOrderOf R7) ▸ IsPrimitiveRoot.orderOf _) 2 v 1 where
+def Log04: DiscreteLogCertificate N0 ((orderOf_of_IsOrderOf R7) ▸ IsPrimitiveRoot.orderOf _) 2 v' 1 where
  r := 6
  hN := by infer_instance
  hpdvd := by decide
@@ -349,7 +349,7 @@ def Log14Mem : IdealMemCertificate B I1
  g := ![-1, 0, 0, 0, 0, 0]
  hmem := by decide
 
-def Log14: DiscreteLogCertificate N1 ((orderOf_of_IsOrderOf R13) ▸ IsPrimitiveRoot.orderOf _) 2 v 0 where
+def Log14: DiscreteLogCertificate N1 ((orderOf_of_IsOrderOf R13) ▸ IsPrimitiveRoot.orderOf _) 2 v' 0 where
  r := 6
  hN := by infer_instance
  hpdvd := by decide
@@ -481,7 +481,7 @@ def Log24Mem : IdealMemCertificate B I2
  g := ![-1, 0, 0, 0, 0, 0]
  hmem := by decide
 
-def Log24: DiscreteLogCertificate N2 ((orderOf_of_IsOrderOf R13) ▸ IsPrimitiveRoot.orderOf _) 2 v 0 where
+def Log24: DiscreteLogCertificate N2 ((orderOf_of_IsOrderOf R13) ▸ IsPrimitiveRoot.orderOf _) 2 v' 0 where
  r := 6
  hN := by infer_instance
  hpdvd := by decide
@@ -613,7 +613,7 @@ def Log34Mem : IdealMemCertificate B I3
  g := ![-1, 0, 0, 0, 0, 0]
  hmem := by decide
 
-def Log34: DiscreteLogCertificate N3 ((orderOf_of_IsOrderOf R13) ▸ IsPrimitiveRoot.orderOf _) 2 v 0 where
+def Log34: DiscreteLogCertificate N3 ((orderOf_of_IsOrderOf R13) ▸ IsPrimitiveRoot.orderOf _) 2 v' 0 where
  r := 6
  hN := by infer_instance
  hpdvd := by decide
@@ -745,7 +745,7 @@ def Log44Mem : IdealMemCertificate B I4
  g := ![-1, 0, 0, 0, 0, 0]
  hmem := by decide
 
-def Log44: DiscreteLogCertificate N4 ((orderOf_of_IsOrderOf R13) ▸ IsPrimitiveRoot.orderOf _) 2 v 0 where
+def Log44: DiscreteLogCertificate N4 ((orderOf_of_IsOrderOf R13) ▸ IsPrimitiveRoot.orderOf _) 2 v' 0 where
  r := 6
  hN := by infer_instance
  hpdvd := by decide
@@ -877,7 +877,7 @@ def Log54Mem : IdealMemCertificate B I5
  g := ![-1, 0, 0, 0, 0, 0]
  hmem := by decide
 
-def Log54: DiscreteLogCertificate N5 ((orderOf_of_IsOrderOf R29) ▸ IsPrimitiveRoot.orderOf _) 2 v 0 where
+def Log54: DiscreteLogCertificate N5 ((orderOf_of_IsOrderOf R29) ▸ IsPrimitiveRoot.orderOf _) 2 v' 0 where
  r := 6
  hN := by infer_instance
  hpdvd := by decide

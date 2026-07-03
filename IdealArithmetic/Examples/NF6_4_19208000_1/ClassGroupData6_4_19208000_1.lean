@@ -9,7 +9,7 @@ noncomputable section
 
 def alpha0 := B.equivFun.symm ![4, -2, 1, -1, -2, 1]
 
-def v := B.equivFun.symm ![-1, 0, 0, 0, 0, 0]
+def v' := B.equivFun.symm ![-1, 0, 0, 0, 0, 0]
 
 def zeta1 := B.equivFun.symm ![-1, 0, 1, 0, 0, 0]
 
@@ -38,40 +38,40 @@ lemma J0_pow2 : J0 ^ 2 = Ideal.span {alpha0} := by
  simp only [pow_succ, pow_one, pow_zero, one_mul]
  simp [ideal_eq_mul_of_IdealMulEqCertificate timesTableO _ _ _ _ _ MulJ00, alpha0]
  rfl
-lemma isUnit_zeta1 : IsUnit zeta1 := by 
+lemma isUnit_zeta1 : IsUnit zeta1 := by
  apply IsUnit.of_mul_eq_one (B.equivFun.symm ![-2, 0, 0, 0, 1, 0])
  rw [← B_one_repr]
  refine table_mul_list_eq_mul timesTableO.table B _ _ _ timesTableO.basis_mul_basis ?_
  rw [← table_mul_eq_table_mul' _ _ timesTableT_eq_Table]
  decide
 
-lemma isUnit_zeta2 : IsUnit zeta2 := by 
+lemma isUnit_zeta2 : IsUnit zeta2 := by
  apply IsUnit.of_mul_eq_one (B.equivFun.symm ![-1, 0, 0, 0, 1, 0])
  rw [← B_one_repr]
  refine table_mul_list_eq_mul timesTableO.table B _ _ _ timesTableO.basis_mul_basis ?_
  rw [← table_mul_eq_table_mul' _ _ timesTableT_eq_Table]
  decide
 
-lemma isUnit_zeta3 : IsUnit zeta3 := by 
+lemma isUnit_zeta3 : IsUnit zeta3 := by
  apply IsUnit.of_mul_eq_one (B.equivFun.symm ![-6, 4, -1, 1, 3, -2])
  rw [← B_one_repr]
  refine table_mul_list_eq_mul timesTableO.table B _ _ _ timesTableO.basis_mul_basis ?_
  rw [← table_mul_eq_table_mul' _ _ timesTableT_eq_Table]
  decide
 
-lemma isUnit_zeta4 : IsUnit zeta4 := by 
+lemma isUnit_zeta4 : IsUnit zeta4 := by
  apply IsUnit.of_mul_eq_one (B.equivFun.symm ![3, -1, -1, -1, -3, 0])
  rw [← B_one_repr]
  refine table_mul_list_eq_mul timesTableO.table B _ _ _ timesTableO.basis_mul_basis ?_
  rw [← table_mul_eq_table_mul' _ _ timesTableT_eq_Table]
  decide
 
-lemma v_pow_one : v ^ 2 = 1 := by
+lemma v_pow_one : v' ^ 2 = 1 := by
   rw [← B_one_repr]
-  apply table_nPow_sq_table_eq_pow timesTableO.table Table B _ (timesTableO.basis_mul_basis) 
+  apply table_nPow_sq_table_eq_pow timesTableO.table Table B _ (timesTableO.basis_mul_basis)
    timesTableT_eq_Table _ (by norm_num)
   decide
 
-lemma PowJ0_1 : J0 ^ 1 = Ideal.span (Set.range fun i ↦ B.equivFun.symm (![![7, 0, 0, 0, 0, 0], ![2, 1, 0, 0, 0, 0]] i)) := by 
+lemma PowJ0_1 : J0 ^ 1 = Ideal.span (Set.range fun i ↦ B.equivFun.symm (![![7, 0, 0, 0, 0, 0], ![2, 1, 0, 0, 0, 0]] i)) := by
  simp only [pow_succ, pow_one, pow_zero, one_mul, mul_one]
  rfl

@@ -545,6 +545,27 @@ lemma basisOfBuilderLists_apply [DecidableEq R](T : R[X])(l : List R)
   erw [basisOfBuilder_apply]
   rfl
 
+lemma basisOfBuilderLists_apply_Fn [DecidableEq R](T : R[X])(l : List R)
+  (A : SubalgebraBuilderLists n R Q K T l) (f : Fin n → R) :
+  (basisOfBuilderLists T l A).equivFun.symm f = (A.h).map
+    (C (algebraMap R Q A.d)⁻¹ * ∑ i, (C ((algebraMap R Q) (f i)) : Q[X])
+      * (map (algebraMap R Q) (ofList (List.ofFn (A.B i)))) ) := by
+  simp only [Basis.equivFun_symm_apply, AddSubmonoidClass.coe_finsetSum, SetLike.val_smul]
+  simp_rw [basisOfBuilderLists_apply]
+  have : ∀ g r, r • (A.h).map g = (A.h).map ((C ((algebraMap R Q) r)) * g) := by
+    intro g r
+    simp
+    rw [Algebra.smul_def]
+    congr
+    rw [← @IsAdjoinRoot.algebraMap_apply]
+    exact IsScalarTower.algebraMap_apply R Q K r
+  simp_rw [this]
+  rw [← map_sum, Finset.mul_sum]
+  congr
+  ext i n
+  rw [← mul_assoc, mul_comm (C ((algebraMap R Q) (f i)))]
+  ring_nf
+
 /-- The first element in the basis is `1`. -/
 lemma basisOfBuilderLists_zero_eq_one [DecidableEq R](T : R[X])(l : List R)
     (A : SubalgebraBuilderLists n R Q K T l) : (basisOfBuilderLists T l A) 0 = 1 := by
