@@ -184,6 +184,20 @@ def polyTrim (a : Array ℚ) : Array ℚ := Id.run do
 def polyDeriv (a : Array ℚ) : Array ℚ :=
   .ofFn (n := a.size - 1) fun i => ((i.1 : ℚ) + 1) * a[i.1 + 1]!
 
+/-- Evaluate a dense `ℚ` coefficient array at the Gaussian rational `vr + vi·i` by Horner's
+scheme, returning the real and imaginary parts of the result (both exact rationals). -/
+def evalGaussian (coeffs : Array ℚ) (vr vi : ℚ) : ℚ × ℚ := Id.run do
+  let mut re : ℚ := 0
+  let mut im : ℚ := 0
+  for k in [0:coeffs.size] do
+    let c := coeffs[coeffs.size - 1 - k]!
+    -- (re + im·i)·(vr + vi·i) + c
+    let nre := re * vr - im * vi + c
+    let nim := re * vi + im * vr
+    re := nre
+    im := nim
+  return (re, im)
+
 /-- Evaluate a `ℚ[X]` expression (delta-unfolding constants) into its dense coefficient
 array. -/
 partial def parsePoly (e : Expr) : MetaM (Array ℚ) := do
@@ -408,6 +422,46 @@ elab_rules : tactic
     let vU := (constTerm? v).toArray
     let MU : Array Term := if Mstx.raw.isIdent then #[Mstx] else #[]
 
+    -- Shared evaluation: the values of `p` and its derivative at `toComplex v` are exact
+    -- Gaussian rationals (rational polynomial, rational `v`). We evaluate them at the meta
+    -- level so the residual (`hy0`, `hy1`) and inverse-bound (`hz1`) finishers can rewrite to
+    -- a concrete value and do only rational arithmetic, instead of each re-expanding `aeval`
+    -- through the (typeclass-heavy) `ℚ`-algebra homomorphism machinery.
+    let (pvReQ, pvImQ) := evalGaussian pq vq[0]! vq[1]!
+    let (pdReQ, pdImQ) := evalGaussian pdq vq[0]! vq[1]!
+    let tcVStx ← Term.exprToSyntax args[1]!
+    let pStx' ← Term.exprToSyntax p
+    let (pvReStx, pvImStx, pdReStx, pdImStx) ← (·,·,·,·) <$> ratToTerm pvReQ <*>
+      ratToTerm pvImQ <*> ratToTerm pdReQ <*> ratToTerm pdImQ
+    -- Prove `aeval (toComplex v) p = A + B·I` and the same for the derivative, in one `aeval`
+    -- expansion each: `Complex.ext_iff` splits into `re`/`im` *after* the expansion, so the
+    -- typeclass-heavy homomorphism work is done once per polynomial instead of once per side
+    -- goal (`p` feeds `hy0` and `hy1`; `pd` feeds both `fin_cases` branches of `hz1`).
+    -- Rewrite `aeval (toComplex v) p` (a `ℚ`-algebra `AlgHom`) to `eval (toComplex v)`
+    -- on the polynomial mapped into `ℂ[X]` *before* expanding: `Polynomial.eval`/`Polynomial.map`
+    -- use `ℂ`'s own ring structure via direct simp lemmas, so the expansion no longer triggers
+    -- the (expensive, ~60 ms/goal) `AlgHom` hom-class / `Module ℚ ℂ` instance search that
+    -- `map_add`/`map_mul`/`map_pow` on the bundled `aeval` would.
+    let expandTac ← do
+      let s ← mkSimp (pU ++ vU ++ #[cid ``toComplex_apply, cid ``pow_succ, cid ``pow_zero,
+        cid ``Complex.ext_iff])
+      `(tactic| rw [Polynomial.aeval_def, Polynomial.eval₂_eq_eval_map] <;>
+        $s:tactic <;> norm_num)
+    let cval (reS imS : Term) : TacticM Term :=
+      `(((($reS : ℝ) : ℂ) + (($imS : ℝ) : ℂ) * Complex.I))
+    let shares : Array (Ident × Term) := #[
+      (mkIdent `hpv, ← `((Polynomial.aeval $tcVStx) $pStx' = $(← cval pvReStx pvImStx))),
+      (mkIdent `hpdv, ← `((Polynomial.aeval $tcVStx) ($pdStx : Polynomial ℚ)
+        = $(← cval pdReStx pdImStx)))]
+    for (nm, ty) in shares do
+      let t ← `(tactic| have $nm:ident : $ty := by $expandTac:tactic)
+      try evalTactic t
+      catch e => throwError
+        "unique_root_near: failed to evaluate p or p' at the approximation \
+        ('{nm.getId}'):{indentD e.toMessageData}"
+    let hpv := shares[0]!.1
+    let hpdv := shares[1]!.1
+
     -- apply the assembly lemma
     let refTac ← `(tactic| refine UniqueRootNear.of_certificates' _ $pdStx $Mstx _
       $r'Stx $yStx $z₁Stx $z₂Stx $RStx $dStx $aStx $BStx
@@ -425,14 +479,13 @@ elab_rules : tactic
       let nn ← mkNormNum ((pU.map (·, false)).push (cid ``Polynomial.C_ofNat, false))
       `(tactic| $nn:tactic <;> ring1)
     let hyTac ← do
-      let s ← mkSimp (pU ++ vU ++ MU ++
-        #[cid ``toComplex_apply, cid ``pow_succ, cid ``pow_zero])
-      `(tactic| $s:tactic <;> norm_num)
+      -- rewrite `aeval (toComplex v) p` to its precomputed complex value (removing `aeval`),
+      -- then finish with `re`/`im`/matrix unfolding + rational arithmetic
+      let s ← mkSimp MU
+      `(tactic| rw [$hpv:ident] <;> $s:tactic <;> norm_num)
     let hz1Tac ← do
-      let s ← mkSimp (vU ++ MU ++
-        #[cid ``toComplex_apply, cid ``pow_succ, cid ``pow_zero, cid ``Matrix.one_apply,
-          cid ``Fin.sum_univ_two])
-      `(tactic| intro i <;> fin_cases i <;> $s:tactic <;> norm_num)
+      let s ← mkSimp (MU ++ #[cid ``Matrix.one_apply, cid ``Fin.sum_univ_two])
+      `(tactic| intro i <;> fin_cases i <;> rw [$hpdv:ident] <;> $s:tactic <;> norm_num)
     let hdegTac ← `(tactic| compute_degree!)
     let haTac ← do
       let s ← mkSimp (MU ++ #[cid ``Fin.sum_univ_two])
