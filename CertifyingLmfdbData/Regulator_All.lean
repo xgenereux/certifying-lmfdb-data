@@ -9,24 +9,24 @@ noncomputable section
 
 open DegSix
 
-abbrev n : ℕ := 6
-abbrev m : ℕ := 4
-abbrev f := DegSix.myPoly
-abbrev u := fundUnits
-abbrev α : Fin 4 → ℂ := ![uniqueRootNear_rroot1.root,
+@[reducible] def n : ℕ := 6
+@[reducible] def m : ℕ := 4
+@[reducible] def f := DegSix.myPoly
+@[reducible] def u := fundUnits
+@[reducible] def α : Fin 4 → ℂ := ![uniqueRootNear_rroot1.root,
                        uniqueRootNear_rroot2.root,
                        uniqueRootNear_rroot3.root,
                        uniqueRootNear_croot1.root]
-abbrev t : Fin 4 → ℕ := ![1, 1, 1, 2]
-abbrev bound_matrix := Matrix.of fun i j ↦ t j * Real.log ‖(u i).aeval (α j)‖
-abbrev bound := |bound_matrix.det|
+@[reducible] def t : Fin 4 → ℕ := ![1, 1, 1, 2]
+@[reducible] def bound_matrix := Matrix.of fun i j ↦ t j * Real.log ‖(u i).aeval (α j)‖
+@[reducible] def bound := |bound_matrix.det|
 
-abbrev α_approx : Fin 4 → ℂ := ![toComplex (approxRoots 0),
+@[reducible] def α_approx : Fin 4 → ℂ := ![toComplex (approxRoots 0),
                                  toComplex (approxRoots 1),
                                  toComplex (approxRoots 2),
                                  toComplex (approxRoots 4)]
 
-abbrev embedding_matrix_components : Fin 2 → Matrix (Fin 4) (Fin 4) ℝ :=
+@[reducible] def embedding_matrix_components : Fin 2 → Matrix (Fin 4) (Fin 4) ℝ :=
   ![
     !![1.2469796037174670610500097680084796212645494617928042107311,
        -1.8019377358048382524722046390148901023318383242637143001071,
@@ -51,12 +51,12 @@ abbrev embedding_matrix_components : Fin 2 → Matrix (Fin 4) (Fin 4) ℝ :=
   ]
 
 open Complex in
-abbrev embedding_matrix_complex : Matrix (Fin 4) (Fin 4) ℂ :=
+@[reducible] def embedding_matrix_complex : Matrix (Fin 4) (Fin 4) ℂ :=
     Matrix.of fun i j ↦ embedding_matrix_components 0 i j + embedding_matrix_components 1 i j * I
 
-abbrev bound_matrix_approx := Matrix.of fun i j ↦
+@[reducible] def bound_matrix_approx := Matrix.of fun i j ↦
   t j * Real.log √(embedding_matrix_components 0 i j ^ 2 + embedding_matrix_components 1 i j ^ 2)
-abbrev bound_approx := |bound_matrix_approx.det|
+@[reducible] def bound_approx := |bound_matrix_approx.det|
 
 -- AI generated
 theorem det_fin_four_scratch (A : Matrix (Fin 4) (Fin 4) ℝ) :
@@ -113,7 +113,6 @@ theorem log_bound {x y : ℂ} {ε : ℝ}
 
 theorem embedding_matrix_entry_diffs (i j) :
     ‖(u i).aeval (α_approx j) - embedding_matrix_complex i j‖ ≤ 1e-55 := by
-  -- TODO : why do we need to unfold the abbrev `α_approx`?
   simp [approxRoots, α_approx, rroot1, rroot2, rroot3, croot1,
         fundUnits, fundU1, fundU2, fundU3, fundU4,
         Complex.norm_eq_sqrt_sq_add_sq]
@@ -152,33 +151,27 @@ theorem bound_diff : |bound - bound_approx| ≤ 1e-48 := by
   simp only [sq_abs]
   dyadic_interval [approx := 400]
 
-theorem bound_det : 1e-48 < bound_matrix_approx.det := by
-  simp_rw [det_fin_four_scratch, Matrix.det_fin_three]
-  simp [bound_matrix_approx, Fin.succAbove, Complex.norm_eq_sqrt_sq_add_sq]
-  dyadic_interval [approx := 50]
-
-theorem bound_approx_estimate : |bound_approx - 15.959695183485| ≤ 1e-12 := by
-  have hpos : 0 < bound_matrix_approx.det := by
-    grw [← bound_det]
-    positivity
-  rw [bound_approx, abs_of_pos hpos]
-  simp_rw [det_fin_four_scratch, Matrix.det_fin_three]
-  simp [bound_matrix_approx, Fin.succAbove, Complex.norm_eq_sqrt_sq_add_sq, abs_le]
-  constructor <;> dyadic_interval [approx := 100]
-
 theorem bound_estimate : |bound - 15.959695183485| ≤ 2 * 1e-12 := by
-  grw [abs_sub_le, bound_diff, bound_approx_estimate]
-  dyadic_interval [approx := 50]
+  grw [abs_sub_le, bound_diff, two_mul]
+  gcongr
+  · norm_num
+  · have hpos : 0 < bound_matrix_approx.det := by
+      simp_rw [det_fin_four_scratch, Matrix.det_fin_three]
+      simp [bound_matrix_approx, Fin.succAbove]
+      dyadic_interval [approx := 50]
+    rw [bound_approx, abs_of_pos hpos]
+    simp_rw [det_fin_four_scratch, Matrix.det_fin_three]
+    simp [bound_matrix_approx, Fin.succAbove, abs_le]
+    constructor <;> dyadic_interval [approx := 100]
 
 -- `Fact (Irreducible f)` comes from `CertifyingLmfdbData.SexticExampleHyp`
 theorem bound_regulator : ∃ k : ℕ, 1 ≤ k ∧ bound = k • NumberField.Units.regulator (AdjoinRoot f) := by
   refine regulator_le_regOfFamily_comp
     (m := m) (f := f) (u := u) (α := α) (t := t) (bound := bound)
     ?_ (fun i ↦ ?_) (fun i ↦ ?_) (fun i j ↦ ?_) (fun i ↦ ?_) (fun i ↦ ?_) (fun hc ↦ ?_) ?_
-  · unfold NumberField.Units.rank
-    rw [NumberField.InfinitePlace.card_eq_nrRealPlaces_add_nrComplexPlaces]
-    change m = (NumberField.InfinitePlace.nrRealPlaces SexticExample.K ) +
-    (NumberField.InfinitePlace.nrComplexPlaces SexticExample.K)  -1
+  · rw [NumberField.Units.rank, NumberField.InfinitePlace.card_eq_nrRealPlaces_add_nrComplexPlaces]
+    change m = (NumberField.InfinitePlace.nrRealPlaces SexticExample.K) +
+               (NumberField.InfinitePlace.nrComplexPlaces SexticExample.K) - 1
     rw [SexticExample.nrComplexPlaces_eq, SexticExample.nrRealPlaces_eq]
   · fin_cases i <;>
       simp [uniqueRootNear_rroot1.isRoot,
@@ -196,21 +189,12 @@ theorem bound_regulator : ∃ k : ℕ, 1 ≤ k ∧ bound = k • NumberField.Uni
   · fin_cases i <;>
       simp [rroot1_im_zero, rroot2_im_zero, rroot3_im_zero, zero_lt_croot4_im.ne.symm]
   · fin_cases i
-    · use unit1_isIntegral
-      exact unit1_isUnit''
-    · use unit2_isIntegral
-      exact unit2_isUnit''
-    · use unit3_isIntegral
-      exact unit3_isUnit''
-    · use unit4_isIntegral
-      exact unit4_isUnit''
-  · have := bound_diff
-    rw [hc, zero_sub, abs_neg] at this
-    replace := le_of_abs_le this
-    apply this.not_gt
-    rw [bound_approx, lt_abs]
-    left
-    exact bound_det
+    · exact ⟨unit1_isIntegral, unit1_isUnit''⟩
+    · exact ⟨unit2_isIntegral, unit2_isUnit''⟩
+    · exact ⟨unit3_isIntegral, unit3_isUnit''⟩
+    · exact ⟨unit4_isIntegral, unit4_isUnit''⟩
+  · apply bound_estimate.not_gt
+    norm_num [hc]
   · rfl
 
 theorem regulator_aux : ∃ m : ℕ, 1 ≤ m ∧
@@ -235,7 +219,7 @@ end
 
 -- Higher precision embedding matrix approximation:
 -- open Complex in
--- abbrev embedding_matrix_complex : Matrix (Fin 4) (Fin 4) ℂ :=
+-- @[reducible] def embedding_matrix_complex : Matrix (Fin 4) (Fin 4) ℂ :=
 --   Matrix.transpose !![1.24697960371746706105000976800847962126454946179280421073109887819370730491297456915188501465317074333411618441834908601827145851077314552166879576913,
 --   2.24697960371746706105000976800847962126454946179280421073109887819370730491297456915188501465317074333411618441834908601827145851077314552166879576913,
 --   -7.23691107448107492027647845624304851337479768181106342331598004804758207318270186974716483803087250830439017746403890061074105576612909322430347095481,
