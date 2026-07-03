@@ -197,36 +197,52 @@ on its denominator.  Reference values (`generate_residue_data.sage`):
 `A ≈ 272.64764672`, `B ≈ 487.69424137`, `C ≈ 39.40248448`, `D ≈ 87.21154881`,
 `2·√1000·log 3000 ≈ 506.36714597`. -/
 
-set_option maxHeartbeats 8000000 in
--- `norm_num` unfolds a sum with ~170 `![...]`-entries and up to 9 exponents each
-set_option maxRecDepth 100000 in
+/-- The inner exponent sum of `bSumFin` at `M = 9`, pre-expanded.  Rewriting with this
+(one cheap `simp only` rewrite per prime) is far faster than having `norm_num` match
+`Finset.sum_Icc_succ_top` against numeral bounds inside the ~170-term outer sum. -/
+private lemma sum_Icc_one_nine (f : ℕ → ℝ) :
+    ∑ m ∈ Finset.Icc 1 9, f m =
+      f 1 + f 2 + f 3 + f 4 + f 5 + f 6 + f 7 + f 8 + f 9 := by
+  norm_num [Finset.sum_Icc_succ_top]
+
+-- the `simp only` unfold of a sum with ~170 `![...]`-entries recurses deeply
+set_option maxRecDepth 10000 in
 lemma bSumFin_nf_1000_lower :
     (2726476467 / 10 ^ 7 : ℝ) ≤ bSumFin 1000 nfPrimesNorms1000 9 := by
-  norm_num [bSumFin, bTerm, Fin.sum_univ_succ, Finset.sum_Icc_succ_top, nfPrimesNorms1000]
+  simp only [bSumFin, sum_Icc_one_nine, Fin.sum_univ_succ, Fin.sum_univ_zero,
+    nfPrimesNorms1000, Matrix.cons_val_zero, Matrix.cons_val_succ, add_zero]
+  norm_num [bTerm]
   dyadic_interval [approx := 39]
 
-set_option maxHeartbeats 8000000 in
--- `norm_num` unfolds a sum with ~170 `![...]`-entries and up to 9 exponents each
-set_option maxRecDepth 100000 in
+set_option maxHeartbeats 800000 in
+-- the `simp only` unfold of a sum with ~170 `![...]`-entries recurses deeply; the 168
+-- distinct primes give `norm_num` ~1500 distinct cutoff conditions to decide
+set_option maxRecDepth 10000 in
 lemma bSumFin_rat_1000_upper :
     bSumFin 1000 ratPrimes1000 9 ≤ (4876942414 / 10 ^ 7 : ℝ) := by
-  norm_num [bSumFin, bTerm, Fin.sum_univ_succ, Finset.sum_Icc_succ_top, ratPrimes1000]
+  simp only [bSumFin, sum_Icc_one_nine, Fin.sum_univ_succ, Fin.sum_univ_zero,
+    ratPrimes1000, Matrix.cons_val_zero, Matrix.cons_val_succ, add_zero]
+  norm_num [bTerm]
   dyadic_interval [approx := 40]
 
-set_option maxHeartbeats 8000000 in
--- `norm_num` unfolds a sum with ~170 `![...]`-entries and up to 9 exponents each
-set_option maxRecDepth 100000 in
+-- the `simp only` unfold of a sum with ~170 `![...]`-entries recurses deeply
+set_option maxRecDepth 10000 in
 lemma bSumFin_nf_ninth_upper :
     bSumFin (1000 / 9) nfPrimesNorms1000 9 ≤ (394024845 / 10 ^ 7 : ℝ) := by
-  norm_num [bSumFin, bTerm, Fin.sum_univ_succ, Finset.sum_Icc_succ_top, nfPrimesNorms1000]
+  simp only [bSumFin, sum_Icc_one_nine, Fin.sum_univ_succ, Fin.sum_univ_zero,
+    nfPrimesNorms1000, Matrix.cons_val_zero, Matrix.cons_val_succ, add_zero]
+  norm_num [bTerm]
   dyadic_interval [approx := 37]
 
-set_option maxHeartbeats 8000000 in
--- `norm_num` unfolds a sum with ~170 `![...]`-entries and up to 9 exponents each
-set_option maxRecDepth 100000 in
+set_option maxHeartbeats 800000 in
+-- the `simp only` unfold of a sum with ~170 `![...]`-entries recurses deeply; the 168
+-- distinct primes give `norm_num` ~1500 distinct cutoff conditions to decide
+set_option maxRecDepth 10000 in
 lemma bSumFin_rat_ninth_lower :
     (872115488 / 10 ^ 7 : ℝ) ≤ bSumFin (1000 / 9) ratPrimes1000 9 := by
-  norm_num [bSumFin, bTerm, Fin.sum_univ_succ, Finset.sum_Icc_succ_top, ratPrimes1000]
+  simp only [bSumFin, sum_Icc_one_nine, Fin.sum_univ_succ, Fin.sum_univ_zero,
+    ratPrimes1000, Matrix.cons_val_zero, Matrix.cons_val_succ, add_zero]
+  norm_num [bTerm]
   dyadic_interval [approx := 38]
 
 lemma denom_lower : (5063671459 / 10 ^ 7 : ℝ) ≤ 2 * Real.sqrt 1000 * Real.log 3000 := by
