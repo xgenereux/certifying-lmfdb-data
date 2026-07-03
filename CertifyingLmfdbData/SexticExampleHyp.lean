@@ -29,7 +29,7 @@ def f : Polynomial ℚ := f₀.map (algebraMap ℤ ℚ)
 
 -- The polynomial `f` is irreducible
 instance : Fact (Irreducible f) where
-  out :=  (Polynomial.Monic.irreducible_iff_irreducible_map_fraction_map (T_monic)).1 T_irreducible
+  out := T_monic.irreducible_iff_irreducible_map_fraction_map.mp T_irreducible
 
 -- Let `K = ℚ[x]/f(x)` be the number field given by adjoining the root of `f`
 noncomputable def K : Type := AdjoinRoot f
@@ -66,7 +66,8 @@ no second `sorry` is needed. -/
 theorem f_eq_myPoly : f = DegSix.myPoly := by
   simp [f, f₀, DegSix.myPoly, Polynomial.map_ofNat]
 
-instance : Fact (Irreducible DegSix.myPoly) := ⟨f_eq_myPoly ▸ (Fact.out : Irreducible f)⟩
+instance : Fact (Irreducible DegSix.myPoly) :=
+  ⟨f_eq_myPoly ▸ (Fact.out : Irreducible f)⟩
 
 end
 

@@ -30,7 +30,8 @@ theorem regulator_aux : ∃ m : ℕ, 1 ≤ m ∧
 abbrev res : ℝ := 0.366086210051
 
 -- But we only need a weak lower bound on the residue
-theorem dedekindResidue_ge (grh : GeneralizedRiemannHypothesis DegSix.K₆)
+theorem dedekindResidue_ge
+    (grh : GeneralizedRiemannHypothesis DegSix.K₆)
     (rh : RiemannHypothesis) : 0.197 ≤ dedekindZeta_residue K := by
   suffices 198 / 1000 ≤ dedekindZeta_residue K by
     grind
@@ -58,22 +59,30 @@ theorem classNumberFormula (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh 
     simp only [abs_neg, Nat.abs_ofNat] <;> dyadic_interval [approx := 40]
 
 -- The number field `K` has exactly two roots of unity
-theorem torsionOrder_eq (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh : RiemannHypothesis) :
+theorem torsionOrder_eq
+    (grh : GeneralizedRiemannHypothesis DegSix.K₆)
+    (rh : RiemannHypothesis) :
     torsionOrder K = 2 := by
   exact (classNumberFormula grh rh).1
 
 -- The number field `K` has class number `2`
-theorem classNumber_eq (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh : RiemannHypothesis) :
+theorem classNumber_eq
+    (grh : GeneralizedRiemannHypothesis DegSix.K₆)
+    (rh : RiemannHypothesis) :
     classNumber K = 2 := by
   exact (classNumberFormula grh rh).2.2.1
 
 -- The regulator of `K` is within `10^-10` of `15.9596951835`
-theorem regulator_mem (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh : RiemannHypothesis) :
+theorem regulator_mem
+    (grh : GeneralizedRiemannHypothesis DegSix.K₆)
+    (rh : RiemannHypothesis) :
     |regulator K - 15.9596951835| < 1e-10 := by
   grind [(classNumberFormula grh rh).2.1]
 
 -- The residue of `K` is within `10^-10` of `0.366086210051`
-theorem residue_mem (grh : GeneralizedRiemannHypothesis DegSix.K₆) (rh : RiemannHypothesis) :
+theorem residue_mem
+    (grh : GeneralizedRiemannHypothesis DegSix.K₆)
+    (rh : RiemannHypothesis) :
     |dedekindZeta_residue K - 0.366086210051| < 1e-10 := by
   exact (classNumberFormula grh rh).2.2.2
 
