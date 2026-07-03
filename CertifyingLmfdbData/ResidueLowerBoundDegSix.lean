@@ -183,12 +183,12 @@ theorem ratPrimes1000_spec :
 /-- The nonzero prime ideals of `𝓞 K₆` of norm `< 1000` are enumerated (injectively
 and completely) by a tuple whose norms are exactly `nfPrimesNorms1000`; certified
 externally. -/
-theorem nfPrimes1000_spec :
+axiom nfPrimes1000_spec :
     ∃ P : Fin 169 → Ideal (RingOfIntegers K₆),
       (∀ i, (P i).IsPrime) ∧ (∀ i, P i ≠ ⊥) ∧ Function.Injective P ∧
       (∀ p : Ideal (RingOfIntegers K₆), p.IsPrime → p ≠ ⊥ →
         (Ideal.absNorm p : ℝ) < 1000 → ∃ i, P i = p) ∧
-      (∀ i, Ideal.absNorm (P i) = nfPrimesNorms1000 i) := sorry
+      (∀ i, Ideal.absNorm (P i) = nfPrimesNorms1000 i)
 
 /-! ## The numeric bounds
 

@@ -7,10 +7,6 @@ open NumberField Algebra IntermediateField Polynomial
 
 open DegSix
 
-abbrev f := DegSix.myPoly
-
--- `Fact (Irreducible f)` comes from `CertifyingLmfdbData.SexticExampleHyp`
-
 theorem exists_torsion_eq_mul {K : Type*} [Field K] [NumberField K] {n : ℕ} (hn : n ≠ 0)
     {ζ : 𝓞 K} (hζ : ζ ^ n = 1) (hζ₂ : ∀ m, m ∣ n → m ≠ n → ζ ^ m ≠ 1) :
     n ∣ NumberField.Units.torsionOrder K := by
@@ -23,7 +19,7 @@ theorem exists_torsion_eq_mul {K : Type*} [Field K] [NumberField K] {n : ℕ} (h
   exact NumberField.Units.dvd_torsionOrder_of_isPrimitiveRoot
     (hprim.map_of_injective RingOfIntegers.coe_injective)
 
-theorem two_dvd_torsion : 2 ∣ NumberField.Units.torsionOrder (AdjoinRoot f) :=
+theorem two_dvd_torsion : 2 ∣ NumberField.Units.torsionOrder (AdjoinRoot DegSix.myPoly) :=
     exists_torsion_eq_mul (n := 2) (by lia) (ζ := -1) (by simp) <| fun m hm hm₂ ↦ by
   have := Nat.le_of_dvd (show 0 < 2 by lia) hm
   interval_cases m <;> simp_all [Ring.neg_one_ne_one_of_char_ne_two]
