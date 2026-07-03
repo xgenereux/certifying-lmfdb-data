@@ -124,7 +124,7 @@ open SexticExample
 
 /- Units of SexticExample.K  -/
 
-def unit1' : (𝓞 SexticExample.K)ˣ :=
+/- def unit1' : (𝓞 SexticExample.K)ˣ :=
   IsUnit.unit (IsUnit.map (Subalgebra.equivOfEq _ _ O_integral_closure) isUnit_unit1)
 
 def unit2' : (𝓞 SexticExample.K)ˣ :=
@@ -134,7 +134,32 @@ def unit3' : (𝓞 SexticExample.K)ˣ :=
   IsUnit.unit (IsUnit.map (Subalgebra.equivOfEq _ _ O_integral_closure) isUnit_unit3)
 
 def unit4' : (𝓞 SexticExample.K)ˣ :=
-  IsUnit.unit (IsUnit.map (Subalgebra.equivOfEq _ _ O_integral_closure) isUnit_unit4)
+  IsUnit.unit (IsUnit.map (Subalgebra.equivOfEq _ _ O_integral_closure) isUnit_unit4) -/
+
+def unit1' : (integralClosure ℤ SexticExample.K) :=
+  (Subalgebra.equivOfEq _ _ O_integral_closure) unit1
+
+def unit2' : (integralClosure ℤ SexticExample.K)  :=
+  (Subalgebra.equivOfEq _ _ O_integral_closure) unit2
+
+def unit3' : (integralClosure ℤ SexticExample.K)  :=
+  (Subalgebra.equivOfEq _ _ O_integral_closure) unit3
+
+def unit4' : (integralClosure ℤ SexticExample.K)  :=
+  (Subalgebra.equivOfEq _ _ O_integral_closure) unit4
+
+
+lemma unit1_isUnit' : IsUnit unit1' := by
+  exact IsUnit.map (Subalgebra.equivOfEq _ _ O_integral_closure) isUnit_unit1
+
+lemma unit2_isUnit' : IsUnit unit2' := by
+  exact IsUnit.map (Subalgebra.equivOfEq _ _ O_integral_closure) isUnit_unit2
+
+lemma unit3_isUnit' : IsUnit unit3' := by
+  exact IsUnit.map (Subalgebra.equivOfEq _ _ O_integral_closure) isUnit_unit3
+
+lemma unit4_isUnit' : IsUnit unit4' := by
+  exact IsUnit.map (Subalgebra.equivOfEq _ _ O_integral_closure) isUnit_unit4
 
 lemma unit1_poly' : (unit1' : SexticExample.K) = (AdjoinRoot.mk f) fundU1 := by
   change (↑unit1 : _root_.K) = (AdjoinRoot.mk f) fundU1
@@ -156,6 +181,7 @@ lemma unit4_poly' : (unit4' : SexticExample.K) = (AdjoinRoot.mk f) fundU4 := by
   rw [unit4_poly]
   rfl
 
+
 lemma unit1_isIntegral : IsIntegral ℤ ((AdjoinRoot.mk f) fundU1) := by
   rw [← unit1_poly']
   exact NumberField.RingOfIntegers.isIntegral_coe (unit1' : 𝓞 SexticExample.K)
@@ -171,3 +197,23 @@ lemma unit3_isIntegral : IsIntegral ℤ ((AdjoinRoot.mk f) fundU3) := by
 lemma unit4_isIntegral : IsIntegral ℤ ((AdjoinRoot.mk f) fundU4) := by
   rw [← unit4_poly']
   exact NumberField.RingOfIntegers.isIntegral_coe (unit4' : 𝓞 SexticExample.K)
+
+lemma unit1_isUnit'' :
+  IsUnit (⟨(AdjoinRoot.mk f) fundU1, unit1_isIntegral⟩ : 𝓞 SexticExample.K) := by
+  convert unit1_isUnit'
+  rw [unit1_poly']
+
+lemma unit2_isUnit'' :
+  IsUnit (⟨(AdjoinRoot.mk f) fundU2, unit2_isIntegral⟩ : 𝓞 SexticExample.K) := by
+  convert unit2_isUnit'
+  rw [unit2_poly']
+
+lemma unit3_isUnit'' :
+  IsUnit (⟨(AdjoinRoot.mk f) fundU3, unit3_isIntegral⟩ : 𝓞 SexticExample.K) := by
+  convert unit3_isUnit'
+  rw [unit3_poly']
+
+lemma unit4_isUnit'' :
+  IsUnit (⟨(AdjoinRoot.mk f) fundU4, unit4_isIntegral⟩ : 𝓞 SexticExample.K) := by
+  convert unit4_isUnit'
+  rw [unit4_poly']
