@@ -303,6 +303,18 @@ def mkNormNum (lemmas : Array (Term × Bool)) :
 
 /-! ### The tactic -/
 
+/-- Multiplicity of the prime `p` in `n` (i.e. the largest `k` with `p ^ k ∣ n`); `0` when
+`n = 0`. Used only with `p ∈ {2, 5}`. -/
+partial def padicVal (p n : ℕ) : ℕ :=
+  if 1 < n && n % p == 0 then padicVal p (n / p) + 1 else 0
+
+/-- Number of decimal places of `q`: the least `e` with `q * 10 ^ e ∈ ℤ`, i.e.
+`max (v₂ q.den) (v₅ q.den)`. A decimal literal `OfScientific m true e` denoting `q` unfolds (via
+`LawfulOfScientific.ofScientific_def`) to `↑m / 10 ^ e`, and this returns that `e` — the exponent
+the finishers must evaluate `10 ^ e` at. -/
+def decimalPlaces (q : ℚ) : ℕ :=
+  max (padicVal 2 q.den) (padicVal 5 q.den)
+
 /-- Certify a unique root of a rational polynomial near a decimal approximation, via the
 Newton–Kantorovich theorem. Usage, on a goal `UniqueRootNear (aeval · p) (toComplex v) r`:
 
@@ -357,6 +369,13 @@ elab_rules : tactic
     let vq ← parseVec parseRat v
     unless vq.size = 2 do
       throwError "unique_root_near: expected a 2-dimensional approximation, got{indentExpr v}"
+    -- The `hv0`/`hv1` and `hr` finishers rewrite the source decimal literals (radius, coordinates)
+    -- to `↑m / 10 ^ e` and then evaluate `10 ^ e`. `norm_num`/`simp` refuse to compute `n ^ e`
+    -- once `e` exceeds `exponentiation.threshold` (default 256), so an approximation with more than
+    -- ~256 significant digits would otherwise be left unreduced. Raise the threshold — only where
+    -- these finishers run — to cover the certificate's actual precision.
+    let expThreshold : Nat :=
+      max 256 (8 + vq.foldl (fun acc q => max acc (decimalPlaces q)) (decimalPlaces rq))
     let pq := polyTrim (← parsePoly p)
     let pdq := polyTrim (polyDeriv pq)
     if pdq.isEmpty then
@@ -433,6 +452,30 @@ elab_rules : tactic
     let pStx' ← Term.exprToSyntax p
     let (pvReStx, pvImStx, pdReStx, pdImStx) ← (·,·,·,·) <$> ratToTerm pvReQ <*>
       ratToTerm pvImQ <*> ratToTerm pdReQ <*> ratToTerm pdImQ
+    -- Rewrite each decimal component `v i` to the exact rational `num / den` it denotes, in
+    -- isolated `norm_num` calls. This is where the (possibly hundreds of digits long) decimal
+    -- literals are consumed: `LawfulOfScientific.ofScientific_def` turns `OfScientific … e` into
+    -- `↑m / 10 ^ e`, and a bare `norm_num` (crucially, with *no* `pow_succ` in scope) folds
+    -- `10 ^ e` into a numeral. `norm_num`'s scientific-literal plugin itself can only evaluate
+    -- exponents ≤ 256, so feeding these literals to it directly (as the finishers used to) fails
+    -- once an approximation has more than ~256 significant digits. After `hv0`/`hv1` the
+    -- downstream finishers see only ordinary `num / den` numerals.
+    let vStx ← Term.exprToSyntax v
+    let (v0Stx, v1Stx) ← (·, ·) <$> ratToTerm vq[0]! <*> ratToTerm vq[1]!
+    let hvTac ← do
+      let s ← mkSimp (vU.push (cid ``Lean.Grind.LawfulOfScientific.ofScientific_def))
+      `(tactic| $s:tactic <;> norm_num)
+    let hvShares : Array (Ident × Term) := #[
+      (mkIdent `hv0, ← `(($vStx : Fin 2 → ℝ) 0 = $v0Stx)),
+      (mkIdent `hv1, ← `(($vStx : Fin 2 → ℝ) 1 = $v1Stx))]
+    for (nm, ty) in hvShares do
+      let t ← `(tactic| have $nm:ident : $ty := by $hvTac:tactic)
+      try withOptions (exponentiation.threshold.set · expThreshold) (evalTactic t)
+      catch e => throwError
+        "unique_root_near: failed to convert the decimal approximation '{nm.getId}' to \
+        a rational:{indentD e.toMessageData}"
+    let hv0 := hvShares[0]!.1
+    let hv1 := hvShares[1]!.1
     -- Prove `aeval (toComplex v) p = A + B·I` and the same for the derivative, in one `aeval`
     -- expansion each: `Complex.ext_iff` splits into `re`/`im` *after* the expansion, so the
     -- typeclass-heavy homomorphism work is done once per polynomial instead of once per side
@@ -443,7 +486,11 @@ elab_rules : tactic
     -- the (expensive, ~60 ms/goal) `AlgHom` hom-class / `Module ℚ ℂ` instance search that
     -- `map_add`/`map_mul`/`map_pow` on the bundled `aeval` would.
     let expandTac ← do
-      let s ← mkSimp (pU ++ vU ++ #[cid ``toComplex_apply, cid ``pow_succ, cid ``pow_zero,
+      -- Rewrite `v 0`/`v 1` via `hv0`/`hv1` (to rational numerals) rather than δ-unfolding the
+      -- decimal approximation `v`, so no oversized decimal literal ever reaches the finisher's
+      -- `norm_num`; `pow_succ`/`pow_zero` then safely expand the (small) complex/polynomial
+      -- powers `(a + b·I) ^ k` without touching any `10 ^ e`.
+      let s ← mkSimp (pU ++ #[cid ``toComplex_apply, hv0, hv1, cid ``pow_succ, cid ``pow_zero,
         cid ``Complex.ext_iff])
       `(tactic| rw [Polynomial.aeval_def, Polynomial.eval₂_eq_eval_map] <;>
         $s:tactic <;> norm_num)
@@ -491,7 +538,7 @@ elab_rules : tactic
       let s ← mkSimp (MU ++ #[cid ``Fin.sum_univ_two])
       `(tactic| intro i <;> fin_cases i <;> $s:tactic <;> norm_num)
     let hBTac ← do
-      let s ← mkSimp vU
+      let s ← mkSimp #[hv0, hv1]
       `(tactic| $s:tactic <;> norm_num)
     let hB0Tac ← `(tactic| norm_num)
     let hnumTac ← do
@@ -535,7 +582,7 @@ elab_rules : tactic
     for i in [0:checks.size] do
       let (tag, what, tac) := checks[i]!
       setGoals [gs[i]!]
-      try evalTactic tac
+      try withOptions (exponentiation.threshold.set · expThreshold) (evalTactic tac)
       catch e => throwError
         "unique_root_near: certificate check '{tag}' ({what}) failed:{indentD e.toMessageData}"
       let rem ← getUnsolvedGoals
