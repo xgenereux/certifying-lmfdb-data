@@ -252,54 +252,108 @@ def roundUpSig (s : ℚ) (sig : ℕ) : ℚ := Id.run do
     k := k + 1
   return (ratCeil scaled : ℚ) / (10 : ℚ) ^ k
 
-/-! ### Syntax builders -/
+/-! ### `Expr` builders and `MetaM` tactic primitives
 
-/-- Term syntax for a rational literal (`n`, `-n`, `n / d` or `-(n / d)`). -/
-def ratToTerm (q : ℚ) : TacticM Term := do
-  let num : Term := Syntax.mkNumLit (toString q.num.natAbs)
-  let base : Term ← if q.den = 1 then pure num else do
-    let den : Term := Syntax.mkNumLit (toString q.den)
-    `($num / $den)
-  if q.num < 0 then `(-$base) else pure base
+Everything the tactic feeds to its side goals is built as an `Expr` and dispatched through
+`MetaM`/`TacticM` internals — no tactic `Syntax` is constructed. In particular numerals are built
+with `mkNumeral`, which stores the (possibly enormous) integer directly in `Expr.lit (.natVal …)`
+rather than serializing it to a decimal string; the O(N²) base-10 conversion that string route
+incurred was the tactic's dominant cost on high-precision inputs. -/
 
-/-- Term syntax for the polynomial with the given coefficients, in the shape
-`c_n * Polynomial.X ^ n ± … ± c_0 * Polynomial.X ^ 0` (using `Polynomial.C` for non-integer
-coefficients). -/
-def polyToTerm (coeffs : Array ℚ) : TacticM Term := do
-  let mut acc : Option Term := none
+/-- `Expr` numeral of value `q` at type `ty` (ℝ, ℚ, or `ℝ≥0`). The bignum is stored directly in
+`Expr.lit (.natVal …)` via `mkNumeral`; unlike a `Syntax`-built numeral this never serializes the
+integer to a decimal string. -/
+def ratToExpr (q : ℚ) (ty : Expr) : MetaM Expr := do
+  let numE ← Lean.Meta.mkNumeral ty q.num.natAbs
+  let baseE ← if q.den = 1 then pure numE
+              else mkAppM ``HDiv.hDiv #[numE, ← Lean.Meta.mkNumeral ty q.den]
+  if q.num < 0 then
+    if ty.isConstOf ``NNReal then
+      throwError "unique_root_near: internal error: negative value {q} at ℝ≥0"
+    mkAppM ``Neg.neg #[baseE]
+  else pure baseE
+
+/-- `ℚ[X]` `Expr` for a dense coefficient array, in the shape
+`cₙ * X^n ± … ± c₀ * X^0` (using `Polynomial.C` for non-integer coefficients), matching the shape
+the `hpd`/`hnum` coefficient `simp` lemmas expect. -/
+def polyToExpr (coeffs : Array ℚ) : MetaM Expr := do
+  let Xexpr ← mkAppOptM ``Polynomial.X #[some (mkConst ``Rat), none]
+  let qXTy ← inferType Xexpr
+  let Chom ← mkAppOptM ``Polynomial.C #[some (mkConst ``Rat), none]
+  let mkTerm (c : ℚ) (k : ℕ) : MetaM Expr := do
+    let cabs := if c < 0 then -c else c
+    let coeffExpr ←
+      if cabs.den = 1 then Lean.Meta.mkNumeral qXTy cabs.num.natAbs
+      else mkAppM ``DFunLike.coe #[Chom, ← ratToExpr cabs (mkConst ``Rat)]
+    mkAppM ``HMul.hMul #[coeffExpr, ← mkAppM ``HPow.hPow #[Xexpr, mkNatLit k]]
+  let mut acc : Option Expr := none
   for k' in [0:coeffs.size] do
     let k := coeffs.size - 1 - k'
     let c := coeffs[k]!
     if c = 0 then continue
-    let cabs ← ratToTerm (if c < 0 then -c else c)
-    let kLit : Term := Syntax.mkNumLit (toString k)
-    let t : Term ←
-      if c.den = 1 then `($cabs * Polynomial.X ^ $kLit)
-      else `(Polynomial.C ($cabs : ℚ) * Polynomial.X ^ $kLit)
+    let t ← mkTerm c k
     acc := some (← match acc with
-      | none => if c < 0 then `(-$t) else pure t
-      | some s => if c < 0 then `($s - $t) else `($s + $t))
+      | none => if c < 0 then mkAppM ``Neg.neg #[t] else pure t
+      | some s => if c < 0 then mkAppM ``HSub.hSub #[s, t] else mkAppM ``HAdd.hAdd #[s, t])
   match acc with
   | some t => return t
-  | none => `((0 : Polynomial ℚ))
+  | none => Lean.Meta.mkNumeral qXTy 0
 
-/-- Term syntax referring to the constant `n`. -/
-def cid (n : Name) : Term := ⟨(mkCIdent n).raw⟩
+/-- The `Expr` `(Polynomial.aeval x) p = ↑re + ↑im * I` (with `re`, `im : ℝ`, `x`, `p` over the
+`ℚ`-algebra ℂ). -/
+def mkAevalEq (x pE reE imE : Expr) : MetaM Expr := do
+  let hom ← mkAppOptM ``Polynomial.aeval
+    #[some (mkConst ``Rat), some (mkConst ``Complex), none, none, none, some x]
+  let lhs ← mkAppM ``DFunLike.coe #[hom, pE]
+  let rhs ← mkAppM ``HAdd.hAdd
+    #[← mkAppM ``Complex.ofReal #[reE],
+      ← mkAppM ``HMul.hMul #[← mkAppM ``Complex.ofReal #[imE], mkConst ``Complex.I]]
+  mkEq lhs rhs
 
-/-- Build `simp [l₁, …, lₙ]` (or `simp only […]`) from a list of lemma/definition terms. -/
-def mkSimp (lemmas : Array Term) (only : Bool := false) :
-    TacticM (TSyntax `tactic) := do
-  let args ← lemmas.mapM fun t => `(Lean.Parser.Tactic.simpLemma| $t:term)
-  if only then `(tactic| simp only [$args,*]) else `(tactic| simp [$args,*])
+/-- Rewrite the target of `g` by the equation/iff `heq` (a global lemma `mkConst n` or a local
+hypothesis `mkFVar h`); `symm` uses it right-to-left. Returns the rewritten goal. -/
+def rwGoal (g : MVarId) (heq : Expr) (symm : Bool := false) : MetaM MVarId := do
+  let r ← g.rewrite (← g.getType) heq symm
+  g.replaceTargetEq r.eNew r.eqProof
 
-/-- Build `norm_num [l₁, …, lₙ]`; the flag in each pair requests a reversed (`←`) rewrite. -/
-def mkNormNum (lemmas : Array (Term × Bool)) :
-    TacticM (TSyntax `tactic) := do
-  if lemmas.isEmpty then `(tactic| norm_num) else do
-    let args ← lemmas.mapM fun (t, rev) =>
-      if rev then `(Lean.Parser.Tactic.simpLemma| ← $t) else
-        `(Lean.Parser.Tactic.simpLemma| $t:term)
-    `(tactic| norm_num [$args,*])
+/-- Run `norm_num` on `g` from `MetaM` (no `Syntax`): the default `simp` set plus the norm_num
+extension, augmented with `consts` (each `(lemma, inv)`, `inv := true` for a `←` rewrite),
+`unfolds` (definitions to unfold, e.g. a named polynomial or matrix), and `fvars` (local
+hypotheses used as rewrites). With `pushCast`, the `push_cast` `simp` set is also added (for the
+`ℝ≥0` coercion goals). Returns `none` when the goal is closed, else the simplified residual. -/
+def normNumGoal (g : MVarId) (consts : Array (Name × Bool) := #[])
+    (unfolds : Array Name := #[]) (fvars : Array FVarId := #[])
+    (pushCast : Bool := false) : MetaM (Option MVarId) := g.withContext do
+  let mut thms ← getSimpTheorems
+  for (n, inv) in consts do thms ← thms.addConst n (inv := inv)
+  for n in unfolds do thms ← thms.addDeclToUnfold n
+  for h in fvars do thms ← thms.add (.fvar h) #[] (mkFVar h)
+  let mut arr : Array SimpTheorems := #[thms]
+  if pushCast then arr := arr.push (← Lean.Meta.NormCast.pushCastExt.getTheorems)
+  let ctx ← Simp.mkContext (← Simp.Context.mkDefault).config (simpTheorems := arr)
+              (congrTheorems := ← getSimpCongrTheorems)
+  let tgt ← instantiateMVars (← g.getType)
+  let r ← Mathlib.Meta.NormNum.deriveSimp ctx true tgt
+  match ← r.ofTrue with
+  | some prf => g.assign prf; return none
+  | none => return some (← applySimpResultToTarget g tgt r)
+
+/-- Close an equality goal with the `ring1` engine, from `MetaM`. -/
+def ringGoal (g : MVarId) : MetaM Unit :=
+  Mathlib.Tactic.AtomM.run .instances (Mathlib.Tactic.Ring.proveEq g)
+
+/-- Prove proposition `type` by running `close` on a fresh metavariable (in the current local
+context) — `close` must fully solve it — returning the resulting proof term. -/
+def proveExpr (type : Expr) (close : MVarId → MetaM Unit) : TacticM Expr := do
+  let m ← mkFreshExprMVar type
+  close m.mvarId!
+  instantiateMVars m
+
+/-- Add `name : type := proof` to the main goal's local context, returning the new hypothesis. -/
+def assertHyp (name : Name) (type proof : Expr) : TacticM FVarId := do
+  let (fv, g) ← (← (← getMainGoal).assert name type proof).intro1P
+  replaceMainGoal [g]
+  return fv
 
 /-! ### The tactic -/
 
@@ -356,7 +410,6 @@ elab_rules : tactic
         if pe.hasLooseBVars then
           throwError "unique_root_near: cannot extract the polynomial from{indentExpr args[0]!}"
         pure pe
-      -- | _ => throwError "unique_root_near: cannot extract the polynomial from{indentExpr args[0]!}"
     unless args[1]!.consumeMData.isApp do
       throwError "unique_root_near: expected `toComplex v`, got{indentExpr args[1]!}"
     let v := args[1]!.consumeMData.appArg!
@@ -382,48 +435,63 @@ elab_rules : tactic
       throwError "unique_root_near: the derivative of the polynomial is zero"
     let dVal := pdq.size - 1
 
-    -- syntax for the certificate arguments (user overrides take precedence); for `a`, `B`
-    -- and `R` we also track the exact rational value, which feeds the `z₂` estimate
-    let pdStx ← polyToTerm pdq
-    let r'Stx ← ratToTerm rq
-    let yStx ← match arg? `y with | some t => pure t | none => ratToTerm (rq / 10)
-    let z₁Stx ← match arg? `z₁ with | some t => pure t | none => ratToTerm rq
-    let dStx ← match arg? `d with
-      | some t => pure t
-      | none => pure (Syntax.mkNumLit (toString dVal) : Term)
+    -- Names to unfold in the finishers when `p`, `v` or `M` are named constants (not literals).
+    let constName? (e : Expr) : Option Name := if let .const n _ := e then some n else none
+    let pName? := (constName? p).toArray
+    let vName? := (constName? v).toArray
+
+    -- Elaborate the inverse-Jacobian matrix once (feeds the row-sum bound `a` and the assembly
+    -- lemma).
+    let fin2 := mkApp (mkConst ``Fin) (mkNatLit 2)
+    let Mty ← mkAppM ``Matrix #[fin2, fin2, mkConst ``Real]
+    let MExpr ← instantiateMVars (← Tactic.elabTermEnsuringType Mstx Mty)
+    let Mq ← parseMatrix MExpr
+    unless Mq.size = 2 && Mq.all (·.size = 2) do
+      throwError "unique_root_near: expected a 2×2 matrix, got{indentExpr MExpr}"
+    let MName? := (constName? MExpr).toArray
+
+    -- Certificate `Expr`s (user overrides take precedence). For `a`, `B` and `R` we also keep
+    -- the exact rational value, which feeds the `z₂` estimate.
+    let realTy := mkConst ``Real
+    let nnTy := mkConst ``NNReal
     let z₂Given := (arg? `z₂).isSome
-    -- exact rational value of an override, needed only when `z₂` is estimated automatically
-    let overrideRat (t : Term) (ty : Expr) (what : String) : TacticM ℚ := do
-      if z₂Given then return 0  -- unused
-      let e ← Tactic.elabTermEnsuringType t ty
-      try parseRat (← instantiateMVars e)
-      catch _ => throwErrorAt t
-        "unique_root_near: to estimate z₂ automatically, ({what} := …) must be a numeric \
-        literal; otherwise supply (z₂ := …) explicitly"
-    let (Bq, BStx) ← match arg? `B with
-      | some t => do pure (← overrideRat t (mkConst ``Real) "B", t)
+    let overrideExpr (t : Term) (ty : Expr) : TacticM Expr := do
+      instantiateMVars (← Tactic.elabTermEnsuringType t ty)
+    -- an override elaborated to an `Expr`, with its exact rational value (needed only to estimate
+    -- `z₂` automatically)
+    let overrideRatE (t : Term) (ty : Expr) (what : String) : TacticM (ℚ × Expr) := do
+      let e ← overrideExpr t ty
+      let q ← if z₂Given then pure 0 else
+        try parseRat e
+        catch _ => throwErrorAt t
+          "unique_root_near: to estimate z₂ automatically, ({what} := …) must be a numeric \
+          literal; otherwise supply (z₂ := …) explicitly"
+      pure (q, e)
+
+    let pdExpr ← polyToExpr pdq
+    let r'E ← ratToExpr rq nnTy
+    let yE ← match arg? `y with | some t => overrideExpr t nnTy | none => ratToExpr (rq / 10) nnTy
+    let z₁E ← match arg? `z₁ with | some t => overrideExpr t nnTy | none => ratToExpr rq nnTy
+    let dE ← match arg? `d with
+      | some t => overrideExpr t (mkConst ``Nat)
+      | none => pure (mkNatLit dVal)
+    let (Bq, BE) ← match arg? `B with
+      | some t => overrideRatE t realTy "B"
       | none => do
         let q := sqrtUpper (vq[0]! ^ 2 + vq[1]! ^ 2) 4
-        pure (q, ← ratToTerm q)
-    let (aq, aStx) ← match arg? `a with
-      | some t => do pure (← overrideRat t (mkConst ``Real) "a", t)
+        pure (q, ← ratToExpr q realTy)
+    let (aq, aE) ← match arg? `a with
+      | some t => overrideRatE t realTy "a"
       | none => do
-        -- row-sum bound on |M|, computed from the elaborated matrix
-        let fin2 := mkApp (mkConst ``Fin) (mkNatLit 2)
-        let Mty ← mkAppM ``Matrix #[fin2, fin2, mkConst ``Real]
-        let MExpr ← Tactic.elabTermEnsuringType Mstx Mty
-        let Mq ← parseMatrix (← instantiateMVars MExpr)
-        unless Mq.size = 2 && Mq.all (·.size = 2) do
-          throwError "unique_root_near: expected a 2×2 matrix, got{indentExpr MExpr}"
-        let rowSum (i : ℕ) : ℚ :=
-          |(Mq[i]!)[0]!| + |(Mq[i]!)[1]!|
+        -- row-sum bound on |M|, from the elaborated matrix
+        let rowSum (i : ℕ) : ℚ := |(Mq[i]!)[0]!| + |(Mq[i]!)[1]!|
         let q := roundUpSig (max (rowSum 0) (rowSum 1)) 6
-        pure (q, ← ratToTerm q)
-    let (Rq, RStx) ← match arg? `R with
-      | some t => do pure (← overrideRat t (mkConst ``NNReal) "R", t)
-      | none => pure (rq, ← ratToTerm rq)
-    let z₂Stx ← match arg? `z₂ with
-      | some t => pure t
+        pure (q, ← ratToExpr q realTy)
+    let (Rq, RE) ← match arg? `R with
+      | some t => overrideRatE t nnTy "R"
+      | none => pure (rq, ← ratToExpr rq nnTy)
+    let z₂E ← match arg? `z₂ with
+      | some t => overrideExpr t nnTy
       | none => do
         -- exact rational evaluation of the sum bounded in `hnum`, rounded up
         let mut S : ℚ := 0
@@ -432,163 +500,131 @@ elab_rules : tactic
           for n in [0:dVal - k] do
             inner := inner + ((n + k + 1).choose (k + 1) : ℚ) * |pdq[n + k + 1]!| * Bq ^ n
           S := S + inner * ((3 / 2 : ℚ) * Rq) ^ k
-        ratToTerm (roundUpSig (3 * aq * S) 3)
+        ratToExpr (roundUpSig (3 * aq * S) 3) nnTy
 
-    -- unfolding hints for the finishers: p, v and M when they are named constants
-    let constTerm? (e : Expr) : Option Term :=
-      if let .const n _ := e then some (cid n) else none
-    let pU := (constTerm? p).toArray
-    let vU := (constTerm? v).toArray
-    let MU : Array Term := if Mstx.raw.isIdent then #[Mstx] else #[]
-
-    -- Shared evaluation: the values of `p` and its derivative at `toComplex v` are exact
-    -- Gaussian rationals (rational polynomial, rational `v`). We evaluate them at the meta
-    -- level so the residual (`hy0`, `hy1`) and inverse-bound (`hz1`) finishers can rewrite to
-    -- a concrete value and do only rational arithmetic, instead of each re-expanding `aeval`
-    -- through the (typeclass-heavy) `ℚ`-algebra homomorphism machinery.
+    -- Shared evaluation: `p` and its derivative at `toComplex v` are exact Gaussian rationals,
+    -- computed at the meta level so the residual (`hy0`/`hy1`) and inverse-bound (`hz1`) finishers
+    -- rewrite to a concrete value and do only rational arithmetic, instead of each re-expanding
+    -- the (typeclass-heavy) `aeval`.
     let (pvReQ, pvImQ) := evalGaussian pq vq[0]! vq[1]!
     let (pdReQ, pdImQ) := evalGaussian pdq vq[0]! vq[1]!
-    let tcVStx ← Term.exprToSyntax args[1]!
-    let pStx' ← Term.exprToSyntax p
-    let (pvReStx, pvImStx, pdReStx, pdImStx) ← (·,·,·,·) <$> ratToTerm pvReQ <*>
-      ratToTerm pvImQ <*> ratToTerm pdReQ <*> ratToTerm pdImQ
-    -- Rewrite each decimal component `v i` to the exact rational `num / den` it denotes, in
-    -- isolated `norm_num` calls. This is where the (possibly hundreds of digits long) decimal
+    let pvReE ← ratToExpr pvReQ realTy
+    let pvImE ← ratToExpr pvImQ realTy
+    let pdReE ← ratToExpr pdReQ realTy
+    let pdImE ← ratToExpr pdImQ realTy
+    let v0E ← ratToExpr vq[0]! realTy
+    let v1E ← ratToExpr vq[1]! realTy
+    let tcV := args[1]!
+    let expOpts : Options → Options := (exponentiation.threshold.set · expThreshold)
+
+    -- Assert `hv0`/`hv1 : (v : Fin 2 → ℝ) i = <rational>`, rewriting each decimal coordinate to
+    -- the exact rational it denotes. This is where the (possibly thousands of digits long) decimal
     -- literals are consumed: `LawfulOfScientific.ofScientific_def` turns `OfScientific … e` into
-    -- `↑m / 10 ^ e`, and a bare `norm_num` (crucially, with *no* `pow_succ` in scope) folds
-    -- `10 ^ e` into a numeral. `norm_num`'s scientific-literal plugin itself can only evaluate
-    -- exponents ≤ 256, so feeding these literals to it directly (as the finishers used to) fails
-    -- once an approximation has more than ~256 significant digits. After `hv0`/`hv1` the
-    -- downstream finishers see only ordinary `num / den` numerals.
-    let vStx ← Term.exprToSyntax v
-    let (v0Stx, v1Stx) ← (·, ·) <$> ratToTerm vq[0]! <*> ratToTerm vq[1]!
-    let hvTac ← do
-      let s ← mkSimp (vU.push (cid ``Lean.Grind.LawfulOfScientific.ofScientific_def))
-      `(tactic| $s:tactic <;> norm_num)
-    let hvShares : Array (Ident × Term) := #[
-      (mkIdent `hv0, ← `(($vStx : Fin 2 → ℝ) 0 = $v0Stx)),
-      (mkIdent `hv1, ← `(($vStx : Fin 2 → ℝ) 1 = $v1Stx))]
-    for (nm, ty) in hvShares do
-      let t ← `(tactic| have $nm:ident : $ty := by $hvTac:tactic)
-      try withOptions (exponentiation.threshold.set · expThreshold) (evalTactic t)
-      catch e => throwError
-        "unique_root_near: failed to convert the decimal approximation '{nm.getId}' to \
-        a rational:{indentD e.toMessageData}"
-    let hv0 := hvShares[0]!.1
-    let hv1 := hvShares[1]!.1
-    -- Prove `aeval (toComplex v) p = A + B·I` and the same for the derivative, in one `aeval`
-    -- expansion each: `Complex.ext_iff` splits into `re`/`im` *after* the expansion, so the
-    -- typeclass-heavy homomorphism work is done once per polynomial instead of once per side
-    -- goal (`p` feeds `hy0` and `hy1`; `pd` feeds both `fin_cases` branches of `hz1`).
-    -- Rewrite `aeval (toComplex v) p` (a `ℚ`-algebra `AlgHom`) to `eval (toComplex v)`
-    -- on the polynomial mapped into `ℂ[X]` *before* expanding: `Polynomial.eval`/`Polynomial.map`
-    -- use `ℂ`'s own ring structure via direct simp lemmas, so the expansion no longer triggers
-    -- the (expensive, ~60 ms/goal) `AlgHom` hom-class / `Module ℚ ℂ` instance search that
-    -- `map_add`/`map_mul`/`map_pow` on the bundled `aeval` would.
-    let expandTac ← do
-      -- Rewrite `v 0`/`v 1` via `hv0`/`hv1` (to rational numerals) rather than δ-unfolding the
-      -- decimal approximation `v`, so no oversized decimal literal ever reaches the finisher's
-      -- `norm_num`; `pow_succ`/`pow_zero` then safely expand the (small) complex/polynomial
-      -- powers `(a + b·I) ^ k` without touching any `10 ^ e`.
-      let s ← mkSimp (pU ++ #[cid ``toComplex_apply, hv0, hv1, cid ``pow_succ, cid ``pow_zero,
-        cid ``Complex.ext_iff])
-      `(tactic| rw [Polynomial.aeval_def, Polynomial.eval₂_eq_eval_map] <;>
-        $s:tactic <;> norm_num)
-    let cval (reS imS : Term) : TacticM Term :=
-      `(((($reS : ℝ) : ℂ) + (($imS : ℝ) : ℂ) * Complex.I))
-    let shares : Array (Ident × Term) := #[
-      (mkIdent `hpv, ← `((Polynomial.aeval $tcVStx) $pStx' = $(← cval pvReStx pvImStx))),
-      (mkIdent `hpdv, ← `((Polynomial.aeval $tcVStx) ($pdStx : Polynomial ℚ)
-        = $(← cval pdReStx pdImStx)))]
-    for (nm, ty) in shares do
-      let t ← `(tactic| have $nm:ident : $ty := by $expandTac:tactic)
-      try evalTactic t
-      catch e => throwError
-        "unique_root_near: failed to evaluate p or p' at the approximation \
-        ('{nm.getId}'):{indentD e.toMessageData}"
-    let hpv := shares[0]!.1
-    let hpdv := shares[1]!.1
+    -- `↑m / 10 ^ e`, and `norm_num` folds `10 ^ e` into a numeral (with the raised exponentiation
+    -- threshold — its scientific plugin otherwise caps the exponent at 256). Downstream finishers
+    -- then see only ordinary `num / den` numerals.
+    let assertDecimal (nm : Name) (i : ℕ) (vE : Expr) : TacticM FVarId := do
+      (← getMainGoal).withContext do
+        let ty ← mkEq (mkApp v (← Lean.Meta.mkNumeral fin2 i)) vE
+        let pf ← proveExpr ty fun g => do
+          unless (← withOptions expOpts <| normNumGoal g
+              #[(``Lean.Grind.LawfulOfScientific.ofScientific_def, false)] vName?).isNone do
+            throwError "unique_root_near: failed to convert the decimal coordinate '{nm}'"
+        assertHyp nm ty pf
+    let hv0 ← assertDecimal `hv0 0 v0E
+    let hv1 ← assertDecimal `hv1 1 v1E
 
-    -- apply the assembly lemma
-    let refTac ← `(tactic| refine UniqueRootNear.of_certificates' _ $pdStx $Mstx _
-      $r'Stx $yStx $z₁Stx $z₂Stx $RStx $dStx $aStx $BStx
-      ?hr ?hpd ?hy0 ?hy1 ?hz1 ?hdeg ?ha ?hB ?hB0 ?hnum ?hrR ?hyr ?hzr)
-    try evalTactic refTac
-    catch e => throwError
-      "unique_root_near: failed to apply UniqueRootNear.of_certificates':\
-      {indentD e.toMessageData}"
+    -- Assert `hpv`/`hpdv : (aeval (toComplex v)) p = ↑re + ↑im · I` (and the same for `pd`), a
+    -- single `aeval` expansion each. `Complex.ext_iff` splits into `re`/`im` after the expansion,
+    -- and `v 0`/`v 1` are rewritten via `hv0`/`hv1` so no oversized decimal reaches `norm_num`
+    -- (which then only expands the small complex/polynomial powers `(a + b·I) ^ k`).
+    let expandClose (unfolds : Array Name) (g : MVarId) : MetaM Unit := do
+      let g ← rwGoal g (← mkConstWithFreshMVarLevels ``Polynomial.aeval_def)
+      let g ← rwGoal g (← mkConstWithFreshMVarLevels ``Polynomial.eval₂_eq_eval_map)
+      unless (← normNumGoal g #[(``toComplex_apply, false), (``pow_succ, false),
+          (``pow_zero, false), (``Complex.ext_iff, false)] unfolds #[hv0, hv1]).isNone do
+        throwError "unique_root_near: could not evaluate p or p' at the approximation"
+    let assertAeval (nm : Name) (pE reE imE : Expr) (unfolds : Array Name) : TacticM FVarId := do
+      (← getMainGoal).withContext do
+        let ty ← mkAevalEq tcV pE reE imE
+        assertHyp nm ty (← proveExpr ty (expandClose unfolds))
+    let hpv ← assertAeval `hpv p pvReE pvImE pName?
+    let hpdv ← assertAeval `hpdv pdExpr pdReE pdImE #[]
 
-    -- finishers
-    let hrTac ← `(tactic| first
-      | (push_cast <;> norm_num <;> done)
-      | norm_num [NNReal.coe_div, NNReal.coe_one, NNReal.coe_ofNat])
-    let hpdTac ← do
-      let nn ← mkNormNum ((pU.map (·, false)).push (cid ``Polynomial.C_ofNat, false))
-      `(tactic| $nn:tactic <;> ring1)
-    let hyTac ← do
-      -- rewrite `aeval (toComplex v) p` to its precomputed complex value (removing `aeval`),
-      -- then finish with `re`/`im`/matrix unfolding + rational arithmetic
-      let s ← mkSimp MU
-      `(tactic| rw [$hpv:ident] <;> $s:tactic <;> norm_num)
-    let hz1Tac ← do
-      let s ← mkSimp (MU ++ #[cid ``Matrix.one_apply, cid ``Fin.sum_univ_two])
-      `(tactic| intro i <;> fin_cases i <;> rw [$hpdv:ident] <;> $s:tactic <;> norm_num)
-    let hdegTac ← `(tactic| compute_degree!)
-    let haTac ← do
-      let s ← mkSimp (MU ++ #[cid ``Fin.sum_univ_two])
-      `(tactic| intro i <;> fin_cases i <;> $s:tactic <;> norm_num)
-    let hBTac ← do
-      let s ← mkSimp #[hv0, hv1]
-      `(tactic| $s:tactic <;> norm_num)
-    let hB0Tac ← `(tactic| norm_num)
-    let hnumTac ← do
-      let s ← mkSimp #[cid ``Finset.sum_range_succ, cid ``Finset.sum_range_zero] (only := true)
-      let nn ← mkNormNum #[(cid ``Polynomial.C_ofNat, true),
-        (cid ``Polynomial.coeff_add, false), (cid ``Polynomial.coeff_sub, false),
-        (cid ``Polynomial.coeff_neg, false), (cid ``Polynomial.coeff_C_mul, false),
-        (cid ``Polynomial.coeff_X_pow, false), (cid ``Polynomial.coeff_C, false),
-        (cid ``Polynomial.coeff_X, false), (cid ``Nat.choose, false)]
-      `(tactic| $s:tactic <;> $nn:tactic)
-    let hrRTac ← `(tactic| first
-      | (norm_num <;> done)
-      | (rw [← NNReal.coe_le_coe] <;> push_cast <;> norm_num))
-    let hyrTac ← `(tactic| first
-      | (norm_num <;> done)
-      | (apply le_of_lt <;> norm_num <;> done)
-      | (rw [← NNReal.coe_le_coe] <;> push_cast <;> norm_num))
-    let hzrTac ← `(tactic| first
-      | (norm_num <;> done)
-      | (rw [← NNReal.coe_lt_coe] <;> push_cast <;> norm_num))
+    -- Apply the assembly lemma; `apply` unifies its conclusion with the goal (solving `p`, `v`,
+    -- `r`) and returns the 13 hypothesis goals in declaration order.
+    let e ← mkAppOptM ``UniqueRootNear.of_certificates'
+      #[p, pdExpr, MExpr, v, some rExpr, r'E, yE, z₁E, z₂E, RE, dE, aE, BE]
+    let goals ←
+      try (← getMainGoal).apply e
+      catch err => throwError "unique_root_near: failed to apply \
+        UniqueRootNear.of_certificates':{indentD err.toMessageData}"
+    setGoals goals
 
-    let checks : Array (String × String × TSyntax `tactic) := #[
-      ("hr", "the radius coercion ℝ = ℝ≥0", hrTac),
-      ("hpd", "computing the derivative polynomial", hpdTac),
-      ("hy0", "the residual bound |(M·p(v))₀| ≤ y", hyTac),
-      ("hy1", "the residual bound |(M·p(v))₁| ≤ y", hyTac),
-      ("hz1", "the approximate-inverse bound ‖1 - M·p'(v)‖ ≤ z₁", hz1Tac),
-      ("hdeg", "the degree bound on the derivative", hdegTac),
-      ("ha", "the row-sum bound ‖M‖ ≤ a", haTac),
-      ("hB", "the norm bound ‖v‖ ≤ B", hBTac),
-      ("hB0", "0 ≤ B", hB0Tac),
-      ("hnum", "the Lipschitz certificate: coefficient sum ≤ z₂", hnumTac),
-      ("hrR", "r ≤ R", hrRTac),
-      ("hyr", "the Newton–Kantorovich inequality y + z₁·r + z₂·r²/2 ≤ r", hyrTac),
-      ("hzr", "the contraction inequality z₁ + z₂·r < 1", hzrTac)]
+    -- Finishers, each run directly on its side goal via `MetaM` (no `Syntax`). Every
+    -- `norm_num`-style check goes through `normNumGoal`; `fin_cases` is replaced by rewriting
+    -- `Fin.forall_fin_two`. `hdeg` alone keeps a constant `compute_degree!` script (no `MetaM`
+    -- entry point).
+    let close (g : MVarId) (consts : Array (Name × Bool) := #[]) (unfolds : Array Name := #[])
+        (fvars : Array FVarId := #[]) (pushCast := false) : MetaM Unit := do
+      match ← withOptions expOpts <| normNumGoal g consts unfolds fvars pushCast with
+      | none => pure ()
+      | some g' => throwError "goal not closed by norm_num; remaining:{indentD (← g'.getType)}"
+    let coeArith : Array (Name × Bool) := #[(``NNReal.coe_add, false), (``NNReal.coe_mul, false),
+      (``NNReal.coe_div, false), (``NNReal.coe_pow, false), (``NNReal.coe_one, false),
+      (``NNReal.coe_ofNat, false)]
+    let hnumConsts : Array (Name × Bool) :=
+      #[(``Finset.sum_range_succ, false), (``Finset.sum_range_zero, false),
+        (``Polynomial.C_ofNat, true), (``Polynomial.coeff_add, false),
+        (``Polynomial.coeff_sub, false), (``Polynomial.coeff_neg, false),
+        (``Polynomial.coeff_C_mul, false), (``Polynomial.coeff_X_pow, false),
+        (``Polynomial.coeff_C, false), (``Polynomial.coeff_X, false)]
+    let checks : Array (String × String × (MVarId → TacticM Unit)) := #[
+      ("hr", "the radius coercion ℝ = ℝ≥0", fun g => do
+        close g (coeArith.push (``NNReal.coe_ofNat, false)) (pushCast := true)),
+      ("hpd", "computing the derivative polynomial", fun g => do
+        match ← normNumGoal g #[(``Polynomial.C_ofNat, false)] pName? with
+        | none => pure ()
+        | some g' => ringGoal g'),
+      ("hy0", "the residual bound |(M·p(v))₀| ≤ y", fun g => do
+        close (← rwGoal g (mkFVar hpv)) (unfolds := MName?)),
+      ("hy1", "the residual bound |(M·p(v))₁| ≤ y", fun g => do
+        close (← rwGoal g (mkFVar hpv)) (unfolds := MName?)),
+      ("hz1", "the approximate-inverse bound ‖1 - M·p'(v)‖ ≤ z₁", fun g => do
+        let g ← rwGoal g (← mkConstWithFreshMVarLevels ``Fin.forall_fin_two)
+        let g ← rwGoal g (mkFVar hpdv)
+        close g #[(``Matrix.one_apply, false), (``Fin.sum_univ_two, false)] MName?),
+      ("hdeg", "the degree bound on the derivative", fun g => do
+        setGoals [g]
+        evalTactic (← `(tactic| compute_degree!))
+        unless (← getUnsolvedGoals).isEmpty do
+          throwError "compute_degree! left unsolved goals"),
+      ("ha", "the row-sum bound ‖M‖ ≤ a", fun g => do
+        close (← rwGoal g (← mkConstWithFreshMVarLevels ``Fin.forall_fin_two))
+          #[(``Fin.sum_univ_two, false)] MName?),
+      ("hB", "the norm bound ‖v‖ ≤ B", fun g => do close g (fvars := #[hv0, hv1])),
+      ("hB0", "0 ≤ B", fun g => do close g),
+      ("hnum", "the Lipschitz certificate: coefficient sum ≤ z₂", fun g => do
+        close g hnumConsts #[``Nat.choose]),
+      ("hrR", "r ≤ R", fun g => do
+        close (← rwGoal g (← mkConstWithFreshMVarLevels ``NNReal.coe_le_coe) (symm := true))
+          coeArith (pushCast := true)),
+      ("hyr", "the Newton–Kantorovich inequality y + z₁·r + z₂·r²/2 ≤ r", fun g => do
+        close (← rwGoal g (← mkConstWithFreshMVarLevels ``NNReal.coe_le_coe) (symm := true))
+          coeArith (pushCast := true)),
+      ("hzr", "the contraction inequality z₁ + z₂·r < 1", fun g => do
+        close (← rwGoal g (← mkConstWithFreshMVarLevels ``NNReal.coe_lt_coe) (symm := true))
+          coeArith (pushCast := true))]
 
     let gs := (← getGoals).toArray
     unless gs.size = checks.size do
       throwError "unique_root_near: internal error: expected {checks.size} side goals, \
         found {gs.size}"
     for i in [0:checks.size] do
-      let (tag, what, tac) := checks[i]!
-      setGoals [gs[i]!]
-      try withOptions (exponentiation.threshold.set · expThreshold) (evalTactic tac)
-      catch e => throwError
-        "unique_root_near: certificate check '{tag}' ({what}) failed:{indentD e.toMessageData}"
-      let rem ← getUnsolvedGoals
-      unless rem.isEmpty do throwError
-        "unique_root_near: certificate check '{tag}' ({what}) was not fully solved; \
-        the certificate may be inadequate. Remaining:\n{goalsToMessageData rem}"
+      let (tag, what, check) := checks[i]!
+      try check gs[i]!
+      catch err => throwError
+        "unique_root_near: certificate check '{tag}' ({what}) failed:{indentD err.toMessageData}"
     setGoals []
 
 end UniqueRootNearTactic
