@@ -167,6 +167,44 @@ lemma polyToZeroFinderDeriv_lipschitzOn_of_bounds (p : ℚ[X]) (M : Matrix (Fin 
   · exact Finset.sum_nonneg fun k _ => by positivity
   · exact mul_nonneg (by linarith) ha0
 
+/-- The approximate-inverse bound `hz₁`, certified at a low-precision proxy `w` for `v`: a
+row-sum bound `z₁'` on `1 - M * derivMatrix p w`, together with the Lipschitz certificate `z₂`
+(valid on the ball of radius `R ≥ ε ≥ ‖v - w‖` around `v`), bounds the operator norm at `v`
+itself by `z₁' + z₂ * ε`. This is what lets a tactic evaluate `p'` at a truncation `w` of `v`
+carrying a bounded number of digits, instead of at the full-precision `v`. -/
+lemma nnnorm_one_sub_comp_polyToZeroFinderDeriv_le_of_approx (p : ℚ[X])
+    (M : Matrix (Fin 2) (Fin 2) ℝ) (v w : Fin 2 → ℝ) (R : ℝ≥0) {z₁' z₂ ε : ℝ≥0} {d : ℕ}
+    {a B s : ℝ}
+    (hz1w : ∀ i, ∑ j, |(1 - M * derivMatrix p w) i j| ≤ z₁')
+    (hw0 : |v 0 - w 0| ≤ ε) (hw1 : |v 1 - w 1| ≤ ε) (hεR : ε ≤ R)
+    (hdeg : p.derivative.natDegree ≤ d)
+    (ha : ∀ i, ∑ j, |M i j| ≤ a)
+    (hB : v 0 ^ 2 + v 1 ^ 2 ≤ B ^ 2) (hB0 : 0 ≤ B)
+    (hs : Real.sqrt 2 ≤ s)
+    (hnum : 2 * s * a *
+        (∑ k ∈ range d,
+          (∑ n ∈ range (d - k), ((n + k + 1).choose (k + 1) : ℝ) *
+            |((p.derivative.coeff (n + k + 1) : ℚ) : ℝ)| * B ^ n) * (s * R) ^ k) ≤ z₂) :
+    ‖1 - (mulVecCLM M).comp (polyToZeroFinderDeriv p v)‖₊ ≤ z₁' + z₂ * ε := by
+  have hwv : ‖w - v‖₊ ≤ ε := nnnorm_fin_two_le
+    (by rw [Pi.sub_apply, abs_sub_comm]; exact hw0)
+    (by rw [Pi.sub_apply, abs_sub_comm]; exact hw1)
+  have hmem : w ∈ Metric.closedEBall v (R : ENNReal) := by
+    rw [Metric.mem_closedEBall, edist_nndist, nndist_eq_nnnorm_sub]
+    exact_mod_cast hwv.trans hεR
+  have hlip := polyToZeroFinderDeriv_lipschitzOn_of_bounds p M v R z₂ hdeg ha hB hB0 hs hnum
+    w hmem
+  have hzw := nnnorm_one_sub_mulVecCLM_comp_polyToZeroFinderDeriv_le p M w hz1w
+  have key : 1 - (mulVecCLM M).comp (polyToZeroFinderDeriv p v) =
+      (1 - (mulVecCLM M).comp (polyToZeroFinderDeriv p w)) +
+        (mulVecCLM M).comp (polyToZeroFinderDeriv p w - polyToZeroFinderDeriv p v) := by
+    rw [ContinuousLinearMap.comp_sub]; abel
+  calc ‖1 - (mulVecCLM M).comp (polyToZeroFinderDeriv p v)‖₊
+      ≤ ‖1 - (mulVecCLM M).comp (polyToZeroFinderDeriv p w)‖₊ +
+        ‖(mulVecCLM M).comp (polyToZeroFinderDeriv p w - polyToZeroFinderDeriv p v)‖₊ := by
+        rw [key]; exact nnnorm_add_le _ _
+    _ ≤ z₁' + z₂ * ε := add_le_add hzw (hlip.trans (by gcongr))
+
 /-! ### Assembling the Newton–Kantorovich conclusion -/
 
 /-- Package a full numerical certificate `(v, M, y, z₁, z₂, R, r)` into the unique-root
@@ -199,6 +237,43 @@ lemma existsUnique_root_of_certificates (p : ℚ[X]) (M : Matrix (Fin 2) (Fin 2)
     (R := (R : ENNReal))
     (nnnorm_mulVecCLM_polyToZeroFinder_le p M v hy0 hy1)
     (nnnorm_one_sub_mulVecCLM_comp_polyToZeroFinderDeriv_le p M v hz1)
+    (polyToZeroFinderDeriv_lipschitzOn_of_bounds p M v R z₂ hdeg ha hB hB0 hs hnum)
+    (by exact_mod_cast hrR)
+    hyr hzr
+
+/-- Variant of `existsUnique_root_of_certificates` whose approximate-inverse bound is certified
+at a low-precision proxy `w` for `v` (with `|v i - w i| ≤ ε ≤ R`): the row-sum bound `z₁'` at
+`w` and the Lipschitz certificate `z₂` combine into the bound `z₁' + z₂ * ε ≤ z₁` at `v`.
+This keeps the number of digits needed to verify the `hz1w` check bounded, however precise the
+approximation `v` is. -/
+lemma existsUnique_root_of_certificates_approx (p : ℚ[X]) (M : Matrix (Fin 2) (Fin 2) ℝ)
+    (v w : Fin 2 → ℝ) {y z₁ z₁' z₂ ε R r : ℝ≥0} {d : ℕ} {a B s : ℝ}
+    (hy0 : |M 0 0 * (aeval (toComplex v) p).re + M 0 1 * (aeval (toComplex v) p).im| ≤ y)
+    (hy1 : |M 1 0 * (aeval (toComplex v) p).re + M 1 1 * (aeval (toComplex v) p).im| ≤ y)
+    (hz1w : ∀ i, ∑ j, |(1 - M * derivMatrix p w) i j| ≤ z₁')
+    (hw0 : |v 0 - w 0| ≤ ε) (hw1 : |v 1 - w 1| ≤ ε) (hεR : ε ≤ R)
+    (hz1 : z₁' + z₂ * ε ≤ z₁)
+    (hdeg : p.derivative.natDegree ≤ d)
+    (ha : ∀ i, ∑ j, |M i j| ≤ a)
+    (hB : v 0 ^ 2 + v 1 ^ 2 ≤ B ^ 2) (hB0 : 0 ≤ B)
+    (hs : Real.sqrt 2 ≤ s)
+    (hnum : 2 * s * a *
+        (∑ k ∈ range d,
+          (∑ n ∈ range (d - k), ((n + k + 1).choose (k + 1) : ℝ) *
+            |((p.derivative.coeff (n + k + 1) : ℚ) : ℝ)| * B ^ n) * (s * R) ^ k) ≤ z₂)
+    (hrR : r ≤ R)
+    (hyr : y + z₁ * r + z₂ * r ^ 2 / 2 ≤ r)
+    (hzr : z₁ + z₂ * r < 1) :
+    ∃! x, polyToZeroFinder p x = 0 ∧ ‖x - v‖₊ ≤ r :=
+  newton_kantorovich_fd
+    (by simp)
+    (fun x => hasFDerivAt_polyToZeroFinder)
+    continuous_polyToZeroFinderDeriv
+    (A := mulVecCLM M)
+    (R := (R : ENNReal))
+    (nnnorm_mulVecCLM_polyToZeroFinder_le p M v hy0 hy1)
+    ((nnnorm_one_sub_comp_polyToZeroFinderDeriv_le_of_approx p M v w R hz1w hw0 hw1 hεR hdeg
+      ha hB hB0 hs hnum).trans hz1)
     (polyToZeroFinderDeriv_lipschitzOn_of_bounds p M v R z₂ hdeg ha hB hB0 hs hnum)
     (by exact_mod_cast hrR)
     hyr hzr

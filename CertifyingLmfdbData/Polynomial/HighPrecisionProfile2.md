@@ -197,3 +197,45 @@ With the incidental costs gone, the profile is now almost entirely the exact-rat
 | expand `hpv` + `hy0`/`hy1` + `evalGaussian` | 19.6 s | 48% | dyadic enclosures: ~D digits instead of 6·D |
 | `hnum`                                   | 1.7 s  | 4%  | staged `simp only` pre-pass (also the low-precision floor) |
 | everything else                          | ~1.2 s | 3%  | — |
+
+## Follow-up 2: the `z₁` lever (implemented)
+
+The first structural lever — loosen `z₁` and stop evaluating `p'` at the full-precision `v` —
+was implemented. Rather than a bare default change, the derivative check now runs at a
+**truncated proxy point**: `w := v` truncated to an adaptively chosen number of decimal
+places (`truncDecimals`), `wDigits := max 6 (⌈log₁₀ (500·z₂/z₁)⌉) (⌈log₁₀ (1/R)⌉)` with
+truncation error `ε := 10^(-wDigits)`, so that the transported error `z₂·ε` consumes at most
+~0.2 % of the `z₁` budget however ill-conditioned the input. `z₂` scales like the inverse
+root-separation, so clustered roots buy `w` exactly the digits they genuinely need (never
+more than ~3 beyond the digits of `r` itself, since `hzr` forces `z₂·r < 1`), while for the
+benign workload here `wDigits = 7`. The ceilings are computed from GMP bit lengths
+(`log10Upper`), not by O(D²) division loops.
+
+- New lemma `nnnorm_one_sub_comp_polyToZeroFinderDeriv_le_of_approx` (`Certify.lean`):
+  `‖1 − M·J(v)‖ ≤ ‖1 − M·J(w)‖ + ‖M·(J(w) − J(v))‖ ≤ z₁' + z₂·ε` for `‖v − w‖ ≤ ε ≤ R`,
+  **reusing the already-certified Lipschitz bound `z₂`** — no new sum to verify. Threaded
+  through `existsUnique_root_of_certificates_approx` / `UniqueRootNear.of_certificates_approx`
+  into the tactic's assembly lemma.
+- Tactic changes: default `z₁ := 1/2` (the NK inequalities `hyr`/`hzr` admit `z₁ ≈ 0.9`, so
+  nothing tightens), default `R := max r 10⁻⁶` (the floor guarantees `ε ≤ R`); `p'` is
+  evaluated (meta-level and in the `hpdw` expansion) only at `w`, never at `v`; new
+  O(1)-or-O(D)-cheap side checks `hw0`/`hw1` (`|v i − w i| ≤ ε`, one D-digit subtraction
+  each), `hεR` (`ε ≤ R`) and `hz1 : z₁' + z₂·ε ≤ z₁` (small numerals), with `z₁'` the exact
+  row-sum bound on `|1 − M·p'(w)|` rounded up to 3 significant digits. The `z₁`/`R`/`z₂`
+  overrides must now be numeric literals, since they size `wDigits`.
+- Regression test (`AllRoots.lean`): `(X − 1)(X − (1 + 10⁻³⁰))` certified at the root `1`
+  with `r = 10⁻⁴⁰` — there `M ≈ −10³⁰`, `z₂ ≈ 6·10³⁰`, and the adaptive width picks
+  `wDigits ≈ 35`; any *fixed* truncation width ≤ 31 digits would fail its `hz1` check.
+
+Wall-clock (same machine, `lake env lean`, incl. ~5 s import overhead), all certificates
+still succeeding:
+
+| digits | before | after | Δ |
+|-------:|-------:|------:|---|
+| 1 000  | 8.3 s  | 8.6 s | floor unchanged (new checks ≈ the old `hpdv`/`hz1` floor cost) |
+| 30 000 | 18.0 s | 14.7 s | −3.3 s ≈ the old `hz1` (2.4 s) + `hpdv` (1.9 s) |
+| 100 000 | 51.6 s | 33.9 s | **−17.7 s**, matching the predicted ~18.1 s for this lever |
+
+The remaining super-linear cost is now almost exclusively the residual path
+(`hpv` expansion + `hy0`/`hy1` + `evalGaussian` on `p(v)`), i.e. lever 2 (dyadic enclosures);
+the derivative path no longer grows with precision.

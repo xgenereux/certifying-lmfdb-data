@@ -157,6 +157,35 @@ noncomputable def UniqueRootNear.of_certificates (p : Polynomial ℚ)
   norm_num
   exact hnum
 
+/-- Variant of `UniqueRootNear.of_certificates` whose approximate-inverse bound is certified at
+a low-precision proxy `w` for `v` (with `|v i - w i| ≤ ε ≤ R`): the row-sum bound `z₁'` at `w`
+and the Lipschitz certificate `z₂` combine into `z₁' + z₂ * ε ≤ z₁`. This keeps the number of
+digits needed for the `hz1w` check bounded, however precise the approximation `v` is. -/
+noncomputable def UniqueRootNear.of_certificates_approx (p : Polynomial ℚ)
+    (M : Matrix (Fin 2) (Fin 2) ℝ) (v w : Fin 2 → ℝ) {y z₁ z₁' z₂ ε R r : ℝ≥0} {d : ℕ}
+    {a B : ℝ}
+    (hy0 : |M 0 0 * (aeval (toComplex v) p).re + M 0 1 * (aeval (toComplex v) p).im| ≤ y)
+    (hy1 : |M 1 0 * (aeval (toComplex v) p).re + M 1 1 * (aeval (toComplex v) p).im| ≤ y)
+    (hz1w : ∀ i, ∑ j, |(1 - M * derivMatrix p w) i j| ≤ z₁')
+    (hw0 : |v 0 - w 0| ≤ ε) (hw1 : |v 1 - w 1| ≤ ε) (hεR : ε ≤ R)
+    (hz1 : z₁' + z₂ * ε ≤ z₁)
+    (hdeg : p.derivative.natDegree ≤ d)
+    (ha : ∀ i, ∑ j, |M i j| ≤ a)
+    (hB : v 0 ^ 2 + v 1 ^ 2 ≤ B ^ 2) (hB0 : 0 ≤ B)
+    (hnum : 3 * a *
+        (∑ k ∈ Finset.range d,
+          (∑ n ∈ Finset.range (d - k), ((n + k + 1).choose (k + 1) : ℝ) *
+            |((p.derivative.coeff (n + k + 1) : ℚ) : ℝ)| * B ^ n) * (3 / 2 * R) ^ k) ≤ z₂)
+    (hrR : r ≤ R)
+    (hyr : y + z₁ * r + z₂ * r ^ 2 / 2 ≤ r)
+    (hzr : z₁ + z₂ * r < 1) :
+    UniqueRootNear p (toComplex v) r := by
+  refine .ofZeroFinder <| existsUnique_root_of_certificates_approx p M v w hy0 hy1 hz1w
+    hw0 hw1 hεR hz1 hdeg ha hB hB0
+    (show √2 ≤ 1.5 from Real.sqrt_two_lt_d2.le.trans (by norm_num)) ?_ hrR hyr hzr
+  norm_num
+  exact hnum
+
 /-- If `p` is even (its evaluation is invariant under negating the point), then `polyToZeroFinder`
 is invariant under negating the input, since `toComplex` is linear. -/
 lemma polyToZeroFinder_neg {p : Polynomial ℚ} (heven : ∀ z : ℂ, aeval (-z) p = aeval z p)

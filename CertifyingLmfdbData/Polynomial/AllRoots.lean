@@ -210,6 +210,17 @@ example : UniqueRootNear myPoly' (toComplex ![0.641564061943673, 0]) 1e-10 := by
 example : UniqueRootNear (X^6 - 1 : Polynomial ℚ) (toComplex ![1, 0]) 1e-30 := by
   unique_root_near !![1/6, 0; 0, 1/6]
 
+/-- An ill-conditioned certificate: `(X - 1)(X - (1 + 10⁻³⁰))` has two roots `10⁻³⁰` apart, so
+the inverse Jacobian at the root `1` is `≈ -10³⁰` and the Lipschitz certificate is
+`z₂ ≈ 6·10³⁰`. The truncated derivative point `w` must then carry ~35 decimal places for the
+transported error `z₂·ε` to fit in the `z₁ = 1/2` budget — this exercises the adaptive
+truncation width (a fixed 20-digit `w` fails here with `z₂·ε ≈ 6·10¹⁰`). -/
+example : UniqueRootNear
+    (X^2 - C (2000000000000000000000000000001 / 1000000000000000000000000000000) * X
+      + C (1000000000000000000000000000001 / 1000000000000000000000000000000) : Polynomial ℚ)
+    (toComplex ![1, 0]) 1e-40 := by
+  unique_root_near !![-1e30, 0; 0, -1e30]
+
 /-! ### Fundamental units (LMFDB 6.4.19208000.1)
 
 The unit group has rank 4 (signature `(4,1)`); the fundamental units from LMFDB are

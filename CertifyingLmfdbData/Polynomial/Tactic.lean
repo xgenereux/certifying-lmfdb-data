@@ -12,13 +12,22 @@ UniqueRootNear (aeval · p) (toComplex v) r
 given an approximate inverse-Jacobian matrix `M`. All other certificate data is derived
 automatically, by exact rational arithmetic **at the meta level**:
 
-* `y := r / 10`, `z₁ := r` and `R := r` (overridable with `(y := …)`, `(z₁ := …)`,
+* `y := r / 10`, `z₁ := 1/2` and `R := max r 10⁻⁶` (overridable with `(y := …)`, `(z₁ := …)`,
   `(R := …)`),
 * the derivative polynomial `pd`, its degree bound `d`, the row-sum bound `a` on `M`, and the
   norm bound `B` on `v` are computed from the goal and the certificate,
 * the Lipschitz certificate `z₂` is estimated as `3a` times the binomial-weighted coefficient
-  sum appearing in the `hnum` hypothesis (with `R = r` tiny, the `k ≥ 1` tail is negligible,
+  sum appearing in the `hnum` hypothesis (with `R` tiny, the `k ≥ 1` tail is negligible,
   so this is essentially sharp); override with `(z₂ := …)` if needed.
+
+The approximate-inverse bound is *not* certified at `v` itself: `p'` is evaluated at a proxy
+point `w` — `v` truncated to an adaptively chosen number of decimal places,
+`~max 6 (log₁₀(500·z₂/z₁))` — and the row-sum bound `z₁'` obtained there is transported to
+`v` through the Lipschitz certificate, `‖1 - M·p'(v)‖ ≤ z₁' + z₂·ε ≤ z₁` with `ε ≥ |v - w|`
+the truncation error. Since `z₁ = 1/2` is loose (the Newton–Kantorovich inequalities
+`hyr`/`hzr` admit `z₁ ≈ 0.9`), a few digits of `p'(w)` suffice, so this check costs O(1) in
+the precision of `v` instead of dominating the runtime at high precision; ill-conditioned
+inputs (large `z₂`, i.e. clustered roots) buy `w` exactly the extra digits they require.
 
 The tactic applies `UniqueRootNear.of_certificates'` and dispatches every side goal to a fixed
 finisher; a failing numeric check is reported by hypothesis name so that a bad certificate
@@ -38,17 +47,24 @@ two extra degrees of freedom that let a tactic apply it without rewriting the go
 * the radius `r` is a real number, linked to the `ℝ≥0` certificate radius `r'` by `hr`;
 * the derivative of `p` is given explicitly as `pd` (with proof `hpd`), so that every
   remaining hypothesis mentions only the explicit polynomial `pd` and is closed by uniform
-  `simp`/`norm_num` calls. -/
+  `simp`/`norm_num` calls;
+* the approximate-inverse bound `hz1w` is stated at a low-precision proxy `w` for `v` (with
+  truncation error `hw0`/`hw1` at most `ε ≤ R`) and transported to `v` through the Lipschitz
+  certificate by `hz1 : z₁' + z₂ * ε ≤ z₁`, keeping its arithmetic O(1) in the precision. -/
 noncomputable def UniqueRootNear.of_certificates' (p pd : ℚ[X])
-    (M : Matrix (Fin 2) (Fin 2) ℝ) (v : Fin 2 → ℝ) {r : ℝ} (r' y z₁ z₂ R : ℝ≥0)
+    (M : Matrix (Fin 2) (Fin 2) ℝ) (v w : Fin 2 → ℝ) {r : ℝ} (r' y z₁ z₁' z₂ ε R : ℝ≥0)
     (d : ℕ) (a B : ℝ)
     (hr : r = r')
     (hpd : derivative p = pd)
     (hy0 : |M 0 0 * (aeval (toComplex v) p).re + M 0 1 * (aeval (toComplex v) p).im| ≤ y)
     (hy1 : |M 1 0 * (aeval (toComplex v) p).re + M 1 1 * (aeval (toComplex v) p).im| ≤ y)
-    (hz1 : ∀ i, ∑ j, |(1 - M *
-        !![(aeval (toComplex v) pd).re, -(aeval (toComplex v) pd).im;
-           (aeval (toComplex v) pd).im, (aeval (toComplex v) pd).re]) i j| ≤ z₁)
+    (hz1w : ∀ i, ∑ j, |(1 - M *
+        !![(aeval (toComplex w) pd).re, -(aeval (toComplex w) pd).im;
+           (aeval (toComplex w) pd).im, (aeval (toComplex w) pd).re]) i j| ≤ z₁')
+    (hw0 : |v 0 - w 0| ≤ ε)
+    (hw1 : |v 1 - w 1| ≤ ε)
+    (hεR : ε ≤ R)
+    (hz1 : z₁' + z₂ * ε ≤ z₁)
     (hdeg : pd.natDegree ≤ d)
     (ha : ∀ i, ∑ j, |M i j| ≤ a)
     (hB : v 0 ^ 2 + v 1 ^ 2 ≤ B ^ 2) (hB0 : 0 ≤ B)
@@ -61,7 +77,8 @@ noncomputable def UniqueRootNear.of_certificates' (p pd : ℚ[X])
     (hzr : z₁ + z₂ * r' < 1) :
     UniqueRootNear p (toComplex v) r := by
   subst hr hpd
-  exact .of_certificates p M v hy0 hy1 hz1 hdeg ha hB hB0 hnum hrR hyr hzr
+  exact .of_certificates_approx p M v w hy0 hy1 hz1w hw0 hw1 hεR hz1 hdeg ha hB hB0 hnum
+    hrR hyr hzr
 
 end
 
@@ -241,6 +258,19 @@ def sqrtUpper (S : ℚ) (prec : ℕ) : ℚ :=
     let N := ratCeil (S * scale * scale)
     ((N.toNat.sqrt + 1 : ℕ) : ℚ) / scale
 
+/-- An upper bound for `⌈log₁₀ q⌉`: a `k` with `q ≤ 10 ^ k` (0 for `q ≤ 1`). Computed from the
+numerator's bit length — `q ≤ q.num < 2 ^ (log₂ num + 1) ≤ 10 ^ (0.31 (log₂ num + 1) + 1)` —
+so it is a single GMP lookup even for enormous values, at the price of overshooting by a digit
+or two (harmless where this is used: sizing the truncation width of `w`). -/
+def log10Upper (q : ℚ) : ℕ :=
+  if q ≤ 1 then 0 else (q.num.natAbs.log2 + 1) * 31 / 100 + 1
+
+/-- Truncate `q` toward `-∞` to `k` decimal places: `⌊q * 10^k⌋ / 10^k`, so
+`0 ≤ q - truncDecimals q k < 10^(-k)`. -/
+def truncDecimals (q : ℚ) (k : ℕ) : ℚ :=
+  let scale : ℤ := 10 ^ k
+  (((q.num * scale).fdiv q.den : ℤ) : ℚ) / (scale : ℚ)
+
 /-- Round `s` up to about `sig` significant decimal digits (never rounding below `s`). -/
 def roundUpSig (s : ℚ) (sig : ℕ) : ℚ := Id.run do
   if s ≤ 0 then return 0
@@ -376,9 +406,19 @@ unique_root_near M
 where `M` is a rational approximation of the inverse Jacobian of the zero finder of `p` at
 `v` (a `!![…]` literal or a definition unfolding to one). All remaining certificates are
 computed from the goal and `M`; the named arguments `(y := …)` (default `r / 10`),
-`(z₁ := …)` (default `r`), `(R := …)` (default `r`), `(z₂ := …)` (default: an exact
-rational estimate of the Lipschitz constant), `(d := …)`, `(a := …)` and `(B := …)`
-override the computed values. -/
+`(z₁ := …)` (default `1/2`), `(R := …)` (default `max r 10⁻⁶`), `(z₂ := …)` (default: an
+exact rational estimate of the Lipschitz constant), `(d := …)`, `(a := …)` and `(B := …)`
+override the computed values. `z₁`, `R` and `z₂` overrides must be numeric literals (they
+size the truncation below).
+
+The approximate-inverse check evaluates `p'` at `w`, the truncation of `v` to
+`max 6 (⌈log₁₀(500·z₂/z₁)⌉) (⌈log₁₀(1/R)⌉)` decimal places (truncation error `ε`), and
+transports the bound to `v` through the Lipschitz certificate: `z₁' + z₂ * ε ≤ z₁`, where
+`z₁'` bounds `‖1 - M·p'(w)‖`. By construction `z₂ · ε` consumes ≤ ~0.2% of the `z₁` budget,
+however ill-conditioned the input — a large `z₂` (clustered roots) simply buys `w` the digits
+it genuinely needs, and since `hzr` forces `z₂ · r < 1` this never exceeds the digits of `r`
+by more than ~3 — so the check's cost is independent of the precision of `v`, and a
+certificate can only fail here if `M` is inaccurate at the ~`z₁` level. -/
 syntax (name := uniqueRootNearStx) "unique_root_near" ppSpace term:max
   (" (" ident " := " term ")")* : tactic
 
@@ -447,48 +487,59 @@ elab_rules : tactic
       throwError "unique_root_near: expected a 2×2 matrix, got{indentExpr MExpr}"
     let MName? := (constName? MExpr).toArray
 
-    -- Certificate `Expr`s (user overrides take precedence). For `a`, `B` and `R` we also keep
-    -- the exact rational value, which feeds the `z₂` estimate.
+    -- Certificate `Expr`s (user overrides take precedence). For `z₁`, `R` and `z₂` we also
+    -- keep the exact rational value, which sizes the truncated evaluation point `w`; for `a`
+    -- and `B` the rational value feeds the `z₂` estimate (so it is only needed while `z₂` is
+    -- not given).
     let realTy := mkConst ``Real
     let nnTy := mkConst ``NNReal
     let z₂Given := (arg? `z₂).isSome
     let overrideExpr (t : Term) (ty : Expr) : TacticM Expr := do
       instantiateMVars (← Tactic.elabTermEnsuringType t ty)
-    -- an override elaborated to an `Expr`, with its exact rational value (needed only to estimate
-    -- `z₂` automatically)
-    let overrideRatE (t : Term) (ty : Expr) (what : String) : TacticM (ℚ × Expr) := do
+    -- an override elaborated to an `Expr`, with its exact rational value; `why` names the
+    -- automatic computation that needs the value (skipped entirely with `needed := false`)
+    let overrideRatE (t : Term) (ty : Expr) (what why : String) (needed : Bool := true) :
+        TacticM (ℚ × Expr) := do
       let e ← overrideExpr t ty
-      let q ← if z₂Given then pure 0 else
+      let q ← if !needed then pure 0 else
         try parseRat e
         catch _ => throwErrorAt t
-          "unique_root_near: to estimate z₂ automatically, ({what} := …) must be a numeric \
-          literal; otherwise supply (z₂ := …) explicitly"
+          "unique_root_near: to {why}, ({what} := …) must be a numeric literal"
       pure (q, e)
+    let estWhy := "estimate z₂ automatically (otherwise supply (z₂ := …) explicitly)"
+    let truncWhy := "size the truncated derivative evaluation point automatically"
 
     let pdExpr ← polyToExpr pdq
     let r'E ← ratToExpr rq nnTy
     let yE ← match arg? `y with | some t => overrideExpr t nnTy | none => ratToExpr (rq / 10) nnTy
-    let z₁E ← match arg? `z₁ with | some t => overrideExpr t nnTy | none => ratToExpr rq nnTy
+    let (z₁q, z₁E) ← match arg? `z₁ with
+      | some t => overrideRatE t nnTy "z₁" truncWhy
+      | none => pure (1 / 2, ← ratToExpr (1 / 2 : ℚ) nnTy)
     let dE ← match arg? `d with
       | some t => overrideExpr t (mkConst ``Nat)
       | none => pure (mkNatLit dVal)
     let (Bq, BE) ← match arg? `B with
-      | some t => overrideRatE t realTy "B"
+      | some t => overrideRatE t realTy "B" estWhy (needed := !z₂Given)
       | none => do
         let q := sqrtUpper (vq[0]! ^ 2 + vq[1]! ^ 2) 4
         pure (q, ← ratToExpr q realTy)
     let (aq, aE) ← match arg? `a with
-      | some t => overrideRatE t realTy "a"
+      | some t => overrideRatE t realTy "a" estWhy (needed := !z₂Given)
       | none => do
         -- row-sum bound on |M|, from the elaborated matrix
         let rowSum (i : ℕ) : ℚ := |(Mq[i]!)[0]!| + |(Mq[i]!)[1]!|
         let q := roundUpSig (max (rowSum 0) (rowSum 1)) 6
         pure (q, ← ratToExpr q realTy)
+    -- The Lipschitz ball must contain both the certified root (radius `r`) and the truncated
+    -- point `w` (distance ≤ ε from `v`); the `10⁻⁶` floor guarantees `ε ≤ R` for the adaptive
+    -- `ε` below at no cost (`R` enters `z₂` only through the negligible `(3/2·R)^k` tail).
     let (Rq, RE) ← match arg? `R with
-      | some t => overrideRatE t nnTy "R"
-      | none => pure (rq, ← ratToExpr rq nnTy)
-    let z₂E ← match arg? `z₂ with
-      | some t => overrideExpr t nnTy
+      | some t => overrideRatE t nnTy "R" truncWhy
+      | none => do
+        let q := max rq (1 / 1000000)
+        pure (q, ← ratToExpr q nnTy)
+    let (z₂q, z₂E) ← match arg? `z₂ with
+      | some t => overrideRatE t nnTy "z₂" truncWhy
       | none => do
         -- exact rational evaluation of the sum bounded in `hnum`, rounded up
         let mut S : ℚ := 0
@@ -497,21 +548,57 @@ elab_rules : tactic
           for n in [0:dVal - k] do
             inner := inner + ((n + k + 1).choose (k + 1) : ℚ) * |pdq[n + k + 1]!| * Bq ^ n
           S := S + inner * ((3 / 2 : ℚ) * Rq) ^ k
-        ratToExpr (roundUpSig (3 * aq * S) 3) nnTy
+        let q := roundUpSig (3 * aq * S) 3
+        pure (q, ← ratToExpr q nnTy)
 
-    -- Shared evaluation: `p` and its derivative at `toComplex v` are exact Gaussian rationals,
-    -- computed at the meta level so the residual (`hy0`/`hy1`) and inverse-bound (`hz1`) finishers
-    -- rewrite to a concrete value and do only rational arithmetic, instead of each re-expanding
-    -- the (typeclass-heavy) `aeval`.
+    -- The proxy point `w` for the approximate-inverse check: `v` truncated to `wDigits`
+    -- decimal places, sized so the transported truncation error `z₂ · ε` consumes at most
+    -- ~0.2% of the `z₁` budget (`10^wDigits ≥ 500·z₂/z₁`) and so `w` lies in the Lipschitz
+    -- ball (`ε ≤ R`). This adapts to ill-conditioned inputs — `z₂` scales like the inverse
+    -- root-separation, so clustered roots simply buy `w` the digits they genuinely require —
+    -- while staying independent of the precision of `v`: since `hzr` forces `z₂ · r < 1`,
+    -- `w` never carries more than ~3 digits beyond what the radius `r` itself demands.
+    let wDigits : ℕ :=
+      max 6 (max (log10Upper (500 * z₂q / z₁q)) (log10Upper (1 / Rq)))
+    let εq : ℚ := 1 / 10 ^ wDigits
+    let wq := vq.map (truncDecimals · wDigits)
+    let εE ← ratToExpr εq nnTy
+
+    -- `p'` at the truncated point `toComplex w` (exact Gaussian rational, bounded size), and
+    -- the rounded-up row-sum bound `z₁'` on `|1 - M · p'(w)|` (as a 2×2 real matrix).
+    let (pdwReQ, pdwImQ) := evalGaussian pdq wq[0]! wq[1]!
+    let z₁'q := Id.run do
+      let mut rows : Array ℚ := #[]
+      for i in [0:2] do
+        let mi0 := (Mq[i]!)[0]!
+        let mi1 := (Mq[i]!)[1]!
+        let c0 := (if i = 0 then (1 : ℚ) else 0) - (mi0 * pdwReQ + mi1 * pdwImQ)
+        let c1 := (if i = 1 then (1 : ℚ) else 0) - (mi0 * (-pdwImQ) + mi1 * pdwReQ)
+        rows := rows.push (|c0| + |c1|)
+      return roundUpSig (max rows[0]! rows[1]!) 3
+    let z₁'E ← ratToExpr z₁'q nnTy
+
+    -- Shared evaluation: `p` at `toComplex v` and `p'` at `toComplex w` are exact Gaussian
+    -- rationals, computed at the meta level so the residual (`hy0`/`hy1`) and inverse-bound
+    -- (`hz1w`) finishers rewrite to a concrete value and do only rational arithmetic, instead
+    -- of each re-expanding the (typeclass-heavy) `aeval`. (`p'` is never evaluated at `v`
+    -- itself: at high precision that exact value — and its verification — dominated the
+    -- runtime, and the certificate only needs it at the truncated `w`.)
     let (pvReQ, pvImQ) := evalGaussian pq vq[0]! vq[1]!
-    let (pdReQ, pdImQ) := evalGaussian pdq vq[0]! vq[1]!
     let pvReE ← ratToExpr pvReQ realTy
     let pvImE ← ratToExpr pvImQ realTy
-    let pdReE ← ratToExpr pdReQ realTy
-    let pdImE ← ratToExpr pdImQ realTy
+    let pdwReE ← ratToExpr pdwReQ realTy
+    let pdwImE ← ratToExpr pdwImQ realTy
     let v0E ← ratToExpr vq[0]! realTy
     let v1E ← ratToExpr vq[1]! realTy
     let tcV := args[1]!
+    -- `w` as a `![w0, w1]` vector literal, and `toComplex w` (reusing the head symbol of the
+    -- goal's `toComplex v`)
+    let wE ← do
+      let empty ← mkAppOptM ``Matrix.vecEmpty #[some realTy]
+      let tail ← mkAppM ``Matrix.vecCons #[← ratToExpr wq[1]! realTy, empty]
+      mkAppM ``Matrix.vecCons #[← ratToExpr wq[0]! realTy, tail]
+    let tcW := mkApp tcV.consumeMData.appFn! wE
     let expOpts : Options → Options := (exponentiation.threshold.set · expThreshold)
 
     -- Assert `hv0`/`hv1 : (v : Fin 2 → ℝ) i = <rational>`, rewriting each decimal coordinate to
@@ -531,27 +618,30 @@ elab_rules : tactic
     let hv0 ← assertDecimal `hv0 0 v0E
     let hv1 ← assertDecimal `hv1 1 v1E
 
-    -- Assert `hpv`/`hpdv : (aeval (toComplex v)) p = ↑re + ↑im · I` (and the same for `pd`), a
-    -- single `aeval` expansion each. `Complex.ext_iff` splits into `re`/`im` after the expansion,
-    -- and `v 0`/`v 1` are rewritten via `hv0`/`hv1` so no oversized decimal reaches `norm_num`
-    -- (which then only expands the small complex/polynomial powers `(a + b·I) ^ k`).
+    -- Assert `hpv : (aeval (toComplex v)) p = ↑re + ↑im · I` and
+    -- `hpdw : (aeval (toComplex w)) pd = ↑re + ↑im · I`, a single `aeval` expansion each.
+    -- `Complex.ext_iff` splits into `re`/`im` after the expansion, and `v 0`/`v 1` are
+    -- rewritten via `hv0`/`hv1` so no oversized decimal reaches `norm_num` (which then only
+    -- expands the small complex/polynomial powers `(a + b·I) ^ k`); the components of the
+    -- `![…]` literal `w` reduce by the default `Matrix.cons_val` simp lemmas.
     let expandClose (unfolds : Array Name) (g : MVarId) : MetaM Unit := do
       let g ← rwGoal g (← mkConstWithFreshMVarLevels ``Polynomial.aeval_def)
       let g ← rwGoal g (← mkConstWithFreshMVarLevels ``Polynomial.eval₂_eq_eval_map)
       unless (← normNumGoal g #[(``toComplex_apply, false), (``pow_succ, false),
           (``pow_zero, false), (``Complex.ext_iff, false)] unfolds #[hv0, hv1]).isNone do
         throwError "unique_root_near: could not evaluate p or p' at the approximation"
-    let assertAeval (nm : Name) (pE reE imE : Expr) (unfolds : Array Name) : TacticM FVarId := do
+    let assertAeval (nm : Name) (x pE reE imE : Expr) (unfolds : Array Name) :
+        TacticM FVarId := do
       (← getMainGoal).withContext do
-        let ty ← mkAevalEq tcV pE reE imE
+        let ty ← mkAevalEq x pE reE imE
         assertHyp nm ty (← proveExpr ty (expandClose unfolds))
-    let hpv ← assertAeval `hpv p pvReE pvImE pName?
-    let hpdv ← assertAeval `hpdv pdExpr pdReE pdImE #[]
+    let hpv ← assertAeval `hpv tcV p pvReE pvImE pName?
+    let hpdw ← assertAeval `hpdw tcW pdExpr pdwReE pdwImE #[]
 
     -- Apply the assembly lemma; `apply` unifies its conclusion with the goal (solving `p`, `v`,
-    -- `r`) and returns the 13 hypothesis goals in declaration order.
+    -- `r`) and returns the 17 hypothesis goals in declaration order.
     let e ← mkAppOptM ``UniqueRootNear.of_certificates'
-      #[p, pdExpr, MExpr, v, some rExpr, r'E, yE, z₁E, z₂E, RE, dE, aE, BE]
+      #[p, pdExpr, MExpr, v, wE, some rExpr, r'E, yE, z₁E, z₁'E, z₂E, εE, RE, dE, aE, BE]
     let goals ←
       try (← getMainGoal).apply e
       catch err => throwError "unique_root_near: failed to apply \
@@ -587,10 +677,21 @@ elab_rules : tactic
         close (← rwGoal g (mkFVar hpv)) (unfolds := MName?)),
       ("hy1", "the residual bound |(M·p(v))₁| ≤ y", fun g => do
         close (← rwGoal g (mkFVar hpv)) (unfolds := MName?)),
-      ("hz1", "the approximate-inverse bound ‖1 - M·p'(v)‖ ≤ z₁", fun g => do
+      ("hz1w", "the approximate-inverse bound ‖1 - M·p'(w)‖ ≤ z₁' at the truncated point",
+        fun g => do
         let g ← rwGoal g (← mkConstWithFreshMVarLevels ``Fin.forall_fin_two)
-        let g ← rwGoal g (mkFVar hpdv)
+        let g ← rwGoal g (mkFVar hpdw)
         close g #[(``Matrix.one_apply, false), (``Fin.sum_univ_two, false)] MName?),
+      ("hw0", "the truncation error |v 0 - w 0| ≤ ε", fun g => do
+        close g (fvars := #[hv0])),
+      ("hw1", "the truncation error |v 1 - w 1| ≤ ε", fun g => do
+        close g (fvars := #[hv1])),
+      ("hεR", "ε ≤ R", fun g => do
+        close (← rwGoal g (← mkConstWithFreshMVarLevels ``NNReal.coe_le_coe) (symm := true))
+          coeArith (pushCast := true)),
+      ("hz1", "the combined approximate-inverse bound z₁' + z₂·ε ≤ z₁", fun g => do
+        close (← rwGoal g (← mkConstWithFreshMVarLevels ``NNReal.coe_le_coe) (symm := true))
+          coeArith (pushCast := true)),
       ("hdeg", "the degree bound on the derivative", fun g => do
         setGoals [g]
         evalTactic (← `(tactic| compute_degree!))
