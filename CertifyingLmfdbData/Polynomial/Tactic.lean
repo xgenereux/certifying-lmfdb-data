@@ -357,17 +357,14 @@ def assertHyp (name : Name) (type proof : Expr) : TacticM FVarId := do
 
 /-! ### The tactic -/
 
-/-- Multiplicity of the prime `p` in `n` (i.e. the largest `k` with `p ^ k ∣ n`); `0` when
-`n = 0`. Used only with `p ∈ {2, 5}`. -/
-partial def padicVal (p n : ℕ) : ℕ :=
-  if 1 < n && n % p == 0 then padicVal p (n / p) + 1 else 0
-
-/-- Number of decimal places of `q`: the least `e` with `q * 10 ^ e ∈ ℤ`, i.e.
-`max (v₂ q.den) (v₅ q.den)`. A decimal literal `OfScientific m true e` denoting `q` unfolds (via
-`LawfulOfScientific.ofScientific_def`) to `↑m / 10 ^ e`, and this returns that `e` — the exponent
-the finishers must evaluate `10 ^ e` at. -/
-def decimalPlaces (q : ℚ) : ℕ :=
-  max (padicVal 2 q.den) (padicVal 5 q.den)
+/-- Upper bound on the number of decimal places of `q` (the least `e` with `q * 10 ^ e ∈ ℤ`,
+i.e. `max (v₂ q.den) (v₅ q.den)`, when `q` denotes a decimal literal): since `2 ^ v₂(den) ≤ den`
+and `5 ^ v₅(den) ≤ den`, the bit length `den.log2 + 1` bounds both valuations. A bound suffices
+here — this only feeds `exponentiation.threshold`, where overshooting (by ≤ log₂ 10 ≈ 3.3×) is
+harmless — and `Nat.log2` is a single GMP bit-length lookup, whereas computing the valuations
+exactly by repeated division is O(D²) in the digit count `D` (it dominated the whole tactic at
+high precision: ~21 s of a 61 s run at 100 000 digits). -/
+def decimalPlaces (q : ℚ) : ℕ := q.den.log2 + 1
 
 /-- Certify a unique root of a rational polynomial near a decimal approximation, via the
 Newton–Kantorovich theorem. Usage, on a goal `UniqueRootNear (aeval · p) (toComplex v) r`:
