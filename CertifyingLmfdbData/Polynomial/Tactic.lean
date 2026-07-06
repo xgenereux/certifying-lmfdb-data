@@ -1,4 +1,5 @@
 import CertifyingLmfdbData.Polynomial.UniqueRootNear
+import CertifyingLmfdbData.IntervalArithmetic.DyadicReal
 
 /-!
 # The `unique_root_near` tactic
@@ -19,6 +20,13 @@ automatically, by exact rational arithmetic **at the meta level**:
 * the Lipschitz certificate `z₂` is estimated as `3a` times the binomial-weighted coefficient
   sum appearing in the `hnum` hypothesis (with `R` tiny, the `k ≥ 1` tail is negligible,
   so this is essentially sharp); override with `(z₂ := …)` if needed.
+
+The residual bounds `hy0`/`hy1` are the one place exact arithmetic is avoided: `p(v)` is
+expanded *symbolically* in the atoms `v 0`, `v 1` (`hpvRe`/`hpvIm`, cost O(deg²) independent of
+the precision), and `|(M·p(v))ᵢ| ≤ y` is then certified by dyadic interval arithmetic
+(`CertifyingLmfdbData/IntervalArithmetic/`) at a working precision of ~D digits plus guard
+bits — one kernel `decide` per bound instead of a `norm_num` pass over ~6·D-digit exact
+Gaussian rationals.
 
 The approximate-inverse bound is *not* certified at `v` itself: `p'` is evaluated at a proxy
 point `w` — `v` truncated to an adaptively chosen number of decimal places,
@@ -201,6 +209,26 @@ def polyTrim (a : Array ℚ) : Array ℚ := Id.run do
 def polyDeriv (a : Array ℚ) : Array ℚ :=
   .ofFn (n := a.size - 1) fun i => ((i.1 : ℚ) + 1) * a[i.1 + 1]!
 
+/-- The real and imaginary parts of `p(x₀ + x₁·i)` as *bivariate* coefficient arrays: entry
+`[a][b]` of each component is the rational coefficient of `x₀^a * x₁^b`. Computed by Horner's
+scheme on dense bivariate arrays; both components have ~deg²/2 entries, independent of the
+precision of any evaluation point. -/
+def gaussianSymbolic (coeffs : Array ℚ) : Array (Array ℚ) × Array (Array ℚ) := Id.run do
+  let add (a b : Array (Array ℚ)) : Array (Array ℚ) :=
+    .ofFn (n := max a.size b.size) fun i => polyAdd (a.getD i #[]) (b.getD i #[])
+  let mulX (a : Array (Array ℚ)) : Array (Array ℚ) := #[#[]] ++ a
+  let mulY (a : Array (Array ℚ)) : Array (Array ℚ) := a.map (#[0] ++ ·)
+  let mut re : Array (Array ℚ) := #[]
+  let mut im : Array (Array ℚ) := #[]
+  for k in [0:coeffs.size] do
+    let c := coeffs[coeffs.size - 1 - k]!
+    -- (re + im·i)·(x₀ + x₁·i) + c
+    let nre := add (add (mulX re) ((mulY im).map polyNeg)) #[#[c]]
+    let nim := add (mulY re) (mulX im)
+    re := nre
+    im := nim
+  return (re, im)
+
 /-- Evaluate a dense `ℚ` coefficient array at the Gaussian rational `vr + vi·i` by Horner's
 scheme, returning the real and imaginary parts of the result (both exact rationals). -/
 def evalGaussian (coeffs : Array ℚ) (vr vi : ℚ) : ℚ × ℚ := Id.run do
@@ -329,6 +357,39 @@ def polyToExpr (coeffs : Array ℚ) : MetaM Expr := do
   | some t => return t
   | none => Lean.Meta.mkNumeral qXTy 0
 
+/-- Real-valued `Expr` in monomial form `± c·x₀^a·x₁^b ± …` for a bivariate coefficient array
+(entry `[a][b]` the coefficient of `x₀^a * x₁^b`), over the given atom `Expr`s. Every node is an
+operation registered with the interval-arithmetic framework (`+`/`-`/`*`/`^`/numerals) and the
+two atoms are the only non-numeral leaves, so both the interval walker and `ring` consume it
+directly. -/
+def biToExpr (co : Array (Array ℚ)) (x0E x1E : Expr) (ty : Expr) : MetaM Expr := do
+  let pow (x : Expr) (n : ℕ) : MetaM Expr :=
+    if n = 1 then pure x else mkAppM ``HPow.hPow #[x, mkNatLit n]
+  let mkMonomial (c : ℚ) (a b : ℕ) : MetaM Expr := do
+    let cabs := if c < 0 then -c else c
+    let mut factors : Array Expr := #[]
+    if cabs ≠ 1 || (a = 0 && b = 0) then factors := factors.push (← ratToExpr cabs ty)
+    if a > 0 then factors := factors.push (← pow x0E a)
+    if b > 0 then factors := factors.push (← pow x1E b)
+    let mut acc := factors[0]!
+    for i in [1:factors.size] do acc ← mkAppM ``HMul.hMul #[acc, factors[i]!]
+    return acc
+  let mut acc : Option Expr := none
+  for a' in [0:co.size] do
+    let a := co.size - 1 - a'
+    let row := co[a]!
+    for b' in [0:row.size] do
+      let b := row.size - 1 - b'
+      let c := row[b]!
+      if c = 0 then continue
+      let t ← mkMonomial c a b
+      acc := some (← match acc with
+        | none => if c < 0 then mkAppM ``Neg.neg #[t] else pure t
+        | some s => if c < 0 then mkAppM ``HSub.hSub #[s, t] else mkAppM ``HAdd.hAdd #[s, t])
+  match acc with
+  | some t => return t
+  | none => Lean.Meta.mkNumeral ty 0
+
 /-- The `Expr` `(Polynomial.aeval x) p = ↑re + ↑im * I` (with `re`, `im : ℝ`, `x`, `p` over the
 `ℚ`-algebra ℂ). -/
 def mkAevalEq (x pE reE imE : Expr) : MetaM Expr := do
@@ -368,9 +429,34 @@ def normNumGoal (g : MVarId) (consts : Array (Name × Bool) := #[])
   | some prf => g.assign prf; return none
   | none => return some (← applySimpResultToTarget g tgt r)
 
+/-- `simp only` on `g` from `MetaM`: like `normNumGoal` but with *only* the given lemmas — no
+default `simp` set and no `norm_num` extension — so it is pure structural rewriting, safe on
+goals containing numerals too large to evaluate. Never fails; returns `none` when the goal is
+closed, else the (possibly unchanged) residual goal. -/
+def simpOnlyGoal (g : MVarId) (consts : Array (Name × Bool) := #[])
+    (unfolds : Array Name := #[]) (fvars : Array FVarId := #[]) : MetaM (Option MVarId) :=
+  g.withContext do
+    let mut thms : SimpTheorems := {}
+    for (n, inv) in consts do thms ← thms.addConst n (inv := inv)
+    for n in unfolds do thms ← thms.addDeclToUnfold n
+    for h in fvars do thms ← thms.add (.fvar h) #[] (mkFVar h)
+    let ctx ← Simp.mkContext (← Simp.Context.mkDefault).config (simpTheorems := #[thms])
+      (congrTheorems := ← getSimpCongrTheorems)
+    return (← simpTarget g ctx).1
+
 /-- Close an equality goal with the `ring1` engine, from `MetaM`. -/
 def ringGoal (g : MVarId) : MetaM Unit :=
-  Mathlib.Tactic.AtomM.run .instances (Mathlib.Tactic.Ring.proveEq g)
+  g.withContext <| Mathlib.Tactic.AtomM.run .instances (Mathlib.Tactic.Ring.proveEq g)
+
+/-- Certify an inequality goal `g` — real arithmetic whose leaves are numerals and whose
+operations are registered `DyadicReal` interval ops — by dyadic interval arithmetic at
+`approxParam` bits of working precision, from `MetaM` (no tactic `Syntax`). The enclosure is
+evaluated once compiled at the meta level (which rejects an insufficient certificate before any
+proof is built) and once by the kernel, inside the single `decide` of the final comparison. -/
+def intervalLeGoal (g : MVarId) (approxParam : ℕ) : MetaM Unit := g.withContext do
+  let ctx ← IntervalArithmetic.mkContext `DyadicReal approxParam {}
+  let (proof, _) ← IntervalArithmetic.intervalCore Dyadic g |>.run ctx |>.run {}
+  g.assign proof
 
 /-- Prove proposition `type` by running `close` on a fresh metavariable (in the current local
 context) — `close` must fully solve it — returning the resulting proof term. -/
@@ -511,7 +597,11 @@ elab_rules : tactic
 
     let pdExpr ← polyToExpr pdq
     let r'E ← ratToExpr rq nnTy
-    let yE ← match arg? `y with | some t => overrideExpr t nnTy | none => ratToExpr (rq / 10) nnTy
+    -- `y`'s exact value sizes the working precision of the interval certification of the
+    -- residual bound (and the rebuilt real-valued numeral it compares against).
+    let (yq, yE) ← match arg? `y with
+      | some t => overrideRatE t nnTy "y" "certify the residual bound by interval arithmetic"
+      | none => pure (rq / 10, ← ratToExpr (rq / 10) nnTy)
     let (z₁q, z₁E) ← match arg? `z₁ with
       | some t => overrideRatE t nnTy "z₁" truncWhy
       | none => pure (1 / 2, ← ratToExpr (1 / 2 : ℚ) nnTy)
@@ -578,15 +668,13 @@ elab_rules : tactic
       return roundUpSig (max rows[0]! rows[1]!) 3
     let z₁'E ← ratToExpr z₁'q nnTy
 
-    -- Shared evaluation: `p` at `toComplex v` and `p'` at `toComplex w` are exact Gaussian
-    -- rationals, computed at the meta level so the residual (`hy0`/`hy1`) and inverse-bound
-    -- (`hz1w`) finishers rewrite to a concrete value and do only rational arithmetic, instead
-    -- of each re-expanding the (typeclass-heavy) `aeval`. (`p'` is never evaluated at `v`
-    -- itself: at high precision that exact value — and its verification — dominated the
-    -- runtime, and the certificate only needs it at the truncated `w`.)
-    let (pvReQ, pvImQ) := evalGaussian pq vq[0]! vq[1]!
-    let pvReE ← ratToExpr pvReQ realTy
-    let pvImE ← ratToExpr pvImQ realTy
+    -- `p'` at the truncated `toComplex w` is an exact Gaussian rational of bounded size,
+    -- computed at the meta level so the inverse-bound (`hz1w`) finisher rewrites to a concrete
+    -- value and does only rational arithmetic instead of re-expanding the (typeclass-heavy)
+    -- `aeval`. (Neither `p` nor `p'` is ever evaluated exactly at `v` itself: at high precision
+    -- those ~6·D-digit values — and their kernel verification — dominated the runtime. The
+    -- certificate needs `p'` only at `w`, and the residual bound on `p(v)` is certified by
+    -- interval arithmetic below.)
     let pdwReE ← ratToExpr pdwReQ realTy
     let pdwImE ← ratToExpr pdwImQ realTy
     let v0E ← ratToExpr vq[0]! realTy
@@ -618,12 +706,10 @@ elab_rules : tactic
     let hv0 ← assertDecimal `hv0 0 v0E
     let hv1 ← assertDecimal `hv1 1 v1E
 
-    -- Assert `hpv : (aeval (toComplex v)) p = ↑re + ↑im · I` and
-    -- `hpdw : (aeval (toComplex w)) pd = ↑re + ↑im · I`, a single `aeval` expansion each.
-    -- `Complex.ext_iff` splits into `re`/`im` after the expansion, and `v 0`/`v 1` are
-    -- rewritten via `hv0`/`hv1` so no oversized decimal reaches `norm_num` (which then only
-    -- expands the small complex/polynomial powers `(a + b·I) ^ k`); the components of the
-    -- `![…]` literal `w` reduce by the default `Matrix.cons_val` simp lemmas.
+    -- Assert `hpdw : (aeval (toComplex w)) pd = ↑re + ↑im · I`, a single `aeval` expansion.
+    -- `Complex.ext_iff` splits into `re`/`im` after the expansion, and `norm_num` only ever
+    -- sees the truncated components of the `![…]` literal `w` (which reduce by the default
+    -- `Matrix.cons_val` simp lemmas), so this stays O(1) in the precision of `v`.
     let expandClose (unfolds : Array Name) (g : MVarId) : MetaM Unit := do
       let g ← rwGoal g (← mkConstWithFreshMVarLevels ``Polynomial.aeval_def)
       let g ← rwGoal g (← mkConstWithFreshMVarLevels ``Polynomial.eval₂_eq_eval_map)
@@ -635,8 +721,41 @@ elab_rules : tactic
       (← getMainGoal).withContext do
         let ty ← mkAevalEq x pE reE imE
         assertHyp nm ty (← proveExpr ty (expandClose unfolds))
-    let hpv ← assertAeval `hpv tcV p pvReE pvImE pName?
     let hpdw ← assertAeval `hpdw tcW pdExpr pdwReE pdwImE #[]
+
+    -- The residual `p(v)` is handled *symbolically*: `hpvRe`/`hpvIm` equate
+    -- `(aeval (toComplex v) p).re/.im` with the explicit monomial-form polynomials `E_re`/`E_im`
+    -- in the atoms `v 0`, `v 1` (the bivariate expansion of `p(x₀ + x₁·i)`, computed at the meta
+    -- level from the coefficient array). Their proofs never see a D-digit numeral: the atoms are
+    -- generalized to fresh variables before `norm_num`/`ring` run, so the cost is O(deg²)
+    -- whatever the precision of `v`. The exact Gaussian-rational value of `p(v)` (~6·D digits)
+    -- is never formed — the `hy0`/`hy1` finishers below substitute `hv0`/`hv1` into `E_re`/`E_im`
+    -- and certify the residual bound by dyadic interval arithmetic at ~D-digit precision.
+    let x0E := mkApp v (← Lean.Meta.mkNumeral fin2 0)
+    let x1E := mkApp v (← Lean.Meta.mkNumeral fin2 1)
+    let (reCo, imCo) := gaussianSymbolic pq
+    let provePart (proj : Name) (co : Array (Array ℚ)) : TacticM Expr := do
+      (← getMainGoal).withContext do
+        let E ← biToExpr co x0E x1E realTy
+        let hom ← mkAppOptM ``Polynomial.aeval
+          #[some (mkConst ``Rat), some (mkConst ``Complex), none, none, none, some tcV]
+        let ty ← mkEq (mkApp (mkConst proj) (← mkAppM ``DFunLike.coe #[hom, p])) E
+        proveExpr ty fun g => do
+          let g ← rwGoal g (← mkConstWithFreshMVarLevels ``toComplex_apply)
+          let (_, g) ← g.generalize #[{ expr := x0E }, { expr := x1E }]
+          let g ← rwGoal g (← mkConstWithFreshMVarLevels ``Polynomial.aeval_def)
+          let g ← rwGoal g (← mkConstWithFreshMVarLevels ``Polynomial.eval₂_eq_eval_map)
+          match ← normNumGoal g #[(``pow_succ, false), (``pow_zero, false)] pName? with
+          | none => pure ()
+          | some g' => ringGoal g'
+    let hpvRePf ←
+      try provePart ``Complex.re reCo
+      catch err => throwError "unique_root_near: could not symbolically expand \
+        (p(v)).re:{indentD err.toMessageData}"
+    let hpvImPf ←
+      try provePart ``Complex.im imCo
+      catch err => throwError "unique_root_near: could not symbolically expand \
+        (p(v)).im:{indentD err.toMessageData}"
 
     -- Apply the assembly lemma; `apply` unifies its conclusion with the goal (solving `p`, `v`,
     -- `r`) and returns the 17 hypothesis goals in declaration order.
@@ -660,6 +779,37 @@ elab_rules : tactic
     let coeArith : Array (Name × Bool) := #[(``NNReal.coe_add, false), (``NNReal.coe_mul, false),
       (``NNReal.coe_div, false), (``NNReal.coe_pow, false), (``NNReal.coe_one, false),
       (``NNReal.coe_ofNat, false)]
+
+    -- The residual finisher: substitute the symbolic `p(v)` and the exact coordinates into the
+    -- goal (pure structural rewriting — no numeral is ever evaluated), then certify the bound by
+    -- dyadic interval arithmetic. The working precision only needs the leaves' own bit lengths
+    -- (they are exact) plus guard bits for the ~deg² interval operations; the compiled meta-level
+    -- enclosure check runs before any proof is built, so on a miss we retry once at higher
+    -- precision before declaring the certificate bad.
+    let approxP : ℕ := 64 + max (decimalPlaces yq)
+      (vq.foldl (fun acc q => max acc (decimalPlaces q)) 0)
+    let yRealE ← ratToExpr yq realTy
+    let matrixEntrySimp : Array (Name × Bool) := #[(``Matrix.of_apply, false),
+      (``Matrix.cons_val', false), (``Matrix.cons_val_zero, false),
+      (``Matrix.cons_val_one, false), (``Matrix.head_cons, false),
+      (``Matrix.empty_val', false), (``Matrix.cons_val_fin_one, false),
+      (``Matrix.head_fin_const, false)]
+    let residualCheck (g : MVarId) : TacticM Unit := do
+      let g ← rwGoal g hpvRePf
+      let g ← rwGoal g hpvImPf
+      -- `v 0`/`v 1` to their exact numerals, `M`'s entries out of the `!![…]` literal
+      let some g ← simpOnlyGoal g matrixEntrySimp MName? #[hv0, hv1]
+        | throwError "internal error: the residual goal was closed by structural rewriting"
+      -- `↑y` (an `ℝ≥0`-coercion, unregistered) to a plain real numeral
+      let some (_, _, yCoeE) := (← g.getType).le?
+        | throwError "internal error: the residual goal is not a `≤`"
+      let g ← rwGoal g (← proveExpr (← mkEq yCoeE yRealE) fun g =>
+        close g coeArith (pushCast := true))
+      try intervalLeGoal g approxP
+      catch e =>
+        try intervalLeGoal g (4 * approxP + 256)
+        catch _ => throwError "the interval enclosure of the residual does not stay below y \
+          (is M accurate and r not too tight?):{indentD e.toMessageData}"
     let hnumConsts : Array (Name × Bool) :=
       #[(``Finset.sum_range_succ, false), (``Finset.sum_range_zero, false),
         (``Polynomial.C_ofNat, true), (``Polynomial.coeff_add, false),
@@ -673,10 +823,8 @@ elab_rules : tactic
         match ← normNumGoal g #[(``Polynomial.C_ofNat, false)] pName? with
         | none => pure ()
         | some g' => ringGoal g'),
-      ("hy0", "the residual bound |(M·p(v))₀| ≤ y", fun g => do
-        close (← rwGoal g (mkFVar hpv)) (unfolds := MName?)),
-      ("hy1", "the residual bound |(M·p(v))₁| ≤ y", fun g => do
-        close (← rwGoal g (mkFVar hpv)) (unfolds := MName?)),
+      ("hy0", "the residual bound |(M·p(v))₀| ≤ y", residualCheck),
+      ("hy1", "the residual bound |(M·p(v))₁| ≤ y", residualCheck),
       ("hz1w", "the approximate-inverse bound ‖1 - M·p'(w)‖ ≤ z₁' at the truncated point",
         fun g => do
         let g ← rwGoal g (← mkConstWithFreshMVarLevels ``Fin.forall_fin_two)

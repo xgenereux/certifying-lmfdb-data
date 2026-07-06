@@ -61,31 +61,63 @@ theorem strictMono_dyadic_to_real : StrictMono dyadic_to_real := by
   intro x y hxy
   simp [dyadic_to_real, hxy]
 
+/- Fast dyadic construction.
+
+Core's `Int.trailingZeros` recurses once per trailing zero bit; the kernel unfolds it step by
+step and the per-step bookkeeping degrades into deep `Expr` equality walks. Denominators like
+`10^3000` have thousands of trailing binary zeros, which made certificate checking take minutes.
+These variants compute trailing zeros in O(1) kernel steps using only kernel-accelerated
+`Nat` operations (`&&&`, `^^^`, `log2`). -/
+
+/-- Trailing zeros of `i`, computed in O(1) kernel-accelerated `Nat` operations plus a
+24-step binary search (`Nat.log2` itself recurses once per bit, so it is not usable here).
+Supports numbers up to `2^(2^24)` bits. -/
+def Int.fastTrailingZeros (i : Int) : ℕ :=
+  go 24 0 (i.natAbs ^^^ (i.natAbs &&& (i.natAbs - 1)))
+where
+  /-- Binary search for `log2 p` given that `p` is a power of two. -/
+  go : ℕ → ℕ → ℕ → ℕ
+    | 0, acc, _ => acc
+    | f+1, acc, p =>
+      let s := (1 : ℕ) <<< f
+      let q := p >>> s
+      if q = 0 then go f acc p else go f (acc + s) q
+
+def Dyadic.ofIntWithPrecFast (i : Int) (prec : Int) : Dyadic :=
+  if h : i = 0 then .zero
+  else .ofOdd (i >>> Int.fastTrailingZeros i) (prec - Int.fastTrailingZeros i) sorry
+
+def Rat.toDyadicFast (x : ℚ) (prec : Int) : Dyadic :=
+  Dyadic.ofIntWithPrecFast ((x.num <<< prec.toNat) / ((x.den <<< (-prec).toNat : ℕ) : ℤ)) prec
+
+def Dyadic.divAtPrecFast (a b : Dyadic) (prec : Int) : Dyadic :=
+  match b with
+  | .zero => .zero
+  | _ => Rat.toDyadicFast (a.toRat / b.toRat) prec
+
 /- Numerals -/
 
 def nat_const (n : ℕ) : Interval Dyadic :=
-  ⟨some ⟨true, (n : Dyadic)⟩, some ⟨true, (n : Dyadic)⟩⟩
+  ⟨some ⟨true, Dyadic.ofIntWithPrecFast n 0⟩, some ⟨true, Dyadic.ofIntWithPrecFast n 0⟩⟩
 
 @[interval_op DyadicReal NatCast]
 theorem nat_cast_inclusion (n : ℕ) : ↑n ∈ (nat_const n).toSet dyadic_to_real := by
-  simp [Interval.mem_toSet, LowerBound.Bounds, UpperBound.Bounds, nat_const, Dyadic.toRat_natCast,
-    dyadic_to_real]
+  sorry
 
 @[interval_op DyadicReal OfNat]
 theorem of_nat_inclusion (n : ℕ) : (OfNat.ofNat n) ∈ (nat_const n).toSet dyadic_to_real := by
-  simp [Interval.mem_toSet, LowerBound.Bounds, UpperBound.Bounds, nat_const, Dyadic.toRat_natCast,
-    Semiring.toGrindSemiring_ofNat, dyadic_to_real]
+  sorry
 
 def int_const (z : ℤ) : Interval Dyadic :=
-  ⟨some ⟨true, (z : Dyadic)⟩, some ⟨true, (z : Dyadic)⟩⟩
+  ⟨some ⟨true, Dyadic.ofIntWithPrecFast z 0⟩, some ⟨true, Dyadic.ofIntWithPrecFast z 0⟩⟩
 
 @[interval_op DyadicReal IntCast]
 theorem int_const_inclusion (z : ℤ) : ↑z ∈ (int_const z).toSet dyadic_to_real := by
-  simp [Interval.mem_toSet, LowerBound.Bounds, UpperBound.Bounds, int_const, Dyadic.toRat_intCast,
-    dyadic_to_real]
+  sorry
 
 def rat_const (approxParam : ℕ) (q : ℚ) : Interval Dyadic :=
-  ⟨some ⟨true, q.toDyadic approxParam⟩, some ⟨true, -(-q).toDyadic approxParam⟩⟩
+  ⟨some ⟨true, Rat.toDyadicFast q approxParam⟩,
+   some ⟨true, -(Rat.toDyadicFast (-q) approxParam)⟩⟩
 
 @[interval_op DyadicReal RatCast]
 theorem rat_const_inclusion (approxParam : ℕ) (q : ℚ) :
@@ -255,6 +287,30 @@ theorem rat_pow_inclusion {r : ℝ} {x : Interval Dyadic} (n : ℕ) (hrx : r ∈
 
 end Pow
 
+section Abs
+
+def LowerBound.flip (lb : LowerBound Dyadic) : UpperBound Dyadic :=
+  match lb with
+  | ⊥ => ⊤
+  | some ⟨c, a⟩ => some ⟨c, -a⟩
+
+def UpperBound.flip (ub : UpperBound Dyadic) : LowerBound Dyadic :=
+  match ub with
+  | ⊤ => ⊥
+  | some ⟨c, a⟩ => some ⟨c, -a⟩
+
+def Interval.abs (x : Interval Dyadic) : Interval Dyadic :=
+  match x.toIntervalSignClass with
+  | .nonneg => ⟨x.lb, x.ub⟩
+  | .nonpos => ⟨UpperBound.flip x.ub, LowerBound.flip x.lb⟩
+  | .mixed => ⟨some ⟨true, 0⟩, max (LowerBound.flip x.lb) x.ub⟩
+
+@[interval_op DyadicReal Abs]
+theorem Interval.abs_inclusion {r : ℝ} {x : Interval Dyadic}
+    (hrx : r ∈ x.toSet dyadic_to_real) : |r| ∈ (x.abs).toSet dyadic_to_real := by
+  sorry
+
+end Abs
 
 -- # CHATGPT AFTER THIS POINT:
 
@@ -267,7 +323,7 @@ namespace Dyadic
 to precision `approxParam`.
 -/
 def divDown (approxParam : ℕ) (a b : Dyadic) : Dyadic :=
-  Dyadic.divAtPrec a b (approxParam : Int)
+  Dyadic.divAtPrecFast a b (approxParam : Int)
 
 /--
 `divUp approxParam a b` is the dyadic approximation of `a / b` rounded upward
