@@ -333,6 +333,14 @@ lemma x'_apply : ∀ (i : Fin 1), ↑(x' i) = x i := by
   intro i
   rfl
 
+/-- v4.32 helper. Proven in a clean *generic* `[CommRing A]` context, where `simp`
+reduces the all-`^0` product to `1`. Inside this file the local instances stop
+`simp`/`rw` from firing `pow_zero`/`mul_one` on the goal's product directly, so the
+all-zero-exponent `IsInClass` bullets multiply through this instead (matched by
+`Eq.trans` up to defeq). -/
+private lemma span_eq_span_mul_prod_zero₁ {A : Type*} [CommRing A] (β : A) (a : Ideal A) :
+    Ideal.span {β} = Ideal.span {β} * (1 * a ^ 0) := by simp
+
 lemma relations_proof0 (i : Fin 9) : IsInClass O x (g 0 i) (BM 0 i) := by
   show IsInClass O x (g 0 i) (![![1], ![1], ![1], ![1], ![1], ![1], ![1], ![1], ![1]] i)
   unfold IsInClass

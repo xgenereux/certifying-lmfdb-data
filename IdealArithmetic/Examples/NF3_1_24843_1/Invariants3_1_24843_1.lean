@@ -190,8 +190,8 @@ def NPSU3 : pSaturatedClassGroupCertificateNDvdT 3 ![J0, J1] ![3, 3] where
   · decide
  h := fun i =>
   match i with 
-  | 0 => by convert J0_pow3
-  | 1 => by convert J1_pow3
+  | 0 => by convert J0_pow3 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide
+  | 1 => by convert J1_pow3 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide
  N := ![![1, 1], ![1, 0], ![0, 2]]
  hM2 := by 
   intro (i : Fin 3) j
@@ -209,6 +209,7 @@ def NPSU3 : pSaturatedClassGroupCertificateNDvdT 3 ![J0, J1] ![3, 3] where
 lemma T_discr : T.discr = -223587 :=  by
   convert discriminant_eq_DiscriminantOfPRemainder_of_SturmBuilderOfList SturmRC
   rw [T_ofList]
+  decide
 
 theorem K_discr : NumberField.discr K = -24843 := by
   rw [discr_numberField_eq_discrSubalgebraBuilder T_irreducible BQ O_integral_closure]
@@ -281,9 +282,16 @@ def x : Fin 2 → Ideal O := ![J0,J1]
 
 def x' :  Fin 2 → nonZeroDivisors (Ideal O) := by 
   refine fun i => Ideal.toNonZeroDivisorOfNeZero (x i) (?_ )
-  unfold x
-  rw [← Submodule.zero_eq_bot, ← pow_ne_zero_iff (n := ![3, 3] i) (by fin_cases i <;> decide) , NPSU3.h] 
-  simp only [ Submodule.zero_eq_bot, ne_eq, Ideal.span_singleton_eq_bot, NPSU3]
+  -- v4.32: the old `rw [← Submodule.zero_eq_bot, ← pow_ne_zero_iff …]` no longer
+  -- fires (two distinct `Zero (Ideal O)` instances: `⊥` vs the `MonoidWithZero` 0).
+  -- Argue by contradiction: if `xᵢ = ⊥` then `xᵢ ^ nᵢ ≤ ⊥`, but the certificate says
+  -- `xᵢ ^ nᵢ` is a nonzero principal ideal.
+  intro hc
+  have hle : x i ^ ![3, 3] i = ⊥ :=
+    le_bot_iff.mp ((Ideal.pow_le_self (by fin_cases i <;> decide)).trans hc.le)
+  rw [show x i ^ ![3, 3] i = _ from NPSU3.h i] at hle
+  revert hle
+  simp only [imp_false, ne_eq, Ideal.span_singleton_eq_bot, NPSU3]
   fin_cases i    
   · dsimp [alpha0] ; rw [(LinearEquiv.map_eq_zero_iff B.equivFun.symm)] ; decide 
   · dsimp [alpha1] ; rw [(LinearEquiv.map_eq_zero_iff B.equivFun.symm)] ; decide 
@@ -301,49 +309,49 @@ lemma relations_proof0 (i : Fin 15) : IsInClass O x (g 0 i) (BM 0 i) := by
   unfold IsInClass
   simp only [Fin.isValue, Fin.prod_univ_castSucc, Finset.univ_eq_empty, Finset.prod_empty, Fin.succ_zero_eq_one, one_mul]
   fin_cases i
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R2N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R2N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R2N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R2N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R3N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R3N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R3N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R3N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R5N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R5N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R5N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R5N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R7N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R7N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R11N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R11N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R13N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R13N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R17N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R17N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R23N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R23N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R29N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R29N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R31N0))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R31N0 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R31N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R31N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R31N2))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R31N2 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
 
@@ -352,7 +360,7 @@ lemma relations_proof1 (i : Fin 1) : IsInClass O x (g 1 i) (BM 1 i) := by
   unfold IsInClass
   simp only [Fin.isValue, Fin.prod_univ_castSucc, Finset.univ_eq_empty, Finset.prod_empty, Fin.succ_zero_eq_one, one_mul]
   fin_cases i
-  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R41N1))))
+  · refine Exists.intro _ (Exists.intro ?_ (Exists.intro (?_) (Exists.intro ?_ (by convert R41N1 <;> first | rfl | (simp [BM, g, x]; done) | (simp; done) | decide))))
     refine Nat.cast_ne_zero.2 (by decide)
     exact (LinearEquiv.map_ne_zero_iff B.equivFun.symm).mpr (by decide)
 

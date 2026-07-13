@@ -1036,7 +1036,7 @@ def PBC103 : ContainsPrimesAboveP 103 ![I103N0, I103N1, I103N1, I103N2] where
 lemma PB122I2_primes (p : ℕ) :
   p ∈ Set.range ![67, 71, 73, 79, 83, 89, 97, 101, 103] ↔ Nat.Prime p ∧ 61 < p ∧ p ≤ 103 := by
   rw [← List.mem_ofFn']
-  convert primes_range 61 103 (by omega)
+  convert primes_range 61 103 (by omega) <;> decide
 
 def PB122I2 : PrimesBelowBoundCertificateInterval' O 61 103 122 where
   m := 9

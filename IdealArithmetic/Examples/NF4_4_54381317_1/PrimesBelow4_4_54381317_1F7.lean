@@ -1080,7 +1080,7 @@ def PBC409 : ContainsPrimesAboveP 409 ![I409N0, I409N1, I409N2] where
 lemma PB692I7_primes (p : ℕ) :
   p ∈ Set.range ![353, 359, 367, 373, 379, 383, 389, 397, 401, 409] ↔ Nat.Prime p ∧ 349 < p ∧ p ≤ 409 := by
   rw [← List.mem_ofFn']
-  convert primes_range 349 409 (by omega)
+  convert primes_range 349 409 (by omega) <;> decide
 
 def PB692I7 : PrimesBelowBoundCertificateInterval' O 349 409 692 where
   m := 10

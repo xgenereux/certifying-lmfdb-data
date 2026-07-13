@@ -1031,7 +1031,7 @@ def PBC173 : ContainsPrimesAboveP 173 ![I173N0, I173N1, I173N2, I173N3] where
 lemma PB692I3_primes (p : ℕ) :
   p ∈ Set.range ![127, 131, 137, 139, 149, 151, 157, 163, 167, 173] ↔ Nat.Prime p ∧ 113 < p ∧ p ≤ 173 := by
   rw [← List.mem_ofFn']
-  convert primes_range 113 173 (by omega)
+  convert primes_range 113 173 (by omega) <;> decide
 
 def PB692I3 : PrimesBelowBoundCertificateInterval' O 113 173 692 where
   m := 10

@@ -1171,7 +1171,7 @@ def PBC659 : ContainsPrimesAboveP 659 ![I659N0, I659N1] where
 lemma PB692I11_primes (p : ℕ) :
   p ∈ Set.range ![607, 613, 617, 619, 631, 641, 643, 647, 653, 659] ↔ Nat.Prime p ∧ 601 < p ∧ p ≤ 659 := by
   rw [← List.mem_ofFn']
-  convert primes_range 601 659 (by omega)
+  convert primes_range 601 659 (by omega) <;> decide
 
 def PB692I11 : PrimesBelowBoundCertificateInterval' O 601 659 692 where
   m := 10

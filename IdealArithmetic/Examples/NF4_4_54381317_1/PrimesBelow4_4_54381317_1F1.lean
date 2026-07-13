@@ -1056,7 +1056,7 @@ def PBC71 : ContainsPrimesAboveP 71 ![I71N0, I71N1] where
 lemma PB692I1_primes (p : ℕ) :
   p ∈ Set.range ![31, 37, 41, 43, 47, 53, 59, 61, 67, 71] ↔ Nat.Prime p ∧ 29 < p ∧ p ≤ 71 := by
   rw [← List.mem_ofFn']
-  convert primes_range 29 71 (by omega)
+  convert primes_range 29 71 (by omega) <;> decide
 
 def PB692I1 : PrimesBelowBoundCertificateInterval' O 29 71 692 where
   m := 10
